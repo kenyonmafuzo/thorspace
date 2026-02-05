@@ -4,8 +4,6 @@ import { useState, useContext, useEffect } from "react";
 import { UserStatsContext } from "@/app/components/stats/UserStatsProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { createInboxMessage } from "@/lib/inbox";
-import { ensureProfileAndOnboarding } from "@/lib/ensureProfile";
 
 export default function SignupPage() {
     const userStatsCtx = useContext(UserStatsContext);
@@ -158,11 +156,17 @@ export default function SignupPage() {
     }
 
     try {
-      // create account
+      // Salvar username no localStorage para usar depois da confirmação
+      try { 
+        localStorage.setItem("thor_username", username.trim()); 
+      } catch (e) {}
+
+      // Criar conta com confirmação de email obrigatória
       const resp = await supabase.auth.signUp({
         email: String(email).trim(),
         password: String(password),
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             username: username.trim(),
           }
@@ -171,7 +175,6 @@ export default function SignupPage() {
 
       if (resp.error) {
         console.error("Erro no signup:", resp.error);
-        // AAA: mensagem clara para e-mail já cadastrado
         if (resp.error.status === 422 && resp.error.message && resp.error.message.toLowerCase().includes("already registered")) {
           setError("Este e-mail já está cadastrado. <a href='/login' style='color:#00E5FF;text-decoration:underline;'>Fazer login</a> ou use outro e-mail.");
         } else {
@@ -181,87 +184,16 @@ export default function SignupPage() {
         return;
       }
 
-      // Aguarda sessão do Supabase
-      const { data: sessionData } = await supabase.auth.getSession();
-      const sessionUser = sessionData?.session?.user;
-      if (!sessionUser || !sessionUser.id) {
-        setError("Conta criada! Confirme seu email para ativar o acesso.");
-        setSuccess("");
-        setLoading(false);
-        return;
-      }
-
-      // ✅ Usar a MESMA função que o login usa para garantir consistência
-      console.log("[Signup] Chamando ensureProfileAndOnboarding com username:", username.trim());
-      const onboardingResult = await ensureProfileAndOnboarding(sessionUser, {
-        username: username.trim(),
-      });
-
-      if (onboardingResult.error) {
-        console.error("[Signup] Erro no ensureProfileAndOnboarding:", onboardingResult.error);
-        setError("Erro ao criar perfil. Tente novamente.");
-        setLoading(false);
-        return;
-      }
-
-      // Salvar username no localStorage
-      try { 
-        localStorage.setItem("username", username.trim()); 
-        localStorage.setItem("thor_username", username.trim()); 
-      } catch (e) {}
-
-      // ⏳ Aguardar propagação dos dados no banco (crítico para Vercel)
-      console.log("[Signup] Aguardando propagação dos dados...");
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // ✅ Conta criada! Agora usuário precisa confirmar email
+      console.log("[Signup] Conta criada, aguardando confirmação de email");
       
-      // ✅ Verificar se dados realmente existem antes de redirecionar
-      let dataReady = false;
-      for (let i = 0; i < 5; i++) {
-        const [profileCheck, statsCheck, progressCheck] = await Promise.all([
-          supabase.from("profiles").select("id").eq("id", sessionUser.id).maybeSingle(),
-          supabase.from("player_stats").select("user_id").eq("user_id", sessionUser.id).maybeSingle(),
-          supabase.from("player_progress").select("user_id").eq("user_id", sessionUser.id).maybeSingle(),
-        ]);
-        
-        if (profileCheck.data && statsCheck.data && progressCheck.data) {
-          console.log("[Signup] ✅ Todos os dados confirmados no banco!");
-          dataReady = true;
-          break;
-        }
-        
-        console.log(`[Signup] Tentativa ${i + 1}/5 - aguardando dados...`);
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
+      setSuccess("Conta criada! Verifique seu email para confirmar o cadastro.");
+      setLoading(false);
       
-      if (!dataReady) {
-        console.warn("[Signup] Dados podem não estar prontos, mas prosseguindo...");
-      }
-
-      // Envia mensagem de boas-vindas no inbox
-      try {
-        await createInboxMessage({
-          user_id: sessionUser.id,
-          type: "welcome",
-          content: `Bem-vindo(a) ao **Thorspace!**\n\nThorspace é um jogo de batalhas espaciais por turnos, focado em estratégia.\n\nAntes de cada partida, você escolhe 3 naves, cada uma com sua especialidade. A escolha certa depende da sua estratégia de jogo.\n\nDurante a partida, o jogo acontece em turnos:\n\nPrimeiro você escolhe qual nave vai se mover, depois define para onde ela vai e onde irá mirar.\nRepita esse processo até concluir as 3 jogadas do turno.\n\nVocê pode jogar contra o computador para treinar ou enfrentar outros jogadores no modo multiplayer.\n\nGanhe batalhas para acumular XP, subir de nível, conquistar badges e avançar no ranking.\n\nBoa sorte e boas batalhas.`,
-          cta: null,
-          cta_url: null,
-          lang: "pt"
-        });
-      } catch (e) { /* não bloqueia fluxo se falhar */ }
-
-      setSuccess("Conta criada com sucesso! Redirecionando...");
-      // Força atualização do contexto de stats
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new Event("thor_stats_updated"));
-        // Marca que precisa de reload ao chegar em /mode
-        localStorage.setItem("thor_needs_reload", "1");
-        router.replace("/mode");
-        return;
-      }
-
-      // email confirmation flow: profile will be created by trigger after confirm
-      setSuccess("Conta criada! Confirme seu email para entrar.");
-      setTimeout(() => router.push("/login"), 1200);
+      // Redireciona para login após 3 segundos
+      setTimeout(() => {
+        router.push("/login?msg=confirm_email");
+      }, 3000);
     } catch (e) {
       console.error(e);
       setError("Erro desconhecido ao criar conta.");

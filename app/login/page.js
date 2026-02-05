@@ -14,8 +14,15 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [infoMessage, setInfoMessage] = useState("");
 
   useEffect(() => {
+    // Verificar se veio do signup com parâmetro msg=confirm_email
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('msg') === 'confirm_email') {
+      setInfoMessage("✉️ Verifique seu email para confirmar o cadastro antes de fazer login.");
+    }
+
     let mounted = true;
 
     async function checkSession() {
@@ -320,6 +327,21 @@ export default function LoginPage() {
         />
 
         <div style={card}>
+          {infoMessage && (
+            <div style={{
+              padding: '12px 14px',
+              borderRadius: 8,
+              background: 'rgba(0, 229, 255, 0.1)',
+              border: '1px solid rgba(0, 229, 255, 0.3)',
+              color: '#00E5FF',
+              fontSize: 13,
+              marginBottom: 16,
+              textAlign: 'center',
+            }}>
+              {infoMessage}
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit}>
             <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
               Email ou Username
