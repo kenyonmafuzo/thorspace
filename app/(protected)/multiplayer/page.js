@@ -131,6 +131,14 @@ export default function MultiplayerPage() {
       }
     }
 
+    // ✅ Timeout de segurança: se após 5s ainda estiver em loading, força false
+    const safetyTimeout = setTimeout(() => {
+      if (mounted) {
+        console.warn("[Multiplayer] Loading timeout - forçando loading=false");
+        setLoading(false);
+      }
+    }, 5000);
+
     (async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
@@ -247,11 +255,14 @@ export default function MultiplayerPage() {
       } catch (err) {
         console.error("Error loading user:", err);
         if (mounted) setLoading(false);
+      } finally {
+        clearTimeout(safetyTimeout);
       }
     })();
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimeout);
     };
   }, [router]);
 

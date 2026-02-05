@@ -35,10 +35,17 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const loadProfileData = async () => {
+    // Timeout de segurança
+    const safetyTimeout = setTimeout(() => {
+      console.warn("[Profile] Loading timeout - forçando loading=false");
+      setLoading(false);
+    }, 5000);
+    
     try {
       const { data } = await supabase.auth.getSession();
       const sess = data?.session;
       if (!sess) {
+        clearTimeout(safetyTimeout);
         setLoading(false);
         router.replace("/login");
         return;
@@ -195,6 +202,7 @@ export default function ProfilePage() {
     } catch (e) {
       console.warn("Erro ao carregar sessão/profile:", e);
     } finally {
+      clearTimeout(safetyTimeout);
       setLoading(false);
     }
   };

@@ -213,6 +213,43 @@ export default function SignupPage() {
           return;
         }
       }
+      
+      // ✅ CRIAR player_stats e player_progress se não existirem
+      try {
+        // Criar player_stats
+        const { error: statsError } = await supabase
+          .from("player_stats")
+          .upsert({
+            user_id: sessionUser.id,
+            matches_played: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+            ships_destroyed: 0,
+            ships_lost: 0,
+          }, { onConflict: 'user_id' });
+        
+        if (statsError) console.warn("Erro ao criar player_stats:", statsError);
+        
+        // Criar player_progress
+        const { error: progressError } = await supabase
+          .from("player_progress")
+          .upsert({
+            user_id: sessionUser.id,
+            level: 1,
+            xp: 0,
+            xp_to_next: 300,
+            total_xp: 0,
+          }, { onConflict: 'user_id' });
+        
+        if (progressError) console.warn("Erro ao criar player_progress:", progressError);
+        
+        // Aguardar propagação no DB (especialmente importante no Vercel)
+        await new Promise(res => setTimeout(res, 800));
+      } catch (e) {
+        console.warn("Erro ao criar dados iniciais:", e);
+      }
+      
       // Salva bootstrap local
       try {
         if (typeof window !== "undefined") {

@@ -29,6 +29,12 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    // Timeout de segurança
+    const safetyTimeout = setTimeout(() => {
+      console.warn("[Settings] Loading timeout - forçando loading=false");
+      setLoading(false);
+    }, 5000);
+    
     (async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -65,9 +71,14 @@ export default function SettingsPage() {
       } catch (e) {
         setSettings(DEFAULT_SETTINGS);
       } finally {
+        clearTimeout(safetyTimeout);
         setLoading(false);
       }
     })();
+    
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, []);
 
   const saveToSupabase = (newSettings) => {
