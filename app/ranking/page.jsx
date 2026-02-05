@@ -1,0 +1,398 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import UserHeader from "@/app/components/UserHeader";
+import { useUserStats } from "@/app/components/stats/UserStatsProvider";
+import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/src/hooks/useI18n";
+import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
+
+export default function RankingPage() {
+  const router = useRouter();
+  const { t } = useI18n();
+  const [loading, setLoading] = useState(true);
+  const { userStats } = useUserStats();
+  const [activeTab, setActiveTab] = useState("multiplayer");
+  const [multiplayerData, setMultiplayerData] = useState([]);
+  const [loadingRanking, setLoadingRanking] = useState(false);
+  const [error, setError] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadRanking() {
+      setLoadingRanking(true);
+      setError("");
+      try {
+        // Buscar todos os perfis
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, username, avatar_preset")
+          .order("username", { ascending: true });
+        if (profilesError) {
+          setError("Erro ao buscar perfis.");
+          setLoadingRanking(false);
+          return;
+        }
+        // Buscar stats e progress de todos os usuários
+        const userIds = profiles.map(p => p.id);
+        const [{ data: statsData }, { data: progressData }] = await Promise.all([
+          supabase
+            .from("player_stats")
+            .select("user_id, matches_played, wins, draws, losses, ships_destroyed"),
+          supabase
+            .from("player_progress")
+            .select("user_id, level, xp, xp_to_next, total_xp")
+        ]);
+        const statsMap = {};
+        (statsData || []).forEach(s => { statsMap[s.user_id] = s; });
+        const progressMap = {};
+        (progressData || []).forEach(p => { progressMap[p.user_id] = p; });
+        // Montar lista final - SEMPRE mostra XP real, mesmo sem partidas
+        const merged = profiles.map(profile => {
+          const stats = statsMap[profile.id] || {};
+          const progress = progressMap[profile.id] || {};
+          const matches_played = Number(stats.matches_played ?? 0);
+          const wins = Number(stats.wins ?? 0);
+          const total_xp = Number(progress.total_xp ?? 0);
+          // Calcula level dinamicamente a partir do total_xp (consistente com header/perfil)
+          const calculatedProgress = getLevelProgressFromTotalXp(total_xp);
+          const level = calculatedProgress.level;
+          const tier = calculatedProgress.tier;
+          const material = calculatedProgress.material;
+          const xp = progress.xp !== undefined ? Number(progress.xp) : 0;
+          const xp_to_next = progress.xp_to_next !== undefined ? Number(progress.xp_to_next) : 300;
+          return {
+            user_id: profile.id,
+            username: profile.username,
+            avatar_preset: profile.avatar_preset,
+            total_xp,
+            level,
+            tier,
+            material,
+            xp,
+            xp_to_next,
+            wins: wins,
+            losses: Number(stats.losses ?? 0),
+            draws: Number(stats.draws ?? 0),
+            matches_played,
+            ships_destroyed: Number(stats.ships_destroyed ?? 0),
+            win_rate: matches_played > 0 ? (wins / matches_played) * 100 : 0,
+          };
+        });
+        // Ordenar: wins desc, ships_destroyed desc, matches_played desc, username asc
+        merged.sort((a, b) => {
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          if (b.ships_destroyed !== a.ships_destroyed) return b.ships_destroyed - a.ships_destroyed;
+          if (b.matches_played !== a.matches_played) return b.matches_played - a.matches_played;
+          return (a.username || '').localeCompare(b.username || '');
+        });
+        if (isMounted) setMultiplayerData(merged);
+      } catch (err) {
+        if (isMounted) setError("Erro ao carregar ranking. Tente novamente.");
+      } finally {
+        if (isMounted) setLoadingRanking(false);
+      }
+    }
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
+      setCurrentUserId(session.user.id);
+      setLoading(false);
+      loadRanking();
+    })();
+
+    function handleStatsUpdated() {
+      loadRanking();
+      // Optimistically update current user's avatar in multiplayerData for instant UI
+      setMultiplayerData(prev => {
+        if (!userStats || !currentUserId) return prev;
+        return prev.map(player =>
+          player.user_id === currentUserId
+            ? { ...player, avatar_preset: userStats.avatar_preset }
+            : player
+        );
+      });
+    }
+    window.addEventListener("thor_stats_updated", handleStatsUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("thor_stats_updated", handleStatsUpdated);
+    };
+  }, [router]);
+
+  return (
+    <>
+      <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
+      <UserHeader />
+      <div style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px' }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-start",
+          gap: 16,
+          padding: "0 0 24px 0",
+          width: "100%",
+          margin: 0,
+          position: "relative",
+          zIndex: 1,
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontSize: 28,
+            fontWeight: 800,
+            color: "#00E5FF",
+            fontFamily: "'Orbitron',sans-serif",
+            letterSpacing: 1,
+          }}>Ranking</h2>
+        </div>
+        <div
+          style={{
+            background: "rgba(0, 0, 0, 0.4)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 12,
+            padding: 24,
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          {multiplayerData.length > 0 && (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                    <th style={headerStyle}>#</th>
+                    <th style={{ ...headerStyle, textAlign: "left" }}>{t('ranking.player')}</th>
+                    <th style={headerStyle}>{t('ranking.level')}</th>
+                    <th style={headerStyle}>{t('ranking.xp')}</th>
+                    <th style={headerStyle}>{t('ranking.wins')}</th>
+                    <th style={headerStyle}>{t('ranking.losses')}</th>
+                    <th style={headerStyle}>{t('ranking.winRate')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Top 10 */}
+                  {multiplayerData.slice(0, 10).map((player, index) => {
+                    const isCurrentUser = player.user_id === currentUserId;
+                    const tier = player.tier || 'Rookie';
+                    const material = player.material || 'Bronze';
+                    const tierUrl = `/game/images/ranks/${tier.toLowerCase()}/${tier.toLowerCase()}_${material.toLowerCase()}.png`;
+                    const avatarPreset = player.avatar_preset || 'normal';
+                    let avatarUrl = null;
+                    if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
+                    else if (avatarPreset === 'protecao') avatarUrl = '/game/images/nave_protecao.png';
+                    else if (avatarPreset === 'alcance') avatarUrl = '/game/images/nave_alcance.png';
+                    else avatarUrl = '/game/images/nave_normal.png';
+                    // Destaque para top 3
+                    let rowBg = "transparent";
+                    if (index < 3) rowBg = "rgba(0,229,255,0.08)";
+                    if (isCurrentUser) rowBg = "#003b5c";
+                    return (
+                      <tr
+                        key={player.user_id}
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          background: rowBg,
+                          outline: isCurrentUser ? "2px solid #00E5FF" : "none",
+                          boxShadow: isCurrentUser ? "0 0 20px #00E5FF33" : (index < 3 ? "0 0 12px #00E5FF22" : "none"),
+                        }}
+                      >
+                        <td style={{ ...cellStyle, fontSize: 24, fontWeight: 900, color: index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : index === 2 ? "#CD7F32" : "#FFF", textShadow: "0 2px 8px rgba(0,0,0,0.25)", fontFamily: "'Orbitron', sans-serif" }}>
+                          {index + 1}
+                        </td>
+                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: isCurrentUser ? 600 : 400, display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Orbitron', sans-serif" }}>
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <img 
+                              src={tierUrl} 
+                              alt={`${tier} ${material}`} 
+                              title={`${tier} ${material}`} 
+                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222' }}
+                              onError={(e) => {
+                                e.currentTarget.src = '/game/images/ranks/rookie/rookie_bronze.png';
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: -3,
+                                right: -3,
+                                width: 14,
+                                height: 14,
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, #00E5FF 0%, #0099CC 100%)",
+                                border: "1.5px solid #001a2e",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 900,
+                                fontSize: 9,
+                                color: "#FFF",
+                                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                                boxShadow: "0 1px 4px rgba(0,229,255,0.4)",
+                                pointerEvents: "none",
+                              }}
+                            >
+                              {player.level}
+                            </div>
+                          </div>
+                          {avatarUrl && (
+                            <img src={avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, border: '2px solid #222' }} />
+                          )}
+                          <span>{player.username || "Player"}</span>
+                          {isCurrentUser && <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
+                          {player.level ?? 1}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#00E5FF", fontSize: 12 }}
+                          title={
+                            isCurrentUser && userStats?.total_xp
+                              ? userStats.total_xp.toLocaleString('pt-BR') + ' XP total (atualizado)'
+                              : player.total_xp?.toLocaleString('pt-BR') + ' XP total'
+                          }
+                        >
+                          {isCurrentUser && userStats?.total_xp !== undefined
+                            ? userStats.total_xp.toLocaleString('pt-BR') + ' XP'
+                            : player.total_xp?.toLocaleString('pt-BR') ?? 0 + ' XP'}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#00FF00" }}>
+                          {player.wins ?? 0}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#FF4444" }}>
+                          {player.losses ?? 0}
+                        </td>
+                        <td style={cellStyle}>
+                          {(player.win_rate ?? 0).toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Linha do usuário logado se não está no top 10 */}
+                  {(() => {
+                    if (!currentUserId) return null;
+                    const foundIndex = multiplayerData.findIndex(p => p.user_id === currentUserId);
+                    if (foundIndex >= 0 && foundIndex < 10) return null; // já está no top 10
+                    if (foundIndex === -1) return null; // não encontrado
+                    const player = multiplayerData[foundIndex];
+                    const tier = player.tier || 'Rookie';
+                    const material = player.material || 'Bronze';
+                    const tierUrl = `/game/images/ranks/${tier.toLowerCase()}/${tier.toLowerCase()}_${material.toLowerCase()}.png`;
+                    const avatarPreset = player.avatar_preset || 'normal';
+                    let avatarUrl = null;
+                    if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
+                    else if (avatarPreset === 'protecao') avatarUrl = '/game/images/nave_protecao.png';
+                    else if (avatarPreset === 'alcance') avatarUrl = '/game/images/nave_alcance.png';
+                    else avatarUrl = '/game/images/nave_normal.png';
+                    return (
+                      <tr
+                        key={currentUserId}
+                        style={{
+                          borderBottom: "1px solid rgba(255,255,255,0.05)",
+                          background: "#003b5c",
+                          outline: "2px solid #00E5FF",
+                          boxShadow: "0 0 20px #00E5FF33",
+                        }}
+                      >
+                        <td style={{ ...cellStyle, fontSize: 24, fontWeight: 900, color: "#00E5FF", textShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>
+                          {foundIndex + 1}
+                        </td>
+                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div style={{ position: 'relative', display: 'inline-block' }}>
+                            <img 
+                              src={tierUrl} 
+                              alt={`${tier} ${material}`} 
+                              title={`${tier} ${material}`} 
+                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222' }}
+                              onError={(e) => {
+                                e.currentTarget.src = '/game/images/ranks/rookie/rookie_bronze.png';
+                              }}
+                            />
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: -3,
+                                right: -3,
+                                width: 14,
+                                height: 14,
+                                borderRadius: "50%",
+                                background: "linear-gradient(135deg, #00E5FF 0%, #0099CC 100%)",
+                                border: "1.5px solid #001a2e",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 900,
+                                fontSize: 9,
+                                color: "#FFF",
+                                textShadow: "0 1px 2px rgba(0,0,0,0.5)",
+                                boxShadow: "0 1px 4px rgba(0,229,255,0.4)",
+                                pointerEvents: "none",
+                              }}
+                            >
+                              {player.level}
+                            </div>
+                          </div>
+                          {avatarUrl && (
+                            <img src={avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, border: '2px solid #222' }} />
+                          )}
+                          <span>{player.username || "Você"}</span>
+                          <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>
+                        </td>
+                        <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
+                          {player.level ?? 1}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#00E5FF", fontSize: 12 }}
+                          title={player.total_xp?.toLocaleString('pt-BR') + ' XP total'}
+                        >
+                          {player.total_xp?.toLocaleString('pt-BR') ?? 0 + ' XP'}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#00FF00" }}>
+                          {player.wins ?? 0}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#FF4444" }}>
+                          {player.losses ?? 0}
+                        </td>
+                        <td style={cellStyle}>
+                          {(player.win_rate ?? 0).toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === "global" && (
+            <div style={{ textAlign: "center", padding: 60, color: "rgba(255,255,255,0.6)" }}>
+              <p style={{ fontSize: 18 }}>{t('ranking.globalComingSoon')}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+const headerStyle = {
+  padding: "12px 8px",
+  fontSize: 11,
+  fontWeight: 700,
+  color: "rgba(255,255,255,0.6)",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  textAlign: "center",
+};
+
+const cellStyle = {
+  padding: "16px 8px",
+  fontSize: 14,
+  textAlign: "center",
+  color: "#FFF",
+  fontFamily: "'Orbitron', sans-serif",
+};

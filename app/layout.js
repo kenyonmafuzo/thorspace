@@ -1,5 +1,9 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
+
+import NotificationProvider from "./components/notifications/NotificationProvider";
+import FloatingToasts from "./components/notifications/FloatingToasts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +24,12 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <Providers>
+          <NotificationProvider>
+            {children}
+            <FloatingToasts />
+          </NotificationProvider>
+        </Providers>
       </body>
     </html>
   );

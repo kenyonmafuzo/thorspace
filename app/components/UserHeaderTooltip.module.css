@@ -1,0 +1,27 @@
+.tooltip {
+  position: absolute;
+  left: 50%;
+  top: 110%;
+  transform: translateX(-50%);
+  min-width: 90px;
+  background: rgba(20, 40, 60, 0.85);
+  color: #9FF6FF;
+  font-family: 'Orbitron', 'Roboto', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-radius: 10px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 16px 0 #00E5FF44;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s cubic-bezier(.4,0,.2,1);
+  white-space: nowrap;
+  text-align: center;
+  backdrop-filter: blur(8px);
+}
+
+.tooltipVisible {
+  opacity: 1;
+}

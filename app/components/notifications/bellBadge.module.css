@@ -1,0 +1,14 @@
+.bellDot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #46B3FF;
+  box-shadow: 0 0 10px 2px #46B3FFcc, 0 0 0 2px #10131a;
+  border: 2px solid #10131a;
+  z-index: 2;
+  pointer-events: none;
+  transition: box-shadow 0.18s, background 0.18s;
+}

@@ -3,6 +3,22 @@
   --foreground: #171717;
 }
 
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/orbitron/v35/yMJMMIlzdpvBhQQL_SC3X9yhF25-T1nyGy6BoWgzfDAlp7lk.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://fonts.gstatic.com/s/orbitron/v35/yMJMMIlzdpvBhQQL_SC3X9yhF25-T1nyKy-JoWgzfDAlp7lk.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -40,3 +56,262 @@ a {
     color-scheme: dark;
   }
 }
+
+#startContainer {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 7vh;
+  z-index: 1001;
+  pointer-events: auto;
+  background: transparent;
+}
+
+#thorspace-logo {
+  width: 550px;
+  max-width: 80vw;
+  height: auto;
+  margin-bottom: -94px;
+  filter: drop-shadow(0 0 28px #0ff5);
+}
+
+#startModal {
+  position: static;
+  width: auto;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1002;
+  border-radius: 32px;
+}
+
+#startModal .modal-content {
+  background: rgba(0, 165, 242, 0.04);
+  border: 1px solid rgba(0, 165, 242, 1.42);
+  box-shadow: 0 0 7px #00a5f2, 0 0 0.3px #0ff8 inset, 0 0 0px #000c;
+  border-radius: 28px;
+  padding: 48px 36px 36px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  backdrop-filter: blur(15px) brightness(1.6);
+}
+
+#startModal label {
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+}
+
+#playerNameInput {
+  background: #0a1b2b;
+  color: #00a5f2;
+  border: 2px solid #00a5f2;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 20px;
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  outline: none;
+  box-shadow: 0 2px 24px #00a5f2 inset;
+}
+
+#startBtn {
+  margin-top: 14px;
+  background: linear-gradient(90deg, #07d8ff, #005ea8 70%);
+  color: #fff;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 44px;
+  letter-spacing: 2px;
+  box-shadow: 0 0 20px #0ff5, 0 2px 8px #000c inset;
+  cursor: pointer;
+}
+
+#startBtn:hover {
+  background: linear-gradient(90deg, #1ef3fc, #1e72ef 80%);
+  color: #0ff;
+}
+
+/* ===== THORSPACE UI (NEXT PAGES) ===== */
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: #000;
+}
+
+button, .mode-btn, .end-btn {
+  text-transform: uppercase;
+}
+
+/* Fundo galaxia (usado no /mode e pode ser reutilizado em outras telas) */
+#galaxyBg {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0;
+  background: url('/images/galaxiaintro.png') center center / cover no-repeat;
+  opacity: 0.18;
+  pointer-events: none;
+  backdrop-filter: blur(54px);
+  -webkit-backdrop-filter: blur(54px);
+}
+
+/* Tela de seleção de modo */
+#modeSelectionScreen {
+  position: fixed;
+  flex-direction: column;
+  justify-content: center;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  align-items: center;
+  z-index: 99999;
+  display: flex;
+}
+
+/* Botões dos modos */
+.mode-btn {
+  padding: 12px 30px;
+  font-family: 'Orbitron',sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 10px;
+  border: none;
+  margin: 10px 0;
+  box-shadow: 0 0 20px #0ff5;
+  transition: background 0.3s, color 0.3s;
+  width: 240px;
+  text-align: center;
+}
+
+.mode-btn:disabled {
+  background: #222;
+  color: #666;
+  border: 2px solid #444;
+  cursor: not-allowed;
+  box-shadow: 0 0 12px #0004;
+}
+
+#practiceBtn.mode-btn {
+  background: linear-gradient(90deg, #07d8ff, #005ea8);
+  color: #0ff;
+}
+
+#practiceBtn.mode-btn:disabled {
+  background: #222;
+  color: #666;
+  border: 2px solid #444;
+  cursor: not-allowed;
+  box-shadow: 0 0 12px #0004;
+}
+
+#multiplayerBtn.mode-btn {
+  background: linear-gradient(90deg, #ff0a94, #5f00ff);
+  color: #0ff;
+}
+
+/* ===== USER HEADER (Nome + Logout) ===== */
+#userHeader {
+  display: flex;
+  position: fixed;
+  top: 18px;
+  right: 38px;
+  z-index: 9000;
+  align-items: center;
+  gap: 13px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 15px;
+}
+
+.user-header-name {
+  color: #0ff;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* UserHeader pill styling to match in-game header */
+.user-header-pill {
+  /* keep position controlled by #userHeader but add pill visuals */
+  background: rgba(6, 18, 30, 0.6);
+  border-radius: 999px;
+  padding: 8px 18px;
+  border: 1px solid rgba(20, 255, 255, 0.06);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(20, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+.user-header-ship {
+  width: 36px;
+  height: auto;
+  margin-right: 8px;
+  filter: drop-shadow(0 0 10px rgba(20,255,255,0.25));
+}
+
+.user-header-score {
+  color: #14ffff;
+  font-weight: 700;
+  font-size: 12px;
+  text-shadow: 0 0 10px rgba(20,255,255,0.45);
+  margin-top: 2px;
+}
+
+.user-logout-btn {
+  margin-left: 12px;
+  background: transparent;
+  border: 1px solid rgba(255,77,77,0.9);
+  color: #ff4d4d;
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255,77,77,0.12);
+  transition: box-shadow .15s ease, transform .08s ease;
+}
+
+.user-logout-btn:hover {
+  box-shadow: 0 0 18px rgba(255,77,77,0.28);
+  transform: translateY(-1px);
+}
+
+/* Responsiveness: smaller pill and fonts on small screens */
+@media (max-width: 600px) {
+  .user-header-pill {
+    padding: 6px 10px;
+    right: 12px;
+    top: 10px;
+  }
+  .user-header-ship { width: 24px; }
+  .user-header-name { font-size: 13px; }
+  .user-header-score { font-size: 11px; }
+  .user-logout-btn { padding: 5px 8px; font-size: 11px; }
+}
+
+/* XP Bar Shimmer Animation */
+@keyframes xpShimmer {
+  0% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.6), inset 0 0 4px rgba(255, 255, 255, 0.3);
+  }
+}
+
