@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { UserStatsContext } from "@/app/components/stats/UserStatsProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +10,18 @@ import { ensureProfileAndOnboarding } from "@/lib/ensureProfile";
 export default function SignupPage() {
     const userStatsCtx = useContext(UserStatsContext);
   const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Verifica se usuário já está autenticado para evitar flash
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace("/mode");
+      } else {
+        setAuthChecked(true);
+      }
+    });
+  }, [router]);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -44,6 +56,22 @@ export default function SignupPage() {
 
   function validatePassword(p) {
     return p.length >= 8 && /\d/.test(p);
+  }
+
+  // Não renderiza até verificar autenticação
+  if (!authChecked) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000',
+        color: '#fff'
+      }}>
+        Carregando...
+      </div>
+    );
   }
 
   async function checkUsernameAvailable(u) {

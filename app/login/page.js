@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -27,6 +28,8 @@ export default function LoginPage() {
 
         if (session) {
           router.replace("/mode");
+        } else {
+          setAuthChecked(true);
         }
       } catch (e) {
         console.error("Session check failed, clearing local session:", e);
@@ -35,6 +38,7 @@ export default function LoginPage() {
         } catch (er) {
           console.warn("signOut failed while clearing session:", er);
         }
+        if (mounted) setAuthChecked(true);
       }
     }
 
@@ -140,6 +144,22 @@ export default function LoginPage() {
       console.error(e);
       setError("Erro ao iniciar OAuth com Google");
     }
+  }
+
+  // Não renderiza até verificar autenticação
+  if (!authChecked) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000',
+        color: '#fff'
+      }}>
+        Carregando...
+      </div>
+    );
   }
 
   const pageStyles = {
