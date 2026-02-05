@@ -133,6 +133,11 @@ export default function SignupPage() {
       const resp = await supabase.auth.signUp({
         email: String(email).trim(),
         password: String(password),
+        options: {
+          data: {
+            username: username.trim(),
+          }
+        }
       });
 
       if (resp.error) {

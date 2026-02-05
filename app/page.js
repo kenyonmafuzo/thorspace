@@ -67,7 +67,7 @@ export default function HomePage() {
     justifyContent: 'center',
     padding: '24px',
     boxSizing: 'border-box',
-    backgroundImage: `url('/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`,
+    backgroundImage: `url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`,
     backgroundSize: 'cover, auto',
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center center',
@@ -96,7 +96,7 @@ export default function HomePage() {
   return (
     <main style={pageStyles}>
       <div style={wrapper}>
-        <img src="/images/thorspace.png" alt="Thorspace" style={logoStyles} />
+        <img src="/game/images/thorspace.png" alt="Thorspace" style={logoStyles} />
 
         <div style={card}>
           <form onSubmit={handleSubmit}>

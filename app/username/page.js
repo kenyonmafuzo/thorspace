@@ -125,7 +125,7 @@ export default function UsernamePage() {
       <div id="startContainer" style={{ display: "flex" }}>
         <img
           id="thorspace-logo"
-          src="/images/thorspace.png"
+          src="/game/images/thorspace.png"
           alt="ThorSpace Logo"
         />
 

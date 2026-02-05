@@ -162,7 +162,7 @@ button, .mode-btn, .end-btn {
   top: 0; left: 0;
   width: 100vw; height: 100vh;
   z-index: 0;
-  background: url('/images/galaxiaintro.png') center center / cover no-repeat;
+  background: url('/game/images/galaxiaintro.png') center center / cover no-repeat;
   opacity: 0.18;
   pointer-events: none;
   backdrop-filter: blur(54px);

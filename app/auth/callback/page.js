@@ -27,8 +27,14 @@ export default function AuthCallbackPage() {
             return;
           }
 
+          // Fallback: pega username do localStorage OU do user_metadata
+          const username2 = localStorage.getItem("thor_username") || 
+                           user2.user_metadata?.username || 
+                           user2.email?.split('@')[0] || 
+                           `user_${user2.id.slice(0, 8)}`;
+
           await ensureProfileAndOnboarding(user2, {
-            username: localStorage.getItem("thor_username"),
+            username: username2,
           });
 
           if (!cancelled) router.replace("/mode");
@@ -36,8 +42,14 @@ export default function AuthCallbackPage() {
         }
 
         // 3) Se já tem user, garante profile + onboarding e segue
+        // Fallback: pega username do localStorage OU do user_metadata
+        const username = localStorage.getItem("thor_username") || 
+                        user.user_metadata?.username || 
+                        user.email?.split('@')[0] || 
+                        `user_${user.id.slice(0, 8)}`;
+
         await ensureProfileAndOnboarding(user, {
-          username: localStorage.getItem("thor_username"),
+          username: username,
         });
 
         if (!cancelled) router.replace("/mode");
