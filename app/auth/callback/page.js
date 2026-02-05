@@ -52,6 +52,29 @@ export default function AuthCallbackPage() {
           username: username,
         });
 
+        // ⏳ Aguardar propagação dos dados no banco (crítico para Vercel)
+        console.log("[Callback] Aguardando propagação dos dados...");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // ✅ Verificar se dados realmente existem
+        let dataReady = false;
+        for (let i = 0; i < 5; i++) {
+          const [profileCheck, statsCheck, progressCheck] = await Promise.all([
+            supabase.from("profiles").select("id").eq("id", user.id).maybeSingle(),
+            supabase.from("player_stats").select("user_id").eq("user_id", user.id).maybeSingle(),
+            supabase.from("player_progress").select("user_id").eq("user_id", user.id).maybeSingle(),
+          ]);
+          
+          if (profileCheck.data && statsCheck.data && progressCheck.data) {
+            console.log("[Callback] ✅ Todos os dados confirmados!");
+            dataReady = true;
+            break;
+          }
+          
+          console.log(`[Callback] Tentativa ${i + 1}/5 - aguardando...`);
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+
         if (!cancelled) router.replace("/mode");
       } catch (err) {
         console.error("Error finishing OAuth callback:", err);

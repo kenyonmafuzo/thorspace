@@ -210,6 +210,33 @@ export default function SignupPage() {
         localStorage.setItem("thor_username", username.trim()); 
       } catch (e) {}
 
+      // ⏳ Aguardar propagação dos dados no banco (crítico para Vercel)
+      console.log("[Signup] Aguardando propagação dos dados...");
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // ✅ Verificar se dados realmente existem antes de redirecionar
+      let dataReady = false;
+      for (let i = 0; i < 5; i++) {
+        const [profileCheck, statsCheck, progressCheck] = await Promise.all([
+          supabase.from("profiles").select("id").eq("id", sessionUser.id).maybeSingle(),
+          supabase.from("player_stats").select("user_id").eq("user_id", sessionUser.id).maybeSingle(),
+          supabase.from("player_progress").select("user_id").eq("user_id", sessionUser.id).maybeSingle(),
+        ]);
+        
+        if (profileCheck.data && statsCheck.data && progressCheck.data) {
+          console.log("[Signup] ✅ Todos os dados confirmados no banco!");
+          dataReady = true;
+          break;
+        }
+        
+        console.log(`[Signup] Tentativa ${i + 1}/5 - aguardando dados...`);
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
+      
+      if (!dataReady) {
+        console.warn("[Signup] Dados podem não estar prontos, mas prosseguindo...");
+      }
+
       // Envia mensagem de boas-vindas no inbox
       try {
         await createInboxMessage({
