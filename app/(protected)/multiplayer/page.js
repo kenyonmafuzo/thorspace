@@ -131,13 +131,13 @@ export default function MultiplayerPage() {
       }
     }
 
-    // ✅ Timeout de segurança: se após 5s ainda estiver em loading, força false
+    // ✅ Timeout de segurança: se após 8s ainda estiver em loading, força false
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
         console.warn("[Multiplayer] Loading timeout - forçando loading=false");
         setLoading(false);
       }
-    }, 5000);
+    }, 8000);
 
     (async () => {
       try {
@@ -148,29 +148,82 @@ export default function MultiplayerPage() {
         const user = session?.user ?? (await supabase.auth.getUser()).data?.user ?? null;
 
         if (!user) {
-          if (mounted) setLoading(false);
+          console.warn("[Multiplayer] Sem usuário autenticado");
+          if (mounted) {
+            setLoading(false);
+            clearTimeout(safetyTimeout);
+          }
           router.replace("/login");
           return;
         }
 
-        if (!mounted) return;
-        setCurrentUser(user);
+        // ✅ Seta currentUser IMEDIATAMENTE para evitar "Não autenticado"
+        if (mounted) {
+          console.log("[Multiplayer] Usuário autenticado:", user.id);
+          setCurrentUser(user);
+        }
 
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("username, avatar_preset")
-          .eq("id", user.id)
-          .maybeSingle();
+        if (!mounted) return;
+
+        // Buscar profile com timeout próprio
+        let profileData = null;
+        let profileError = null;
+        
+        try {
+          const profilePromise = supabase
+            .from("profiles")
+            .select("username, avatar_preset")
+            .eq("id", user.id)
+            .maybeSingle();
+          
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Profile query timeout")), 4000)
+          );
+          
+          const result = await Promise.race([profilePromise, timeoutPromise]);
+          profileData = result.data;
+          profileError = result.error;
+        } catch (err) {
+          console.error("[Multiplayer] Erro ao buscar profile:", err);
+          profileError = err;
+        }
 
         if (profileError) console.error("profile fetch error:", profileError);
 
         if (!mounted) return;
-        setProfile(profileData ?? { username: "Player", avatar_preset: "normal" });
+        
+        // Se não encontrou profile, usar fallback ou tentar criar
+        if (!profileData) {
+          console.warn("[Multiplayer] Profile não encontrado, usando fallback");
+          const fallbackUsername = localStorage.getItem("thor_username") || 
+                                  user.email?.split('@')[0] || 
+                                  "Player";
+          profileData = { username: fallbackUsername, avatar_preset: "normal" };
+          
+          // Tentar criar profile em background (não bloqueia UI)
+          supabase
+            .from("profiles")
+            .insert({
+              id: user.id,
+              username: fallbackUsername,
+              avatar_preset: "normal",
+              created_at: new Date().toISOString(),
+            })
+            .then(({ error }) => {
+              if (error) console.error("[Multiplayer] Erro ao criar profile:", error);
+              else console.log("[Multiplayer] Profile criado com sucesso");
+            });
+        }
+        
+        setProfile(profileData);
         
         // ✅ SEMPRE seta loading false após buscar profile
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          clearTimeout(safetyTimeout);
+        }
 
-        // ✅ VERIFICAR BADGES RETROATIVAS PARA CONTAS EXISTENTES
+        // ✅ VERIFICAR BADGES RETROATIVAS PARA CONTAS EXISTENTES (em background)
         console.log("[BADGES] Verificando badges retroativas no login...");
         try {
           const retroactiveBadges = await checkAllBadgesForUser(user.id);

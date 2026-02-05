@@ -39,7 +39,7 @@ export default function ProfilePage() {
     const safetyTimeout = setTimeout(() => {
       console.warn("[Profile] Loading timeout - forçando loading=false");
       setLoading(false);
-    }, 5000);
+    }, 8000);
     
     try {
       const { data } = await supabase.auth.getSession();
@@ -52,24 +52,40 @@ export default function ProfilePage() {
       }
       setSession(sess);
 
-      // Fetch profile, player_stats, and player_progress
-      const [profileRes, statsRes, progressRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, username, points, badges, selected_ships, settings, username_updated_at")
-          .eq("id", sess.user.id)
-          .maybeSingle(),
-        supabase
-          .from("player_stats")
-          .select("matches_played, wins, draws, losses, ships_destroyed, ships_lost")
-          .eq("user_id", sess.user.id)
-          .maybeSingle(),
-        supabase
-          .from("player_progress")
-          .select("total_xp")
-          .eq("user_id", sess.user.id)
-          .maybeSingle(),
-      ]);
+      // Fetch profile, player_stats, and player_progress com timeout individual
+      let profileRes, statsRes, progressRes;
+      
+      try {
+        const fetchPromises = Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, username, points, badges, selected_ships, settings, username_updated_at")
+            .eq("id", sess.user.id)
+            .maybeSingle(),
+          supabase
+            .from("player_stats")
+            .select("matches_played, wins, draws, losses, ships_destroyed, ships_lost")
+            .eq("user_id", sess.user.id)
+            .maybeSingle(),
+          supabase
+            .from("player_progress")
+            .select("total_xp")
+            .eq("user_id", sess.user.id)
+            .maybeSingle(),
+        ]);
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Profile queries timeout")), 5000)
+        );
+        
+        [profileRes, statsRes, progressRes] = await Promise.race([fetchPromises, timeoutPromise]);
+      } catch (err) {
+        console.error("[Profile] Timeout nas queries:", err);
+        // Usar dados vazios e continuar
+        profileRes = { data: null, error: err };
+        statsRes = { data: null, error: err };
+        progressRes = { data: null, error: err };
+      }
 
       let statsData = statsRes.data;
       

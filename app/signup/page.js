@@ -5,6 +5,7 @@ import { UserStatsContext } from "@/app/components/stats/UserStatsProvider";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { createInboxMessage } from "@/lib/inbox";
+import { ensureProfileAndOnboarding } from "@/lib/ensureProfile";
 
 export default function SignupPage() {
     const userStatsCtx = useContext(UserStatsContext);
@@ -162,106 +163,24 @@ export default function SignupPage() {
         return;
       }
 
-      // AAA: Só libera o app após garantir profile/username no banco
-      let confirmedProfile = null;
-      for (let i = 0; i < 10; i++) {
-        // Tenta criar profile se não existir
-        const { data: existingProfile, error: fetchProfileError } = await supabase
-          .from("profiles")
-          .select("id, username, avatar_preset")
-          .eq("id", sessionUser.id)
-          .maybeSingle();
-        if (fetchProfileError) {
-          setError("Erro ao verificar perfil existente: " + (fetchProfileError.message || "Desconhecido"));
-          setLoading(false);
-          return;
-        }
-        // AAA: sempre faz upsert para garantir username correto mesmo se profile já existir
-        const profilePayload = {
-          id: sessionUser.id,
-          username: username.trim(),
-          avatar_preset: "normal",
-          created_at: new Date().toISOString(),
-        };
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .upsert(profilePayload, { onConflict: 'id' })
-          .select()
-          .single();
-        console.log("Tentativa de upsert profile:", { profilePayload, profileData, profileError });
-        if (profileError) {
-          setError("Erro ao criar perfil: " + (profileError.message || "Desconhecido"));
-          setLoading(false);
-          return;
-        }
-      // upsert já cobre todos os casos, não precisa else if
-        // Aguarda profile propagar
-        await new Promise(res => setTimeout(res, 200));
+      // ✅ Usar a MESMA função que o login usa para garantir consistência
+      console.log("[Signup] Chamando ensureProfileAndOnboarding com username:", username.trim());
+      const onboardingResult = await ensureProfileAndOnboarding(sessionUser, {
+        username: username.trim(),
+      });
+
+      if (onboardingResult.error) {
+        console.error("[Signup] Erro no ensureProfileAndOnboarding:", onboardingResult.error);
+        setError("Erro ao criar perfil. Tente novamente.");
+        setLoading(false);
+        return;
       }
-      if (!confirmedProfile) {
-        // Busca profile atualizado do banco para garantir username correto
-        const { data: freshProfile } = await supabase
-          .from("profiles")
-          .select("id, username, avatar_preset")
-          .eq("id", sessionUser.id)
-          .maybeSingle();
-        if (freshProfile && freshProfile.username === username.trim()) {
-          confirmedProfile = freshProfile;
-        } else {
-          setError("Não foi possível confirmar o perfil. Tente novamente.");
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // ✅ CRIAR player_stats e player_progress se não existirem
-      try {
-        // Criar player_stats
-        const { error: statsError } = await supabase
-          .from("player_stats")
-          .upsert({
-            user_id: sessionUser.id,
-            matches_played: 0,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            ships_destroyed: 0,
-            ships_lost: 0,
-          }, { onConflict: 'user_id' });
-        
-        if (statsError) console.warn("Erro ao criar player_stats:", statsError);
-        
-        // Criar player_progress
-        const { error: progressError } = await supabase
-          .from("player_progress")
-          .upsert({
-            user_id: sessionUser.id,
-            level: 1,
-            xp: 0,
-            xp_to_next: 300,
-            total_xp: 0,
-          }, { onConflict: 'user_id' });
-        
-        if (progressError) console.warn("Erro ao criar player_progress:", progressError);
-        
-        // Aguardar propagação no DB (especialmente importante no Vercel)
-        await new Promise(res => setTimeout(res, 800));
-      } catch (e) {
-        console.warn("Erro ao criar dados iniciais:", e);
-      }
-      
-      // Salva bootstrap local
-      try {
-        if (typeof window !== "undefined") {
-          const bootstrap = {
-            ts: Date.now(),
-            profile: confirmedProfile,
-            playerProgress: { level: 1, xp: 0, xp_to_next: 300, total_xp: 0 },
-          };
-          localStorage.setItem("thor_bootstrap", JSON.stringify(bootstrap));
-        }
+
+      // Salvar username no localStorage
+      try { 
+        localStorage.setItem("username", username.trim()); 
+        localStorage.setItem("thor_username", username.trim()); 
       } catch (e) {}
-      try { localStorage.setItem("username", username.trim()); localStorage.setItem("thor_username", username.trim()); } catch (e) {}
 
       // Envia mensagem de boas-vindas no inbox
       try {

@@ -33,7 +33,7 @@ export default function SettingsPage() {
     const safetyTimeout = setTimeout(() => {
       console.warn("[Settings] Loading timeout - forçando loading=false");
       setLoading(false);
-    }, 5000);
+    }, 8000);
     
     (async () => {
       try {
