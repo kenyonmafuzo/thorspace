@@ -48,13 +48,15 @@ export default function SettingsPage() {
         }
 
         if (sess?.user?.id) {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("settings")
             .eq("id", sess.user.id)
-            .single();
+            .maybeSingle();
 
-          if (profile?.settings) {
+          if (profileError) {
+            console.warn("Erro ao buscar profile settings:", profileError);
+          } else if (profile?.settings) {
             const merged = mergeSettings(profile.settings);
             setSettings(merged);
             localStorage.setItem("thor_settings_v1", JSON.stringify(merged));

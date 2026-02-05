@@ -140,6 +140,7 @@ export default function MultiplayerPage() {
         const user = session?.user ?? (await supabase.auth.getUser()).data?.user ?? null;
 
         if (!user) {
+          if (mounted) setLoading(false);
           router.replace("/login");
           return;
         }
@@ -157,7 +158,9 @@ export default function MultiplayerPage() {
 
         if (!mounted) return;
         setProfile(profileData ?? { username: "Player", avatar_preset: "normal" });
-        setLoading(false);
+        
+        // ✅ SEMPRE seta loading false após buscar profile
+        if (mounted) setLoading(false);
 
         // ✅ VERIFICAR BADGES RETROATIVAS PARA CONTAS EXISTENTES
         console.log("[BADGES] Verificando badges retroativas no login...");

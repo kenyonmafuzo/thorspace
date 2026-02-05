@@ -39,6 +39,7 @@ export default function ProfilePage() {
       const { data } = await supabase.auth.getSession();
       const sess = data?.session;
       if (!sess) {
+        setLoading(false);
         router.replace("/login");
         return;
       }
@@ -152,14 +153,35 @@ export default function ProfilePage() {
       if (profileRes.error) {
         console.warn("Erro ao carregar profile:", profileRes.error);
         setProfile(null);
+      } else if (!prof) {
+        // Profile não existe - tentar criar
+        console.warn("Profile não encontrado, tentando criar...");
+        const username = sess.user.email?.split('@')[0] || `user_${sess.user.id.slice(0, 8)}`;
+        const { error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: sess.user.id,
+            username: username,
+            avatar_preset: "normal",
+            created_at: new Date().toISOString(),
+          });
+        
+        if (createError) {
+          console.error("Erro ao criar profile:", createError);
+          setProfile(null);
+        } else {
+          // Recarregar após criar
+          setTimeout(() => loadProfileData(), 500);
+          return;
+        }
       } else {
         setProfile(prof);
-        setUsernameEdit(prof.username || "");
+        setUsernameEdit(prof?.username || "");
         setEmailEdit(sess.user.email || "");
-        setSelectedAvatar(prof.settings?.avatar_ship || "normal");
+        setSelectedAvatar(prof?.settings?.avatar_ship || "normal");
 
         // Check cooldown
-        if (prof.username_updated_at) {
+        if (prof?.username_updated_at) {
           const lastUpdate = new Date(prof.username_updated_at);
           const now = new Date();
           const diffMs = now - lastUpdate;
