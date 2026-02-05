@@ -7363,6 +7363,12 @@ function startGameAfterSelection() {
   // reset flag para permitir envio de score na próxima partida
   scoreMessageSent = false;
   
+  // ✅ Resetar flags de finalização para nova partida
+  matchFinalizationProcessed = false;
+  statsUpdated = false;
+  gameOverSent = false;
+  console.log("[GAME] 🔄 Flags resetadas para nova partida");
+  
   // ✅ XP: Resetar sistema de XP para nova partida
   resetMatchXP();
 
