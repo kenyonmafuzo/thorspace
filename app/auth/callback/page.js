@@ -9,32 +9,75 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    async function finish() {
-      // Busca usuário real
-      const { data: userData } = await supabase.auth.getUser();
-      const user = userData?.user;
+    let cancelled = false;
 
-      // Se não houver usuário, redireciona para login
-      if (!user) {
-        router.replace("/login");
-        try {
-          const { data: userData } = await supabase.auth.getUser();
-          const user = userData?.user;
-          if (user) {
-            await ensureProfileAndOnboarding(user, { username: localStorage.getItem("thor_username") });
-            router.replace("/mode");
-          } else {
-            router.replace("/login");
+    async function finish() {
+      try {
+        // 1) Busca usuário real
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData?.user;
+
+        // 2) Se não houver usuário, tenta de novo rapidinho (às vezes o callback demora a “assentar”)
+        if (!user) {
+          const { data: userData2 } = await supabase.auth.getUser();
+          const user2 = userData2?.user;
+
+          if (!user2) {
+            if (!cancelled) router.replace("/login");
+            return;
           }
-        } catch (err) {
-          console.error("Error finishing OAuth callback:", err);
-          router.replace("/login");
+
+          await ensureProfileAndOnboarding(user2, {
+            username: localStorage.getItem("thor_username"),
+          });
+
+          if (!cancelled) router.replace("/mode");
+          return;
         }
+
+        // 3) Se já tem user, garante profile + onboarding e segue
+        await ensureProfileAndOnboarding(user, {
+          username: localStorage.getItem("thor_username"),
+        });
+
+        if (!cancelled) router.replace("/mode");
+      } catch (err) {
+        console.error("Error finishing OAuth callback:", err);
+        if (!cancelled) router.replace("/login");
       }
+    }
+
+    finish();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   return (
-    <main style={{ minHeight: "100dvh", padding: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundImage: `url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`, backgroundSize: 'cover, auto', backgroundRepeat: 'no-repeat', backgroundPosition: 'center center' }}>
-      <div style={{ color: '#E6FBFF', backdropFilter: 'blur(4px)', padding: 18, borderRadius: 8 }}>Finalizando login...</div>
+    <main
+      style={{
+        minHeight: "100dvh",
+        padding: 28,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundImage: `url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`,
+        backgroundSize: "cover, auto",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "center center",
+      }}
+    >
+      <div
+        style={{
+          color: "#E6FBFF",
+          backdropFilter: "blur(4px)",
+          padding: 18,
+          borderRadius: 8,
+        }}
+      >
+        Finalizando login...
+      </div>
     </main>
   );
 }

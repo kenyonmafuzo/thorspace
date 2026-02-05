@@ -2,22 +2,17 @@ import { useEffect, useRef } from "react";
 import { useNotifications } from "@/app/components/notifications/NotificationProvider";
 import { supabase } from "@/lib/supabase";
 
-// Helper: get username from userId (with cache)
-const usernameCache = new Map<string, string>();
-async function getUsername(userId: string): Promise<string> {
-  if (usernameCache.has(userId)) return usernameCache.get(userId)!;
-  const { data } = await supabase.from("profiles").select("username").eq("id", userId).single();
-  const username = data?.username || "unknown";
-  usernameCache.set(userId, username);
-  return username;
-}
+type ToastPayload = { title: string; message: string };
 
 export function useInviteRealtime(userId: string | null) {
-  const { pushToast } = useNotifications();
+  const notifications = useNotifications() as unknown as { pushToast: (p: ToastPayload) => void };
+  const pushToast = notifications.pushToast;
+
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!userId) return;
+
     // Subscribe to invites for this user
     const channel = supabase.channel("invites_notify").on(
       "postgres_changes",
@@ -32,7 +27,7 @@ export function useInviteRealtime(userId: string | null) {
         let title = "New invite";
         let message = "You received a new invite.";
         if (invite.type === "friend_request") {
-          const fromUsername = invite.from_username || (invite.from_user_id ? await getUsername(invite.from_user_id) : "");
+          const fromUsername = invite.from_username || "";
           title = "Friend request";
           message = fromUsername ? `from @${fromUsername}` : "New friend request";
         } else if (invite.type) {
