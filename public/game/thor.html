@@ -3432,6 +3432,14 @@ async function handleMatchUpdate(payload) {
     if (phase === 'finished') {
       console.log('[WIN] 🏁 Match finalizado via Realtime!');
       
+      // ⛔ CRÍTICO: Prevenir processamento múltiplo de finalização
+      if (matchFinalizationProcessed) {
+        console.log('[WIN] ⏭️ Finalização já foi processada, ignorando evento Realtime duplicado');
+        return;
+      }
+      matchFinalizationProcessed = true;
+      console.log('[WIN] ✅ Primeira finalização, processando...');
+      
       // Parar heartbeat quando jogo terminar
       stopHeartbeat();
       
@@ -4957,6 +4965,7 @@ let bonusNoLoss = false;
 let gameActive = true; // controle para saber se o loop do jogo está ativo
 let gameOverSent = false; // Flag para garantir que THOR:GAME_OVER só seja enviado uma vez
 let statsUpdated = false; // Flag para garantir que player_stats só seja atualizado uma vez por partida
+let matchFinalizationProcessed = false; // Flag para garantir que finalização só execute uma vez
 
 // Funções para calcular perdas totais (combate + autocolisão)
 function getMyLost() {
