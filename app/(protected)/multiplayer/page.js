@@ -20,6 +20,7 @@ export default function MultiplayerPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [matchResult, setMatchResult] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -161,6 +162,7 @@ export default function MultiplayerPage() {
         if (mounted) {
           console.log("[Multiplayer] Usuário autenticado:", user.id);
           setCurrentUser(user);
+          setAuthChecked(true);
         }
 
         if (!mounted) return;
@@ -445,6 +447,22 @@ export default function MultiplayerPage() {
         <div style={{ textAlign: "center", padding: 40, color: "#FFB3B3" }}>
           {t('multiplayer.notAuthenticated')}
         </div>
+      </div>
+    );
+  }
+
+  // Não renderiza até verificar autenticação
+  if (!authChecked) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000016',
+        color: '#E6FBFF'
+      }}>
+        <div style={{ opacity: 0.7, fontSize: 14 }}>Carregando...</div>
       </div>
     );
   }

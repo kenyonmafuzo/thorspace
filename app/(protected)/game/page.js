@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { finalizeMatch } from "@/lib/match";
@@ -10,6 +10,7 @@ export default function GamePage() {
   const router = useRouter();
   const { addXp, setTotalXp } = useProgress(); // Get context functions
   const finalizedRef = useRef(false); // Guard para executar finalização apenas uma vez
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -26,6 +27,8 @@ export default function GamePage() {
         router.replace("/username");
         return;
       }
+
+      setAuthChecked(true);
     })();
   }, [router]);
 
@@ -310,6 +313,22 @@ export default function GamePage() {
     }
     return "/game/thor.html";
   };
+
+  // Não renderiza até verificar autenticação
+  if (!authChecked) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000016',
+        color: '#E6FBFF'
+      }}>
+        <div style={{ opacity: 0.7, fontSize: 14 }}>Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <>

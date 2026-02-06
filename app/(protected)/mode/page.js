@@ -8,6 +8,7 @@ import { useI18n } from "@/src/hooks/useI18n";
 
 export default function ModePage() {
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+    const [authChecked, setAuthChecked] = useState(false);
     
     // Reload automático após signup, só na primeira visita
     useEffect(() => {
@@ -78,8 +79,27 @@ export default function ModePage() {
         router.replace("/username");
         return;
       }
+
+      // Autenticação verificada, pode renderizar
+      setAuthChecked(true);
     })();
   }, [router]);
+
+  // Não renderiza nada até verificar autenticação
+  if (!authChecked) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000016',
+        color: '#E6FBFF'
+      }}>
+        <div style={{ opacity: 0.7, fontSize: 14 }}>Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <>
