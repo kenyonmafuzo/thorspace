@@ -2385,6 +2385,14 @@ function processMatchEndXPEvents(result) {
   console.log('[XP] 📊 xpEvents ANTES:', JSON.parse(JSON.stringify(xpEvents)));
   console.log('[XP] 📊 xpTotalMatch ANTES:', xpTotalMatch);
   
+  // 🔒 Guard: Se eventos de fim já foram processados, não processar novamente
+  // (usa variável separada para permitir que applyMatchXP tenha seu próprio guard)
+  if (window.__matchEndEventsProcessed) {
+    console.log('[XP] ⚠️ processMatchEndXPEvents já foi chamado, ignorando duplicata');
+    return;
+  }
+  window.__matchEndEventsProcessed = true;
+  
   // Resultado da partida
   if (result === 'win') {
     registerXPEvent('MATCH_VICTORY');
@@ -2625,6 +2633,7 @@ function resetMatchXP() {
   xpEvents = [];
   xpTotalMatch = 0;
   xpAlreadyApplied = false; // 🔓 Resetar flag para nova partida
+  window.__matchEndEventsProcessed = false; // 🔓 Resetar flag de eventos de fim
   resetRoundXPTracking();
 }
 
@@ -3495,10 +3504,14 @@ async function handleMatchUpdate(payload) {
         cpuNaves: cpuNaves.map(n => n.hp)
       });
       
-      // 💾 Salvar placar final IMEDIATAMENTE quando jogo termina
-      finalScoreSaved.myLost = getMyLost();
-      finalScoreSaved.oppLost = getOppLost();
-      console.log('[WIN] 💾 Placar salvo:', finalScoreSaved);
+      // 💾 Salvar placar final SOMENTE se ainda não foi salvo (preserva placar correto do checkWinCondition local)
+      if (finalScoreSaved.myLost === 0 && finalScoreSaved.oppLost === 0) {
+        finalScoreSaved.myLost = getMyLost();
+        finalScoreSaved.oppLost = getOppLost();
+        console.log('[WIN] 💾 Placar salvo:', finalScoreSaved);
+      } else {
+        console.log('[WIN] ✅ Placar já foi salvo anteriormente:', finalScoreSaved, '(não sobrescrever)');
+      }
       
 
       // Função para atualizar player_stats do usuário
@@ -3510,7 +3523,7 @@ async function handleMatchUpdate(payload) {
         }
         
         // ⛔ Proteção adicional: verificar sessionStorage com matchId
-        const statsLockKey = `stats_updated_${matchId}`;
+        const statsLockKey = `stats_updated_${matchData?.id || 'unknown'}`;
         if (sessionStorage.getItem(statsLockKey)) {
           console.log('[STATS] ⏭️ Stats já foram atualizados para este matchId (sessionStorage), pulando...');
           return;
@@ -3581,13 +3594,8 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
         console.log('[REALTIME] 💾 finalXpForChat salvo (vitória):', finalXpForChat);
-        // ✅ Atualizar stats no ranking (para mim)
-        updatePlayerStats({
-          userId: myUserId,
-          result: 'win',
-          myKills: getOppLost(),
-          oppKills: getMyLost(),
-        });
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showVictoryScreen();
       } else if (winner_id === opponentUserId) {
         console.log('[WIN] 😢 EU PERDI!');
@@ -3600,13 +3608,8 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat (será 0 em derrota)
         console.log('[REALTIME] 💾 finalXpForChat salvo (derrota):', finalXpForChat);
-        // ✅ Atualizar stats no ranking (para mim)
-        updatePlayerStats({
-          userId: myUserId,
-          result: 'loss',
-          myKills: getOppLost(),
-          oppKills: getMyLost(),
-        });
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showDefeatScreen();
       } else {
         console.log('[WIN] 🤝 EMPATE!');
@@ -3617,13 +3620,8 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
         console.log('[REALTIME] 💾 finalXpForChat salvo (empate):', finalXpForChat);
-        // ✅ Atualizar stats no ranking (para mim)
-        updatePlayerStats({
-          userId: myUserId,
-          result: 'draw',
-          myKills: getOppLost(),
-          oppKills: getMyLost(),
-        });
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showDrawScreen();
       }
       
@@ -7387,6 +7385,7 @@ function startGameAfterSelection() {
   matchFinalizationProcessed = false;
   statsUpdated = false;
   gameOverSent = false;
+  window.__matchEndEventsProcessed = false; // 🔓 Resetar flag de eventos de fim
   console.log("[GAME] 🔄 Flags resetadas para nova partida");
   
   // ✅ XP: Resetar sistema de XP para nova partida
