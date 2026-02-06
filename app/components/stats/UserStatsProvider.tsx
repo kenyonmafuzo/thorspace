@@ -231,22 +231,8 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       const { data } = await supabase.auth.getUser();
       const uid = data?.user?.id || null;
       if (!cancelled) setUserId(uid);
-      if (!uid) return;
-      // Claim daily XP only when userId exists
-      console.log('[DailyLogin] Calling claim_daily_xp RPC for userId:', uid);
-      try {
-        const { data: claimRes, error: claimErr } =
-  await supabase.rpc('claim_daily_xp');
-        console.log('[DailyLogin] RPC result:', { data: claimRes, error: claimErr });
-        const row = Array.isArray(claimRes) ? claimRes[0] : claimRes;
-        if (claimErr) {
-          console.warn('[DailyLogin] claim_daily_xp error:', claimErr);
-        } else if (row?.awarded_xp > 0) {
-          setDailyLoginResult(row);
-        }
-      } catch (e) {
-        console.warn('[DailyLogin] claim_daily_xp exception:', e);
-      }
+      // ⚠️ NÃO chamar claim_daily_xp aqui - será chamado no onAuthStateChange SIGNED_IN
+      // Isso evita duplicação quando o componente monta após login
     };
 
     // Check initial session
@@ -292,8 +278,16 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!dailyLoginResult || !userId) return;
     
-    // 🔒 Verificar se já mostrou popup hoje nesta sessão
+    // 🔒 Verificar se já processou daily XP hoje (evita duplicação)
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const processKey = `thor_daily_processed_${today}`;
+    if (sessionStorage.getItem(processKey)) {
+      console.log('[DailyLogin] Daily XP já foi processado hoje, ignorando');
+      return;
+    }
+    sessionStorage.setItem(processKey, 'true');
+    
+    // 🔒 Verificar se já mostrou popup hoje nesta sessão
     const lastShown = localStorage.getItem('thor_daily_popup_shown');
     if (lastShown === today) {
       console.log('[DailyLogin] Popup já foi mostrado hoje, ignorando');
@@ -375,21 +369,53 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         }
       });
       
-      // ✅ Só abrir modal de daily login se estiver em /mode
+      // ✅ Abrir modal de daily login
+      // Se não estiver em /mode ainda, guardar para abrir quando chegar lá
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('thor_daily_popup_shown', today);
+      
       if (pathname === '/mode') {
-        // 🔒 Marcar que popup foi mostrado hoje
-        const today = new Date().toISOString().split('T')[0];
-        localStorage.setItem('thor_daily_popup_shown', today);
-        
         setDailyLoginModalOpen(true);
         setTimeout(() => {
           window.dispatchEvent(new Event("thor_stats_updated"));
         }, 400);
       } else {
-        console.log('[DailyLogin] XP claimed but modal not shown (not in /mode)');
+        console.log('[DailyLogin] XP claimed, aguardando navegação para /mode');
+        // Salvar resultado para mostrar quando chegar em /mode
+        sessionStorage.setItem('thor_pending_daily_modal', JSON.stringify({
+          awarded_xp: awardedXp,
+          new_streak: streakDay
+        }));
       }
     }
   }, [dailyLoginResult, userId, refreshUserStats, getDailyLoginText, lang, pushToast, pathname]);
+  
+  // 🎯 Verificar se há modal pendente quando chega em /mode
+  useEffect(() => {
+    if (pathname !== '/mode') return;
+    
+    const pendingData = sessionStorage.getItem('thor_pending_daily_modal');
+    if (pendingData) {
+      try {
+        const { awarded_xp, new_streak } = JSON.parse(pendingData);
+        console.log('[DailyLogin] Abrindo modal pendente em /mode:', { awarded_xp, new_streak });
+        
+        // Limpar pendente
+        sessionStorage.removeItem('thor_pending_daily_modal');
+        
+        // Abrir modal
+        setDailyLoginResult({ awarded_xp, new_streak, streak_broken: false, message: '' });
+        setDailyLoginModalOpen(true);
+        
+        setTimeout(() => {
+          window.dispatchEvent(new Event("thor_stats_updated"));
+        }, 400);
+      } catch (e) {
+        console.error('[DailyLogin] Erro ao processar modal pendente:', e);
+        sessionStorage.removeItem('thor_pending_daily_modal');
+      }
+    }
+  }, [pathname]);
   
   // Handler para fechar daily login modal e abrir welcome se necessário
   const handleCloseDailyLogin = useCallback(() => {
