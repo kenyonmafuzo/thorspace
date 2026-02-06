@@ -6355,6 +6355,10 @@ function checkWinCondition() {
     gameActive = false;
     phase = 'finished';
 
+    // 🎯 SALVAR PLACAR FINAL IMEDIATAMENTE
+    finalScoreSaved = { myLost, oppLost };
+    console.log('[WIN] 💾 finalScoreSaved atualizado:', finalScoreSaved);
+
     // Determinar vencedor baseado em kills
     let localWinner;
     if (oppLost > myLost) {
@@ -6486,6 +6490,18 @@ async function updateMatchWinner(localWinner, myLost, oppLost) {
     }
     
     console.log('[WIN] ✅ Match atualizado com vencedor');
+    
+    // 🎯 ATUALIZAR PLAYER STATS (uma única vez, no fluxo local)
+    if (multiplayerMode && myUserId) {
+      const result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
+      await updatePlayerStats({
+        userId: myUserId,
+        result: result,
+        myKills: oppLost,
+        oppKills: myLost
+      });
+      console.log('[WIN] 📊 Stats atualizados:', { result, myKills: oppLost, oppKills: myLost });
+    }
   } catch (err) {
     console.error('[WIN] Exceção ao atualizar vencedor:', err);
   }
