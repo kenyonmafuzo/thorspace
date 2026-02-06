@@ -3495,6 +3495,11 @@ async function handleMatchUpdate(payload) {
         cpuNaves: cpuNaves.map(n => n.hp)
       });
       
+      // 💾 Salvar placar final IMEDIATAMENTE quando jogo termina
+      finalScoreSaved.myLost = getMyLost();
+      finalScoreSaved.oppLost = getOppLost();
+      console.log('[WIN] 💾 Placar salvo:', finalScoreSaved);
+      
 
       // Função para atualizar player_stats do usuário
       async function updatePlayerStats({ userId, result, myKills, oppKills }) {
@@ -3503,8 +3508,18 @@ async function handleMatchUpdate(payload) {
           console.log('[STATS] ⏭️ Stats já foram atualizados nesta partida, pulando...');
           return;
         }
+        
+        // ⛔ Proteção adicional: verificar sessionStorage com matchId
+        const statsLockKey = `stats_updated_${matchId}`;
+        if (sessionStorage.getItem(statsLockKey)) {
+          console.log('[STATS] ⏭️ Stats já foram atualizados para este matchId (sessionStorage), pulando...');
+          return;
+        }
+        
         statsUpdated = true;
+        sessionStorage.setItem(statsLockKey, 'true');
         console.log('[STATS] 📊 Atualizando stats pela primeira vez nesta partida');
+        console.log('[STATS] 🔒 Lock criado:', statsLockKey);
         
         if (!supabaseClient || !userId) return;
         let statsUpdate = {
@@ -4966,6 +4981,7 @@ let gameActive = true; // controle para saber se o loop do jogo está ativo
 let gameOverSent = false; // Flag para garantir que THOR:GAME_OVER só seja enviado uma vez
 let statsUpdated = false; // Flag para garantir que player_stats só seja atualizado uma vez por partida
 let matchFinalizationProcessed = false; // Flag para garantir que finalização só execute uma vez
+let finalScoreSaved = { myLost: 0, oppLost: 0 }; // Salvar placar final quando jogo termina
 
 // Funções para calcular perdas totais (combate + autocolisão)
 function getMyLost() {
@@ -5028,11 +5044,14 @@ function backToStartMenu() {
   particles = [];
   wrecks = [];
 
-  // Preparar dados do resultado
+  // Preparar dados do resultado - usar valores salvos no momento da finalização
   const matchId = matchData?.id || localStorage.getItem("thor_match_id");
   const opponentName = localStorage.getItem("thor_match_opponent_name") || 'Opponent';
-  const myLost = getMyLost();
-  const oppLost = getOppLost();
+  const myLost = finalScoreSaved.myLost;
+  const oppLost = finalScoreSaved.oppLost;
+  
+  console.log('[GAME] 🎯 finalXpForChat:', finalXpForChat);
+  console.log('[GAME] 📊 Placar a ser enviado:', { myKills: oppLost, oppKills: myLost });
   
   // Limpar dados do match multiplayer do localStorage
   localStorage.removeItem("thor_match_id");
@@ -7364,6 +7383,7 @@ function startGameAfterSelection() {
   scoreMessageSent = false;
   
   // ✅ Resetar flags de finalização para nova partida
+  finalScoreSaved = { myLost: 0, oppLost: 0 }; // Resetar placar salvo
   matchFinalizationProcessed = false;
   statsUpdated = false;
   gameOverSent = false;
