@@ -6515,20 +6515,13 @@ async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
 async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_lost }) {
   if (!supabaseClient || !userId) return;
   
-  // 🛡️ GUARD CRÍTICO: Prevenir duplicação de stats para o mesmo jogador na mesma partida
-  const matchId = matchData?.id;
-  if (!matchId) {
-    console.error('[STATS] ❌ matchId não encontrado, abortando atualização');
-    return;
-  }
-  
-  const statsLockKey = `stats_atomic_${matchId}_${userId}`;
-  if (sessionStorage.getItem(statsLockKey)) {
-    debug.stats('[STATS] ⚠️ Stats de', userId, 'já foram atualizadas nesta partida, ignorando duplicata');
-    return;
-  }
-  sessionStorage.setItem(statsLockKey, 'true');
-  debug.stats('[STATS] 🔒 Lock criado:', statsLockKey);
+  console.log('🔍 [STATS-DEBUG] updatePlayerStatsAtomic chamada:', {
+    userId,
+    result,
+    ships_destroyed,
+    ships_lost,
+    callStack: new Error().stack
+  });
   
   const statsUpdate = {
     matches_played: 1,
