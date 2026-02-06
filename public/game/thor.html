@@ -3496,22 +3496,13 @@ async function handleMatchUpdate(payload) {
         turnTimer = null;
       }
       
-      // Log para debug do placar
-      console.log('[WIN] Placar final:', {
-        myKills: getOppLost(),
-        myDeaths: getMyLost(),
-        playerNaves: playerNaves.map(n => n.hp),
-        cpuNaves: cpuNaves.map(n => n.hp)
-      });
-      
-      // 💾 Salvar placar final SOMENTE se ainda não foi salvo (preserva placar correto do checkWinCondition local)
-      if (finalScoreSaved.myLost === 0 && finalScoreSaved.oppLost === 0) {
-        finalScoreSaved.myLost = getMyLost();
-        finalScoreSaved.oppLost = getOppLost();
-        console.log('[WIN] 💾 Placar salvo:', finalScoreSaved);
-      } else {
-        console.log('[WIN] ✅ Placar já foi salvo anteriormente:', finalScoreSaved, '(não sobrescrever)');
-      }
+      // 🚫 NUNCA recalcular placar no handler Realtime
+      // O placar correto já foi salvo no checkWinCondition local
+      console.log('[WIN] ✅ Placar foi salvo anteriormente:', finalScoreSaved);
+      console.log('[WIN] 📊 Estado das naves (apenas para debug):');
+      console.log('[WIN]   - playerNaves HP:', playerNaves.map(n => n.hp));
+      console.log('[WIN]   - cpuNaves HP:', cpuNaves.map(n => n.hp));
+      console.log('[WIN] ⚠️ NÃO recalcular placar aqui - usar finalScoreSaved');
       
 
       // Função para atualizar player_stats do usuário
