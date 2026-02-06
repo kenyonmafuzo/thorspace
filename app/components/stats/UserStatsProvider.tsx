@@ -291,6 +291,15 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   // Handle daily login result: refresh stats, create inbox, show popup
   useEffect(() => {
     if (!dailyLoginResult || !userId) return;
+    
+    // 🔒 Verificar se já mostrou popup hoje nesta sessão
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const lastShown = localStorage.getItem('thor_daily_popup_shown');
+    if (lastShown === today) {
+      console.log('[DailyLogin] Popup já foi mostrado hoje, ignorando');
+      return;
+    }
+    
     // Always refresh stats after claim
     if (typeof refreshUserStats === 'function') {
       refreshUserStats("daily-login-claim");
@@ -368,6 +377,10 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       
       // ✅ Só abrir modal de daily login se estiver em /mode
       if (pathname === '/mode') {
+        // 🔒 Marcar que popup foi mostrado hoje
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem('thor_daily_popup_shown', today);
+        
         setDailyLoginModalOpen(true);
         setTimeout(() => {
           window.dispatchEvent(new Event("thor_stats_updated"));
