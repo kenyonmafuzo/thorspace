@@ -59,7 +59,6 @@ export default function AuthCallbackPage() {
         
         // ✅ Verificar se dados realmente existem
         let dataReady = false;
-        let isNewUser = false;
         for (let i = 0; i < 5; i++) {
           const [profileCheck, statsCheck, progressCheck] = await Promise.all([
             supabase.from("profiles").select("id, created_at").eq("id", user.id).maybeSingle(),
@@ -70,13 +69,6 @@ export default function AuthCallbackPage() {
           if (profileCheck.data && statsCheck.data && progressCheck.data) {
             console.log("[Callback] ✅ Todos os dados confirmados!");
             dataReady = true;
-            
-            // Verifica se é novo usuário (criado nos últimos 60 segundos)
-            const createdAt = new Date(profileCheck.data.created_at);
-            const now = new Date();
-            const diffSeconds = (now - createdAt) / 1000;
-            isNewUser = diffSeconds < 60;
-            
             break;
           }
           
@@ -84,10 +76,18 @@ export default function AuthCallbackPage() {
           await new Promise(resolve => setTimeout(resolve, 800));
         }
 
-        // Enviar mensagem de boas-vindas se for novo usuário
-        if (isNewUser) {
-          console.log("[Callback] Novo usuário detectado, enviando mensagem de boas-vindas");
-          try {
+        // ✅ Verificar se já existe mensagem de boas-vindas
+        // Se não existir, enviar (garante que novos usuários recebem)
+        try {
+          const { data: existingWelcome } = await supabase
+            .from("inbox")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("type", "welcome")
+            .maybeSingle();
+          
+          if (!existingWelcome) {
+            console.log("[Callback] Novo usuário - enviando mensagem de boas-vindas");
             await createInboxMessage({
               user_id: user.id,
               type: "welcome",
@@ -96,9 +96,15 @@ export default function AuthCallbackPage() {
               cta_url: null,
               lang: "pt"
             });
-          } catch (e) {
-            console.warn("[Callback] Erro ao enviar mensagem de boas-vindas:", e);
+            
+            // ✅ Marcar para mostrar welcome modal
+            localStorage.setItem("thor_show_welcome", "1");
+            console.log("[Callback] Flag thor_show_welcome definida");
+          } else {
+            console.log("[Callback] Usuário já recebeu mensagem de boas-vindas anteriormente");
           }
+        } catch (e) {
+          console.warn("[Callback] Erro ao verificar/enviar mensagem de boas-vindas:", e);
         }
 
         if (!cancelled) router.replace("/mode");

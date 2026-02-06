@@ -39,15 +39,16 @@ export default function ModePage() {
       
       window.addEventListener("thor_open_welcome", handleOpenWelcome);
       
-      // Se não houver daily XP (usuário já reclamou hoje), abrir welcome imediatamente
+      // Fallback: Se daily XP não disparar evento (já foi mostrado hoje), 
+      // abrir welcome após 2s
       const fallbackTimer = setTimeout(() => {
         const showWelcome = localStorage.getItem("thor_show_welcome");
-        console.log('[Mode] Fallback timer - showWelcome:', showWelcome, 'showWelcomeModal:', showWelcomeModal);
+        console.log('[Mode] Fallback timer (2s) - showWelcome:', showWelcome, 'showWelcomeModal:', showWelcomeModal);
         if (showWelcome === "1" && !showWelcomeModal) {
-          console.log('[Mode] Abrindo welcome modal via fallback...');
+          console.log('[Mode] Abrindo welcome modal via fallback (daily XP não mostrado)...');
           setShowWelcomeModal(true);
         }
-      }, 1000);
+      }, 2000);
       
       return () => {
         window.removeEventListener("thor_open_welcome", handleOpenWelcome);
