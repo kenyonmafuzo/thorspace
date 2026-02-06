@@ -6520,15 +6520,60 @@ async function updateMatchWinner(localWinner, myLost, oppLost) {
     debug.win('[WIN] ✅ Match atualizado com vencedor');
     
     // 🎯 ATUALIZAR PLAYER STATS (uma única vez, no fluxo local)
-    if (multiplayerMode && myUserId) {
-      const result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
-      await updatePlayerStats({
-        userId: myUserId,
-        result: result,
-        myKills: oppLost,
-        oppKills: myLost
-      });
-      debug.win('[WIN] 📊 Stats atualizados:', { result, myKills: oppLost, oppKills: myLost });
+    if (multiplayerMode && myUserId && supabaseClient) {
+      // ⛔ Prevenir múltiplas atualizações na mesma partida
+      const statsLockKey = `stats_updated_${matchData?.id || 'unknown'}`;
+      if (!sessionStorage.getItem(statsLockKey)) {
+        sessionStorage.setItem(statsLockKey, 'true');
+        debug.stats('[STATS] 🔒 Lock criado:', statsLockKey);
+        
+        const result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
+        const statsUpdate = {
+          matches_played: 1,
+          ships_destroyed: Number(oppLost ?? 0),
+          ships_lost: Number(myLost ?? 0),
+          wins: result === 'win' ? 1 : 0,
+          losses: result === 'loss' ? 1 : 0,
+          draws: result === 'draw' ? 1 : 0,
+        };
+        
+        try {
+          // Buscar stats atuais
+          const { data: statsRow } = await supabaseClient
+            .from("player_stats")
+            .select("matches_played, wins, losses, draws, ships_destroyed, ships_lost")
+            .eq("user_id", myUserId)
+            .maybeSingle();
+          
+          if (statsRow) {
+            // Atualizar somando os valores
+            const updateObj = {
+              matches_played: Number(statsRow.matches_played ?? 0) + 1,
+              wins: Number(statsRow.wins ?? 0) + statsUpdate.wins,
+              losses: Number(statsRow.losses ?? 0) + statsUpdate.losses,
+              draws: Number(statsRow.draws ?? 0) + statsUpdate.draws,
+              ships_destroyed: Number(statsRow.ships_destroyed ?? 0) + statsUpdate.ships_destroyed,
+              ships_lost: Number(statsRow.ships_lost ?? 0) + statsUpdate.ships_lost,
+            };
+            debug.stats('[STATS] ✅ Atualizando stats:', updateObj);
+            await supabaseClient
+              .from("player_stats")
+              .update(updateObj)
+              .eq("user_id", myUserId);
+          } else {
+            // Inserir novo registro
+            debug.stats('[STATS] ✅ Inserindo stats iniciais:', statsUpdate);
+            await supabaseClient
+              .from("player_stats")
+              .insert([{ user_id: myUserId, ...statsUpdate }]);
+          }
+          debug.win('[WIN] 📊 Stats atualizados com sucesso');
+        } catch (statsErr) {
+          console.error('[WIN] Erro ao atualizar stats:', statsErr);
+        }
+      } else {
+        debug.stats('[STATS] ⏭️ Stats já foram atualizados para este matchId, pulando...');
+      }
     }
   } catch (err) {
     console.error('[WIN] Exceção ao atualizar vencedor:', err);
