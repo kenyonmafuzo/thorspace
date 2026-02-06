@@ -3532,75 +3532,9 @@ async function handleMatchUpdate(payload) {
       debug.win('[WIN]   - cpuNaves HP:', cpuNaves.map(n => n.hp));
       debug.win('[WIN] ⚠️ NÃO recalcular placar aqui - usar finalScoreSaved');
       
-
-      // Função para atualizar player_stats do usuário
-      async function updatePlayerStats({ userId, result, myKills, oppKills }) {
-        // ⛔ Prevenir múltiplas atualizações na mesma partida
-        if (statsUpdated) {
-          debug.stats('[STATS] ⏭️ Stats já foram atualizados nesta partida, pulando...');
-          return;
-        }
-        
-        // ⛔ Proteção adicional: verificar sessionStorage com matchId
-        const statsLockKey = `stats_updated_${matchData?.id || 'unknown'}`;
-        if (sessionStorage.getItem(statsLockKey)) {
-          debug.stats('[STATS] ⏭️ Stats já foram atualizados para este matchId (sessionStorage), pulando...');
-          return;
-        }
-        
-        statsUpdated = true;
-        sessionStorage.setItem(statsLockKey, 'true');
-        debug.stats('[STATS] 📊 Atualizando stats pela primeira vez nesta partida');
-        debug.stats('[STATS] 🔒 Lock criado:', statsLockKey);
-        
-        if (!supabaseClient || !userId) return;
-        let statsUpdate = {
-          matches_played: 1,
-          ships_destroyed: Number(myKills ?? 0),
-          ships_lost: Number(oppKills ?? 0),
-          wins: 0,
-          losses: 0,
-          draws: 0,
-        };
-        if (result === "win") statsUpdate.wins = 1;
-        else if (result === "loss") statsUpdate.losses = 1;
-        else statsUpdate.draws = 1;
-
-        // Tenta atualizar stats existentes
-        const { data: statsRow, error: statsError } = await supabaseClient
-          .from("player_stats")
-          .select("matches_played, wins, losses, draws, ships_destroyed, ships_lost")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (statsRow) {
-          // Atualiza somando os valores
-          const updateObj = {
-            matches_played: Number(statsRow.matches_played ?? 0) + 1,
-            wins: Number(statsRow.wins ?? 0) + statsUpdate.wins,
-            losses: Number(statsRow.losses ?? 0) + statsUpdate.losses,
-            draws: Number(statsRow.draws ?? 0) + statsUpdate.draws,
-            ships_destroyed: Number(statsRow.ships_destroyed ?? 0) + statsUpdate.ships_destroyed,
-            ships_lost: Number(statsRow.ships_lost ?? 0) + statsUpdate.ships_lost,
-          };
-          debug.stats('[STATS] ✅ Atualizando stats:', updateObj);
-          await supabaseClient
-            .from("player_stats")
-            .update(updateObj)
-            .eq("user_id", userId);
-        } else {
-          // Cria row se não existir
-          debug.stats('[STATS] ✅ Criando stats:', statsUpdate);
-          await supabaseClient
-            .from("player_stats")
-            .insert({
-              user_id: userId,
-              ...statsUpdate,
-            });
-        }
-        // Disparar evento para atualizar header/react
-        window.dispatchEvent(new Event('thor_stats_updated'));
-      }
+      // 🎮 ARQUITETURA AAA: Client-side apenas renderiza
+      // Stats são atualizadas APENAS pelo HOST via updateMatchAsAuthority
+      // Aqui só processamos XP local e mostramos resultado
 
       // Determinar se eu ganhei ou perdi
       let matchResult = null;
@@ -3613,8 +3547,7 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
         debug.realtime('[REALTIME] 💾 finalXpForChat salvo (vitória):', finalXpForChat);
-        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
-        debug.win('[WIN] Stats já foram atualizados localmente, não duplicar');
+        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
         showVictoryScreen();
       } else if (winner_id === opponentUserId) {
         debug.win('[WIN] 😢 EU PERDI!');
@@ -3627,8 +3560,7 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat (será 0 em derrota)
         debug.realtime('[REALTIME] 💾 finalXpForChat salvo (derrota):', finalXpForChat);
-        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
-        debug.win('[WIN] Stats já foram atualizados localmente, não duplicar');
+        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
         showDefeatScreen();
       } else {
         debug.win('[WIN] 🤝 EMPATE!');
@@ -3639,8 +3571,7 @@ async function handleMatchUpdate(payload) {
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
         debug.realtime('[REALTIME] 💾 finalXpForChat salvo (empate):', finalXpForChat);
-        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
-        debug.win('[WIN] Stats já foram atualizados localmente, não duplicar');
+        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
         showDrawScreen();
       }
       
@@ -6437,19 +6368,21 @@ function checkWinCondition() {
     finalXpForChat = xpTotalMatch;
     console.log("[THOR.HTML] 💾 finalXpForChat salvo:", finalXpForChat);
     
-    // Em multiplayer, atualizar match no banco com vencedor (UMA VEZ APENAS)
+    // 🎮 ARQUITETURA AAA: Authority Pattern
+    // Apenas Player1 (host) tem autoridade para processar fim de jogo no servidor
     if (multiplayerMode && supabaseClient && matchData) {
-      // 🔒 Guard: só processar se ainda não foi atualizado
-      const updateLockKey = `match_updated_${matchData.id}`;
-      if (!sessionStorage.getItem(updateLockKey)) {
-        sessionStorage.setItem(updateLockKey, 'true');
-        debug.win('[WIN] 🔒 Lock de atualização criado:', updateLockKey);
-        
-        updateMatchWinner(localWinner, myLost, oppLost).catch(err => {
-          console.error('[WIN] Erro ao atualizar vencedor:', err);
+      const isPlayer1 = myUserId === matchData.player1_id;
+      
+      if (isPlayer1) {
+        debug.win('[WIN] 👑 SOU HOST (Player1) - Processando fim de jogo com autoridade');
+        // Host processa TUDO: match update + stats de AMBOS jogadores
+        updateMatchAsAuthority(localWinner, myLost, oppLost).catch(err => {
+          console.error('[WIN] Erro ao processar fim de jogo:', err);
         });
       } else {
-        debug.win('[WIN] ⏭️ Match já foi atualizado, ignorando chamada duplicada');
+        debug.win('[WIN] 👥 SOU CLIENT (Player2) - Aguardando confirmação do host via Realtime');
+        // Client apenas atualiza display local, servidor é atualizado pelo host
+        // Stats serão atualizadas pelo host no servidor
       }
     }
 
@@ -6491,8 +6424,129 @@ function checkWinCondition() {
   return false; // Jogo continua
 }
 
-// Atualizar match no banco com vencedor
+// 🎮 ARQUITETURA AAA: Authority-Based Match Processing
+// Apenas o HOST (Player1) executa esta função para processar fim de jogo
+// Client (Player2) recebe resultado via Realtime e apenas renderiza
+async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
+  try {
+    debug.win('[WIN] ========================================');
+    debug.win('[WIN] 👑 HOST processando fim de jogo com autoridade');
+    debug.win('[WIN] localWinner (meu resultado):', localWinner);
+    debug.win('[WIN] myTeam:', myTeam);
+    debug.win('[WIN] myLost:', myLost, 'oppLost:', oppLost);
+    
+    // Determinar vencedor global (player1 ou player2)
+    let winner_id = null;
+    if (localWinner === 'VICTORY') {
+      winner_id = myUserId; // Player1 ganhou
+    } else if (localWinner === 'DEFEAT') {
+      winner_id = opponentUserId; // Player2 ganhou
+    }
+    // Se DRAW, winner_id fica null
+    
+    debug.win('[WIN] winner_id:', winner_id);
+    
+    // 1️⃣ Atualizar match no banco (fonte única de verdade)
+    const { error: matchError } = await supabaseClient
+      .from('matches')
+      .update({
+        phase: 'finished',
+        winner_id: winner_id,
+        finished_at: new Date().toISOString()
+      })
+      .eq('id', matchData.id);
+    
+    if (matchError) {
+      console.error('[WIN] Erro ao atualizar match:', matchError);
+      return;
+    }
+    
+    debug.win('[WIN] ✅ Match atualizado');
+    
+    // 2️⃣ Atualizar stats de AMBOS jogadores (host tem autoridade)
+    // Player1 (eu, o host)
+    const player1Result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
+    const player1Stats = {
+      ships_destroyed: Number(oppLost ?? 0),
+      ships_lost: Number(myLost ?? 0),
+    };
+    
+    // Player2 (oponente)
+    const player2Result = localWinner === 'VICTORY' ? 'loss' : localWinner === 'DEFEAT' ? 'win' : 'draw';
+    const player2Stats = {
+      ships_destroyed: Number(myLost ?? 0), // inverso
+      ships_lost: Number(oppLost ?? 0),     // inverso
+    };
+    
+    debug.win('[WIN] 📊 Atualizando stats de ambos jogadores:');
+    debug.win('[WIN]   Player1 (host):', { id: myUserId, result: player1Result, stats: player1Stats });
+    debug.win('[WIN]   Player2:', { id: opponentUserId, result: player2Result, stats: player2Stats });
+    
+    // Atualizar Player1 (host)
+    await updatePlayerStatsAtomic(myUserId, player1Result, player1Stats);
+    
+    // Atualizar Player2 (client)
+    await updatePlayerStatsAtomic(opponentUserId, player2Result, player2Stats);
+    
+    debug.win('[WIN] ✅ Stats de ambos jogadores atualizadas com autoridade');
+    
+  } catch (err) {
+    console.error('[WIN] Exceção ao processar fim de jogo:', err);
+  }
+}
+
+// 🎯 Função atômica para atualizar stats de um jogador (chamada pelo host)
+async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_lost }) {
+  if (!supabaseClient || !userId) return;
+  
+  const statsUpdate = {
+    matches_played: 1,
+    ships_destroyed: Number(ships_destroyed),
+    ships_lost: Number(ships_lost),
+    wins: result === 'win' ? 1 : 0,
+    losses: result === 'loss' ? 1 : 0,
+    draws: result === 'draw' ? 1 : 0,
+  };
+  
+  try {
+    // Buscar stats atuais
+    const { data: statsRow } = await supabaseClient
+      .from("player_stats")
+      .select("matches_played, wins, losses, draws, ships_destroyed, ships_lost")
+      .eq("user_id", userId)
+      .maybeSingle();
+    
+    if (statsRow) {
+      // Atualizar somando os valores
+      const updateObj = {
+        matches_played: Number(statsRow.matches_played ?? 0) + 1,
+        wins: Number(statsRow.wins ?? 0) + statsUpdate.wins,
+        losses: Number(statsRow.losses ?? 0) + statsUpdate.losses,
+        draws: Number(statsRow.draws ?? 0) + statsUpdate.draws,
+        ships_destroyed: Number(statsRow.ships_destroyed ?? 0) + statsUpdate.ships_destroyed,
+        ships_lost: Number(statsRow.ships_lost ?? 0) + statsUpdate.ships_lost,
+      };
+      debug.stats('[STATS] ✅ Atualizando stats de', userId, ':', updateObj);
+      await supabaseClient
+        .from("player_stats")
+        .update(updateObj)
+        .eq("user_id", userId);
+    } else {
+      // Inserir novo registro
+      debug.stats('[STATS] ✅ Inserindo stats iniciais de', userId, ':', statsUpdate);
+      await supabaseClient
+        .from("player_stats")
+        .insert([{ user_id: userId, ...statsUpdate }]);
+    }
+  } catch (err) {
+    console.error('[STATS] Erro ao atualizar stats de', userId, ':', err);
+  }
+}
+
+// ⚠️ DEPRECATED: Mantida por compatibilidade, mas não deve ser mais usada
+// Nova arquitetura usa updateMatchAsAuthority (apenas pelo host)
 async function updateMatchWinner(localWinner, myLost, oppLost) {
+  console.warn('[WIN] ⚠️ updateMatchWinner DEPRECATED - use updateMatchAsAuthority');
   try {
     debug.win('[WIN] ========================================');
     debug.win('[WIN] Atualizando match com vencedor');
