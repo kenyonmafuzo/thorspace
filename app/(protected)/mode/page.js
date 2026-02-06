@@ -28,8 +28,11 @@ export default function ModePage() {
     // Listener para abrir welcome modal após daily XP fechar
     useEffect(() => {
       const handleOpenWelcome = () => {
+        console.log('[Mode] Evento thor_open_welcome recebido');
         const showWelcome = localStorage.getItem("thor_show_welcome");
+        console.log('[Mode] showWelcome flag:', showWelcome);
         if (showWelcome === "1") {
+          console.log('[Mode] Abrindo welcome modal...');
           setShowWelcomeModal(true);
         }
       };
@@ -37,14 +40,19 @@ export default function ModePage() {
       window.addEventListener("thor_open_welcome", handleOpenWelcome);
       
       // Se não houver daily XP (usuário já reclamou hoje), abrir welcome imediatamente
-      setTimeout(() => {
+      const fallbackTimer = setTimeout(() => {
         const showWelcome = localStorage.getItem("thor_show_welcome");
+        console.log('[Mode] Fallback timer - showWelcome:', showWelcome, 'showWelcomeModal:', showWelcomeModal);
         if (showWelcome === "1" && !showWelcomeModal) {
+          console.log('[Mode] Abrindo welcome modal via fallback...');
           setShowWelcomeModal(true);
         }
       }, 1000);
       
-      return () => window.removeEventListener("thor_open_welcome", handleOpenWelcome);
+      return () => {
+        window.removeEventListener("thor_open_welcome", handleOpenWelcome);
+        clearTimeout(fallbackTimer);
+      };
     }, [showWelcomeModal]);
     
     const handleCloseWelcome = () => {

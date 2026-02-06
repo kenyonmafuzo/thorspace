@@ -380,14 +380,17 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   
   // Handler para fechar daily login modal e abrir welcome se necessário
   const handleCloseDailyLogin = useCallback(() => {
+    console.log('[DailyLogin] Modal fechando...');
     setDailyLoginModalOpen(false);
     
     // Se estiver em /mode e tiver flag de welcome, disparar evento para abrir welcome modal
     if (pathname === '/mode' && typeof window !== 'undefined') {
       const showWelcome = localStorage.getItem("thor_show_welcome");
+      console.log('[DailyLogin] pathname:', pathname, 'showWelcome flag:', showWelcome);
       if (showWelcome === "1") {
         // Aguardar um pouco para transição visual
         setTimeout(() => {
+          console.log('[DailyLogin] Disparando evento thor_open_welcome');
           window.dispatchEvent(new CustomEvent("thor_open_welcome"));
         }, 300);
       }
