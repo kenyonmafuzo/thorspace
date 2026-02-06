@@ -6437,11 +6437,20 @@ function checkWinCondition() {
     finalXpForChat = xpTotalMatch;
     console.log("[THOR.HTML] 💾 finalXpForChat salvo:", finalXpForChat);
     
-    // Em multiplayer, atualizar match no banco com vencedor
+    // Em multiplayer, atualizar match no banco com vencedor (UMA VEZ APENAS)
     if (multiplayerMode && supabaseClient && matchData) {
-      updateMatchWinner(localWinner, myLost, oppLost).catch(err => {
-        console.error('[WIN] Erro ao atualizar vencedor:', err);
-      });
+      // 🔒 Guard: só processar se ainda não foi atualizado
+      const updateLockKey = `match_updated_${matchData.id}`;
+      if (!sessionStorage.getItem(updateLockKey)) {
+        sessionStorage.setItem(updateLockKey, 'true');
+        debug.win('[WIN] 🔒 Lock de atualização criado:', updateLockKey);
+        
+        updateMatchWinner(localWinner, myLost, oppLost).catch(err => {
+          console.error('[WIN] Erro ao atualizar vencedor:', err);
+        });
+      } else {
+        debug.win('[WIN] ⏭️ Match já foi atualizado, ignorando chamada duplicada');
+      }
     }
 
     // Enviar GAME_OVER uma única vez
