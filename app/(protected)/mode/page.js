@@ -20,14 +20,32 @@ export default function ModePage() {
           return;
         }
         
-        // Verificar se deve mostrar modal de boas-vindas
+        // NÃO mostrar welcome modal imediatamente - esperar evento após daily XP fechar
+        // Isso garante sequência: Daily XP → Welcome
+      }
+    }, []);
+    
+    // Listener para abrir welcome modal após daily XP fechar
+    useEffect(() => {
+      const handleOpenWelcome = () => {
         const showWelcome = localStorage.getItem("thor_show_welcome");
         if (showWelcome === "1") {
           setShowWelcomeModal(true);
-          // NÃO remove aqui, só remove quando usuário fechar o modal
         }
-      }
-    }, []);
+      };
+      
+      window.addEventListener("thor_open_welcome", handleOpenWelcome);
+      
+      // Se não houver daily XP (usuário já reclamou hoje), abrir welcome imediatamente
+      setTimeout(() => {
+        const showWelcome = localStorage.getItem("thor_show_welcome");
+        if (showWelcome === "1" && !showWelcomeModal) {
+          setShowWelcomeModal(true);
+        }
+      }, 1000);
+      
+      return () => window.removeEventListener("thor_open_welcome", handleOpenWelcome);
+    }, [showWelcomeModal]);
     
     const handleCloseWelcome = () => {
       setShowWelcomeModal(false);

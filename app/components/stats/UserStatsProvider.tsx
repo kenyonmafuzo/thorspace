@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { usePathname } from "next/navigation";
 
 interface PlayerProgress {
   level: number;
@@ -34,6 +35,7 @@ interface UserStatsContextType {
 export const UserStatsContext = createContext<UserStatsContextType | undefined>(undefined);
 
 export function UserStatsProvider({ children }: { children: React.ReactNode }) {
+      const pathname = usePathname();
       const [dailyLoginModalOpen, setDailyLoginModalOpen] = useState(false);
       // Importa o modal de daily login
       const DailyLoginModal = require("@/app/components/DailyLoginModal").default;
@@ -363,13 +365,34 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
           console.log('[DailyLogin] Inbox notification inserted successfully.');
         }
       });
-      // Abrir modal de daily login
-      setDailyLoginModalOpen(true);
-      setTimeout(() => {
-        window.dispatchEvent(new Event("thor_stats_updated"));
-      }, 400);
+      
+      // ✅ Só abrir modal de daily login se estiver em /mode
+      if (pathname === '/mode') {
+        setDailyLoginModalOpen(true);
+        setTimeout(() => {
+          window.dispatchEvent(new Event("thor_stats_updated"));
+        }, 400);
+      } else {
+        console.log('[DailyLogin] XP claimed but modal not shown (not in /mode)');
+      }
     }
-  }, [dailyLoginResult, userId, refreshUserStats, getDailyLoginText, lang, pushToast]);
+  }, [dailyLoginResult, userId, refreshUserStats, getDailyLoginText, lang, pushToast, pathname]);
+  
+  // Handler para fechar daily login modal e abrir welcome se necessário
+  const handleCloseDailyLogin = useCallback(() => {
+    setDailyLoginModalOpen(false);
+    
+    // Se estiver em /mode e tiver flag de welcome, disparar evento para abrir welcome modal
+    if (pathname === '/mode' && typeof window !== 'undefined') {
+      const showWelcome = localStorage.getItem("thor_show_welcome");
+      if (showWelcome === "1") {
+        // Aguardar um pouco para transição visual
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("thor_open_welcome"));
+        }, 300);
+      }
+    }
+  }, [pathname]);
 
   // ...existing code...
 
@@ -471,7 +494,7 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       {children}
       <DailyLoginModal
         open={dailyLoginModalOpen}
-        onClose={() => setDailyLoginModalOpen(false)}
+        onClose={handleCloseDailyLogin}
         awardedXp={dailyLoginResult?.awarded_xp || 0}
         streakDay={dailyLoginResult?.new_streak || 1}
       />
