@@ -1203,7 +1203,7 @@ background: rgba(0, 165, 242, 0.04);
 // ========================================
 // true = logs ativos (desenvolvimento)
 // false = logs desativados (produção - MELHOR PERFORMANCE)
-const DEBUG_MODE = false;
+const DEBUG_MODE = true; // ✅ ATIVADO para diagnosticar bug de stats duplicadas
 
 // Funções de log que só executam se DEBUG_MODE = true
 const debug = {
@@ -1695,6 +1695,9 @@ let myUserId = null;
 let opponentUserId = null;
 let opponentUsername = "Oponente";
 let matchData = null;
+
+// 🛡️ AAA GUARD: Prevenir processamento duplo de fim de jogo
+let matchEndProcessed = false;
 
 // Sistema de Turnos
 let matchStateChannel = null;
@@ -6298,6 +6301,12 @@ timerSpan.style.textShadow = "0 0 14px #0ff8";
 
 
 function checkWinCondition() {
+  // 🛡️ AAA GUARD: Prevenir múltiplas execuções (só pode terminar uma vez)
+  if (gameActive === false || phase === 'finished') {
+    debug.win('[WIN] ⚠️ Jogo já terminou, ignorando checkWinCondition');
+    return true; // Já processado
+  }
+  
   // Calcular perdas totais (combate + autocolisão)
   const myLost = getMyLost();
   const oppLost = getOppLost();
@@ -6310,7 +6319,7 @@ function checkWinCondition() {
   if (myLost >= 3 || oppLost >= 3) {
     debug.win('[WIN] 🏁 Jogo terminado! myLost=' + myLost + ', oppLost=' + oppLost);
     
-    // Parar o jogo
+    // 🔒 LOCK IMEDIATO: Prevenir race conditions
     gameActive = false;
     phase = 'finished';
 
@@ -6428,6 +6437,13 @@ function checkWinCondition() {
 // Apenas o HOST (Player1) executa esta função para processar fim de jogo
 // Client (Player2) recebe resultado via Realtime e apenas renderiza
 async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
+  // 🛡️ AAA GUARD: Prevenir múltiplas execuções (idempotência)
+  if (matchEndProcessed) {
+    debug.win('[WIN] ⚠️ Match já foi processado, ignorando chamada duplicada');
+    return;
+  }
+  matchEndProcessed = true; // Lock imediato
+  
   try {
     debug.win('[WIN] ========================================');
     debug.win('[WIN] 👑 HOST processando fim de jogo com autoridade');
