@@ -1203,7 +1203,7 @@ background: rgba(0, 165, 242, 0.04);
 // ========================================
 // true = logs ativos (desenvolvimento)
 // false = logs desativados (produção - MELHOR PERFORMANCE)
-const DEBUG_MODE = false; // ✅ Desativado após correção do bug de stats duplicadas
+const DEBUG_MODE = false;
 
 // Funções de log que só executam se DEBUG_MODE = true
 const debug = {
@@ -1297,7 +1297,7 @@ let selectionTimerStarted = false;
 // O startSelectionTimer só é chamado localmente em modo solo
 
 function showSelectionTimer(seconds) {
-  debug.timer('[TIMER] showSelectionTimer:', seconds);
+  console.log('[TIMER] showSelectionTimer:', seconds);
   const selectionTimerText = document.getElementById('selectionTimerText');
   if (selectionTimerText) {
     selectionTimerText.textContent = seconds > 0 ? seconds : 0;
@@ -1308,7 +1308,7 @@ function showSelectionTimer(seconds) {
   }
 }
 function hideSelectionTimer() {
-  debug.timer('[TIMER] hideSelectionTimer');
+  console.log('[TIMER] hideSelectionTimer');
   const selectionTimerText = document.getElementById('selectionTimerText');
   if (selectionTimerText) {
     selectionTimerText.textContent = '';
@@ -1321,7 +1321,7 @@ function hideSelectionTimer() {
 function startSelectionTimer() {
   if (!multiplayerMode || !matchData) {
     // Solo: fallback para timer local
-    debug.timer('[TIMER][SOLO] startSelectionTimer called');
+    console.log('[TIMER][SOLO] startSelectionTimer called');
     cancelSelectionTimer();
     selectionTimerStarted = true;
     selectionTimeRemaining = 15;
@@ -1375,16 +1375,16 @@ function startSelectionTimer() {
 }
 
 function cancelSelectionTimer() {
-  debug.timer('[TIMER] cancelSelectionTimer called');
+  console.log('[TIMER] cancelSelectionTimer called');
   if (selectionTimer) {
     clearTimeout(selectionTimer);
     selectionTimer = null;
-    debug.timer('[TIMER] selectionTimer timeout limpo');
+    console.log('[TIMER] selectionTimer timeout limpo');
   }
   if (selectionTimerInterval) {
     clearInterval(selectionTimerInterval);
     selectionTimerInterval = null;
-    debug.timer('[TIMER] selectionTimerInterval limpo');
+    console.log('[TIMER] selectionTimerInterval limpo');
   }
   hideSelectionTimer();
   selectionTimerStarted = false;
@@ -1435,7 +1435,7 @@ function showRoundBanner(roundNumber) {
 }
 
 function showSelectionTimer(seconds) {
-  debug.timer('[TIMER] showSelectionTimer:', seconds);
+  console.log('[TIMER] showSelectionTimer:', seconds);
   const selectionTimerText = document.getElementById('selectionTimerText');
   if (selectionTimerText) {
     selectionTimerText.textContent = seconds > 0 ? seconds : 0;
@@ -1446,7 +1446,7 @@ function showSelectionTimer(seconds) {
   }
 }
 function hideSelectionTimer() {
-  debug.timer('[TIMER] hideSelectionTimer');
+  console.log('[TIMER] hideSelectionTimer');
   const selectionTimerText = document.getElementById('selectionTimerText');
   if (selectionTimerText) {
     selectionTimerText.textContent = '';
@@ -1457,7 +1457,7 @@ function hideSelectionTimer() {
 }
 
 function startSelectionTimer() {
-  debug.timer('[TIMER] startSelectionTimer called');
+  console.log('[TIMER] startSelectionTimer called');
   cancelSelectionTimer();
   selectionTimerStarted = true;
   selectionTimeRemaining = 15;
@@ -1468,17 +1468,17 @@ function startSelectionTimer() {
     debug.timer('[TIMER] Interval tick, time remaining:', selectionTimeRemaining);
     showSelectionTimer(selectionTimeRemaining);
     if (selectionTimeRemaining <= 0) {
-      debug.timer('[TIMER] Timer chegou a zero, limpando intervalo');
+      console.log('[TIMER] Timer chegou a zero, limpando intervalo');
       clearInterval(selectionTimerInterval);
       selectionTimerInterval = null;
     }
   }, 1000);
 
   selectionTimer = setTimeout(async () => {
-    debug.timer('[TIMER] Timeout de 15s atingido');
+    console.log('[TIMER] Timeout de 15s atingido');
     // Sempre auto-selecionar naves se não houver 3
     if (!selectedNaves || selectedNaves.length < 3) {
-      debug.timer('[TIMER] Menos de 3 naves, selecionando padrão [1,1,1]');
+      console.log('[TIMER] Menos de 3 naves, selecionando padrão [1,1,1]');
       selectedNaves = [1, 1, 1];
       updatePreviews();
     }
@@ -1489,16 +1489,16 @@ function startSelectionTimer() {
 }
 
 function cancelSelectionTimer() {
-  debug.timer('[TIMER] cancelSelectionTimer called');
+  console.log('[TIMER] cancelSelectionTimer called');
   if (selectionTimer) {
     clearTimeout(selectionTimer);
     selectionTimer = null;
-    debug.timer('[TIMER] selectionTimer timeout limpo');
+    console.log('[TIMER] selectionTimer timeout limpo');
   }
   if (selectionTimerInterval) {
     clearInterval(selectionTimerInterval);
     selectionTimerInterval = null;
-    debug.timer('[TIMER] selectionTimerInterval limpo');
+    console.log('[TIMER] selectionTimerInterval limpo');
   }
   hideSelectionTimer();
   selectionTimerStarted = false;
@@ -1516,9 +1516,9 @@ window.showOnly = function(screenName) {
         ship.ready = false;
         ship.hasOrder = false;
         if (multiplayerMode && currentTurnNumber === 1) {
-          debug.turn('[TURN][RESET][SELECT][ROUND1][FIX] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
+          console.log('[TURN][RESET][SELECT][ROUND1][FIX] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
         } else {
-          debug.turn('[TURN][RESET][SELECT][FIX] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
+          console.log('[TURN][RESET][SELECT][FIX] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
         }
       });
     }
@@ -1696,9 +1696,6 @@ let opponentUserId = null;
 let opponentUsername = "Oponente";
 let matchData = null;
 
-// 🛡️ AAA GUARD: Prevenir processamento duplo de fim de jogo
-let matchEndProcessed = false;
-
 // Sistema de Turnos
 let matchStateChannel = null;
 let matchEventsChannel = null; // Canal para eventos de ações (tiros/movimento)
@@ -1760,11 +1757,11 @@ function ensurePvpInteractivePhase(context) {
     if (!multiplayerMode) return;
     // Only force phase to 'select' if it's not already interactive
     if (typeof phase !== 'undefined' && phase !== 'select') {
-      debug.pvp('[PVP][PHASE][GUARD] Forçando phase="select" no início do turno multiplayer. Contexto:', context, '| phase antes:', phase);
+      console.log('[PVP][PHASE][GUARD] Forçando phase="select" no início do turno multiplayer. Contexto:', context, '| phase antes:', phase);
       phase = 'select';
     }
     if (typeof currentPhase !== 'undefined' && currentPhase !== 'select') {
-      debug.pvp('[PVP][PHASE][GUARD] Forçando currentPhase="select" no início do turno multiplayer. Contexto:', context, '| currentPhase antes:', currentPhase);
+      console.log('[PVP][PHASE][GUARD] Forçando currentPhase="select" no início do turno multiplayer. Contexto:', context, '| currentPhase antes:', currentPhase);
       currentPhase = 'select';
     }
   } catch (err) {
@@ -1793,14 +1790,14 @@ function startTurnWindow(deadlineISO) {
   
   // GUARD: Se é o mesmo deadline, ignorar (já está rodando)
   if (window.__currentTurnDeadline === deadlineISO) {
-    debug.turn('[TURN] ⚠️ Mesmo deadline já está ativo, ignorando:', deadlineISO);
+    console.log('[TURN] ⚠️ Mesmo deadline já está ativo, ignorando:', deadlineISO);
     return;
   }
   
   // GUARD FORTE: Prevenir múltiplas chamadas simultâneas com debounce
   const now = Date.now();
   if (window.__lastTurnWindowStart && (now - window.__lastTurnWindowStart) < 1000) {
-    debug.turn('[TURN] ⚠️ startTurnWindow chamado muito rapidamente, ignorando (debounce)');
+    console.log('[TURN] ⚠️ startTurnWindow chamado muito rapidamente, ignorando (debounce)');
     return;
   }
   window.__lastTurnWindowStart = now;
@@ -1823,7 +1820,7 @@ function startTurnWindow(deadlineISO) {
       ship.locked = false;
       ship.ready = false;
       ship.hasOrder = false;
-      debug.turn('[TURN][RESET] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
+      console.log('[TURN][RESET] playerNave', i, 'locked/ready/hasOrder =', ship.locked, ship.ready, ship.hasOrder);
     });
   }
 
@@ -1838,14 +1835,14 @@ function startTurnWindow(deadlineISO) {
   
   // Limpar timer global se existir
   if (window.__activeTurnTimer) {
-    debug.turn('[TURN] ⚠️ Limpando timer global existente');
+    console.log('[TURN] ⚠️ Limpando timer global existente');
     clearInterval(window.__activeTurnTimer);
     window.__activeTurnTimer = null;
   }
   
   // GUARD: Se já existe um timer ativo, limpar antes de criar novo
   if (turnTimerInterval) {
-    debug.turn('[TURN] ⚠️ Timer já existe, limpando antes de criar novo');
+    console.log('[TURN] ⚠️ Timer já existe, limpando antes de criar novo');
     clearInterval(turnTimerInterval);
     turnTimerInterval = null;
   }
@@ -1860,9 +1857,9 @@ function startTurnWindow(deadlineISO) {
   waitingForTurnResolution = false;
   window.__lastAppliedTurnKey = null; // Limpar guard de aplicação
   
-  debug.turn('[TURN] ========================================');
-  debug.turn('[TURN] Iniciando janela de turno #' + currentTurnNumber);
-  debug.turn('[TURN] Deadline:', deadlineISO);
+  console.log('[TURN] ========================================');
+  console.log('[TURN] Iniciando janela de turno #' + currentTurnNumber);
+  console.log('[TURN] Deadline:', deadlineISO);
   
   // Parse deadline do servidor
   turnDeadline = deadlineISO ? new Date(deadlineISO) : new Date(Date.now() + 15000);
@@ -1876,7 +1873,7 @@ function startTurnWindow(deadlineISO) {
   const remainingMs = Math.max(0, deadlineMs - now);
   turnTimeRemaining = Math.ceil(remainingMs / 1000);
   
-  debug.turn('[TURN] Tempo restante:', turnTimeRemaining + 's');
+  console.log('[TURN] Tempo restante:', turnTimeRemaining + 's');
   
   // Mostrar timer visual
   const timerText = document.getElementById('timerText');
@@ -1897,7 +1894,7 @@ function startTurnWindow(deadlineISO) {
   
   // GUARD FORTE: Garantir que só um interval está ativo por vez
   if (window.__activeTurnTimer) {
-    debug.turn('[TURN] ⚠️ Já existe um timer global ativo, limpando...');
+    console.log('[TURN] ⚠️ Já existe um timer global ativo, limpando...');
     clearInterval(window.__activeTurnTimer);
     window.__activeTurnTimer = null;
   }
@@ -1929,31 +1926,31 @@ function startTurnWindow(deadlineISO) {
   
   // Registrar o timer globalmente
   window.__activeTurnTimer = turnTimerInterval;
-  debug.turn('[TURN] ✅ Timer registrado globalmente');
+  console.log('[TURN] ✅ Timer registrado globalmente');
   
   // Timer principal para deadline
   const timeoutMs = Math.max(0, remainingMs);
   turnTimer = setTimeout(() => {
-    debug.turn('[TURN] ⏰ Deadline atingido!');
-    debug.turn('[TURN] myUserId:', myUserId);
-    debug.turn('[TURN] matchData.player1_id:', matchData?.player1_id);
+    console.log('[TURN] ⏰ Deadline atingido!');
+    console.log('[TURN] myUserId:', myUserId);
+    console.log('[TURN] matchData.player1_id:', matchData?.player1_id);
     const isPlayer1 = myUserId === matchData?.player1_id;
-    debug.turn('[TURN] Sou Player 1 (host)?', isPlayer1);
+    console.log('[TURN] Sou Player 1 (host)?', isPlayer1);
     
     // Limpar seleção de nave quando tempo acaba
     selectedNave = null;
     isInteracting = false;
     // Se ainda não enviei, enviar ação idle
     if (!myActionSubmitted) {
-      debug.turn('[TURN] Auto-enviando ação idle (timeout)');
+      console.log('[TURN] Auto-enviando ação idle (timeout)');
       submitMyAction({ type: 'idle' });
     } else {
-      debug.turn('[TURN] Já havia enviado ação antes do timeout.');
+      console.log('[TURN] Já havia enviado ação antes do timeout.');
     }
     // Tentar resolver turno repetidamente até sucesso (máx 5 tentativas)
     // APENAS Player 1 (host) resolve turnos (variável já declarada acima)
     if (isPlayer1) {
-      debug.turn('[TURN] 🔴 Player 1 iniciando loop de resolução após timeout');
+      console.log('[TURN] 🔴 Player 1 iniciando loop de resolução após timeout');
       let resolveAttempts = 0;
       function tryResolveLoop() {
         resolveAttempts++;
@@ -1962,24 +1959,24 @@ function startTurnWindow(deadlineISO) {
         if (resolveAttempts < 5 && phase !== 'wait') {
           setTimeout(tryResolveLoop, 700);
         } else if (phase === 'wait') {
-          debug.turn('[TURN] [TIMEOUT] Turno resolvido com sucesso após timeout.');
+          console.log('[TURN] [TIMEOUT] Turno resolvido com sucesso após timeout.');
         } else {
           console.warn('[TURN] [TIMEOUT] Player 1 não conseguiu resolver turno após 5 tentativas.');
         }
       }
       tryResolveLoop();
     } else {
-      debug.turn('[TURN] 🔵 Player 2 aguardando Player 1 resolver via Realtime (timeout)');
+      console.log('[TURN] 🔵 Player 2 aguardando Player 1 resolver via Realtime (timeout)');
     }
   }, timeoutMs + 500);
   
-  debug.turn('[TURN] ========================================');
+  console.log('[TURN] ========================================');
 }
 
 // Enviar minha ação do turno
 async function submitMyAction(actionPayload) {
   if (!multiplayerMode || !supabaseClient || !matchData || myActionSubmitted) {
-    debug.turn('[TURN] Não pode enviar ação:', {
+    console.log('[TURN] Não pode enviar ação:', {
       multiplayerMode,
       supabaseClient: !!supabaseClient,
       matchData: !!matchData,
@@ -1988,10 +1985,10 @@ async function submitMyAction(actionPayload) {
     return false;
   }
   
-  debug.turn('[TURN] ========================================');
-  debug.turn('[TURN] Enviando ação do turno #' + currentTurnNumber);
-  debug.turn('[TURN] Meu time:', myTeam);
-  debug.turn('[TURN] Ação:', actionPayload);
+  console.log('[TURN] ========================================');
+  console.log('[TURN] Enviando ação do turno #' + currentTurnNumber);
+  console.log('[TURN] Meu time:', myTeam);
+  console.log('[TURN] Ação:', actionPayload);
   
   try {
     const updateData = {};
@@ -2004,8 +2001,8 @@ async function submitMyAction(actionPayload) {
       updateData.submitted_red = true;
     }
     
-    debug.turn('[TURN] Salvando ação em action_' + myTeam);
-    debug.turn('[TURN] Update data:', JSON.stringify(updateData));
+    console.log('[TURN] Salvando ação em action_' + myTeam);
+    console.log('[TURN] Update data:', JSON.stringify(updateData));
     
     const { error } = await supabaseClient
       .from('matches')
@@ -2017,9 +2014,9 @@ async function submitMyAction(actionPayload) {
       return false;
     }
     
-    debug.turn('[TURN] ✅ Ação salva no banco de dados');
-    debug.turn('[TURN] Campo usado: action_' + myTeam);
-    debug.turn('[TURN] Payload:', JSON.stringify(actionPayload));
+    console.log('[TURN] ✅ Ação salva no banco de dados');
+    console.log('[TURN] Campo usado: action_' + myTeam);
+    console.log('[TURN] Payload:', JSON.stringify(actionPayload));
     
     myActionSubmitted = true;
     waitingForTurnResolution = true;
@@ -2027,7 +2024,7 @@ async function submitMyAction(actionPayload) {
     // Travar todas as naves até o próximo round
     if (playerNaves) playerNaves.forEach(n => n.locked = true);
 
-    debug.turn('[TURN] ✅ Ação enviada com sucesso');
+    console.log('[TURN] ✅ Ação enviada com sucesso');
 
     // Travar UI e mostrar "Aguardando oponente..."
     const legendArea = document.getElementById('legendArea');
@@ -2045,10 +2042,10 @@ async function submitMyAction(actionPayload) {
     }
 
     // Tentar resolver turno agora (se ambos já enviaram)
-    debug.turn('[TURN] Verificando se pode resolver turno imediatamente...');
+    console.log('[TURN] Verificando se pode resolver turno imediatamente...');
     setTimeout(() => maybeResolveTurn(), 300);
 
-    debug.turn('[TURN] ========================================');
+    console.log('[TURN] ========================================');
     return true;
   } catch (err) {
     console.error('[TURN] ❌ Exceção ao enviar ação:', err);
@@ -2059,21 +2056,21 @@ async function submitMyAction(actionPayload) {
 // Tentar resolver o turno (se ambos enviaram OU deadline passou)
 async function maybeResolveTurn() {
   if (!multiplayerMode || !supabaseClient || !matchData) {
-    debug.turn('[TURN] ⚠️ Não pode resolver:', { multiplayerMode, hasClient: !!supabaseClient, hasMatchData: !!matchData });
+    console.log('[TURN] ⚠️ Não pode resolver:', { multiplayerMode, hasClient: !!supabaseClient, hasMatchData: !!matchData });
     return;
   }
   
   // Guard: evitar múltiplas tentativas simultâneas de resolução
   if (isResolvingTurn) {
-    debug.turn('[TURN] ⚠️ Já está resolvendo turno, ignorando chamada duplicada');
+    console.log('[TURN] ⚠️ Já está resolvendo turno, ignorando chamada duplicada');
     return;
   }
   
   isResolvingTurn = true;
   
-  debug.turn('[TURN] ========================================');
-  debug.turn('[TURN] Verificando se pode resolver turno #' + currentTurnNumber);
-  debug.turn('[TURN] matchData.id:', matchData.id);
+  console.log('[TURN] ========================================');
+  console.log('[TURN] Verificando se pode resolver turno #' + currentTurnNumber);
+  console.log('[TURN] matchData.id:', matchData.id);
   
   try {
     // Buscar estado atual do match
@@ -2093,11 +2090,11 @@ async function maybeResolveTurn() {
     // player2_id aguarda o Realtime detectar turn_resolved_at
     const isPlayer1 = myUserId === match.player1_id;
     if (!isPlayer1) {
-      debug.turn('[TURN] 🔵 Sou Player 2, aguardando Player 1 resolver turno via Realtime');
+      console.log('[TURN] 🔵 Sou Player 2, aguardando Player 1 resolver turno via Realtime');
       isResolvingTurn = false;
       return;
     }
-    debug.turn('[TURN] 🔴 Sou Player 1 (host), vou resolver o turno');
+    console.log('[TURN] 🔴 Sou Player 1 (host), vou resolver o turno');
     
     // Ler ações de action_blue/action_red
     const action_blue = match.action_blue;
@@ -2105,20 +2102,20 @@ async function maybeResolveTurn() {
     const submitted_blue = match.submitted_blue;
     const submitted_red = match.submitted_red;
     
-    debug.turn('[TURN] Dados brutos do banco:');
-    debug.turn('[TURN]   - action_blue:', JSON.stringify(action_blue));
-    debug.turn('[TURN]   - action_red:', JSON.stringify(action_red));
-    debug.turn('[TURN]   - submitted_blue:', submitted_blue);
-    debug.turn('[TURN]   - submitted_red:', submitted_red);
+    console.log('[TURN] Dados brutos do banco:');
+    console.log('[TURN]   - action_blue:', JSON.stringify(action_blue));
+    console.log('[TURN]   - action_red:', JSON.stringify(action_red));
+    console.log('[TURN]   - submitted_blue:', submitted_blue);
+    console.log('[TURN]   - submitted_red:', submitted_red);
     
     const turn_resolved_at = match.turn_resolved_at;
     const turn_deadline_at = match.turn_deadline_at;
     const currentTurnInDb = match.turn_number || 1;
     
-    debug.turn('[TURN] Estado atual:');
-    debug.turn('[TURN]   - turn_number(db):', currentTurnInDb);
-    debug.turn('[TURN]   - turn_resolved_at:', turn_resolved_at);
-    debug.turn('[TURN]   - turn_deadline_at:', turn_deadline_at);
+    console.log('[TURN] Estado atual:');
+    console.log('[TURN]   - turn_number(db):', currentTurnInDb);
+    console.log('[TURN]   - turn_resolved_at:', turn_resolved_at);
+    console.log('[TURN]   - turn_deadline_at:', turn_deadline_at);
     
     // IMPORTANTE: turn_resolved_at pode referir-se ao TURNO ANTERIOR (pois incrementamos turn_number).
     // Portanto, não usar turn_resolved_at como guard de "turno já resolvido".
@@ -2131,27 +2128,27 @@ async function maybeResolveTurn() {
     const deadline = turn_deadline_at ? new Date(turn_deadline_at) : null;
     const deadlinePassed = deadline && now >= deadline;
     
-    debug.turn('[TURN] bothSubmitted:', bothSubmitted);
-    debug.turn('[TURN] deadlinePassed:', deadlinePassed);
-    debug.turn('[TURN] now:', now.toISOString());
-    debug.turn('[TURN] deadline:', deadline ? deadline.toISOString() : 'null');
+    console.log('[TURN] bothSubmitted:', bothSubmitted);
+    console.log('[TURN] deadlinePassed:', deadlinePassed);
+    console.log('[TURN] now:', now.toISOString());
+    console.log('[TURN] deadline:', deadline ? deadline.toISOString() : 'null');
     
     // Só resolver se ambos enviaram OU deadline passou
     if (!bothSubmitted && !deadlinePassed) {
-      debug.turn('[TURN] Aguardando... (nem ambos enviaram nem deadline passou)');
+      console.log('[TURN] Aguardando... (nem ambos enviaram nem deadline passou)');
       isResolvingTurn = false;
       return;
     }
     
-    debug.turn('[TURN] 🎯 Resolvendo turno agora!');
+    console.log('[TURN] 🎯 Resolvendo turno agora!');
     
     // Usar ações diretamente ou idle se não submetido
     const final_action_blue = submitted_blue ? action_blue : { type: 'idle' };
     const final_action_red = submitted_red ? action_red : { type: 'idle' };
     
-    debug.turn('[TURN] Ações a serem aplicadas:');
-    debug.turn('[TURN]   - final_action_blue:', JSON.stringify(final_action_blue));
-    debug.turn('[TURN]   - final_action_red:', JSON.stringify(final_action_red));
+    console.log('[TURN] Ações a serem aplicadas:');
+    console.log('[TURN]   - final_action_blue:', JSON.stringify(final_action_blue));
+    console.log('[TURN]   - final_action_red:', JSON.stringify(final_action_red));
     
     // Marcar como resolvido e avançar turno
     const nextTurnNumber = currentTurnInDb + 1;
@@ -2186,12 +2183,12 @@ async function maybeResolveTurn() {
     
     // Se não retornou dados, outro cliente já resolveu (ou o turno já avançou)
     if (!updateData || updateData.length === 0) {
-      debug.turn('[TURN] ⚠️ Outro cliente já resolveu o turno (ou turn_number já avançou)');
+      console.log('[TURN] ⚠️ Outro cliente já resolveu o turno (ou turn_number já avançou)');
       isResolvingTurn = false;
       return;
     }
     
-    debug.turn('[TURN] ✅ Turno resolvido e avançado para #' + nextTurnNumber);
+    console.log('[TURN] ✅ Turno resolvido e avançado para #' + nextTurnNumber);
     
     // NÃO aplicar ações aqui - o Realtime vai detectar turn_resolved_at
     // e chamar applyResolvedTurn em AMBOS os clientes
@@ -2200,7 +2197,7 @@ async function maybeResolveTurn() {
 
     // NÃO atualizar currentTurnNumber aqui - deixar o Realtime detectar e iniciar novo turno
 
-    debug.turn('[TURN] ========================================');
+    console.log('[TURN] ========================================');
     isResolvingTurn = false;
   } catch (err) {
     console.error('[TURN] ❌ Exceção ao resolver turno:', err);
@@ -2215,50 +2212,50 @@ function applyResolvedTurn(actions) {
   // Guard: prevenir múltiplas aplicações do mesmo turno
   const turnKey = JSON.stringify(actions);
   if (window.__lastAppliedTurnKey === turnKey) {
-    debug.turn('[TURN] ⚠️ Turno já foi aplicado, ignorando duplicata');
+    console.log('[TURN] ⚠️ Turno já foi aplicado, ignorando duplicata');
     return;
   }
   window.__lastAppliedTurnKey = turnKey;
   
-  debug.turn('[TURN] ========================================')
-  debug.turn('[TURN] 🎮 COMEÇANDO applyResolvedTurn');
-  debug.turn('[TURN] action_blue:', JSON.stringify(actions.action_blue));
-  debug.turn('[TURN] action_red:', JSON.stringify(actions.action_red));
-  debug.turn('[TURN] myTeam:', myTeam);
-  debug.turn('[TURN] phase atual:', phase);
-  debug.turn('[TURN] ⚠️ ESTA FUNÇÃO DEVE SER EXECUTADA EM AMBOS OS CLIENTES!');
+  console.log('[TURN] ========================================')
+  console.log('[TURN] 🎮 COMEÇANDO applyResolvedTurn');
+  console.log('[TURN] action_blue:', JSON.stringify(actions.action_blue));
+  console.log('[TURN] action_red:', JSON.stringify(actions.action_red));
+  console.log('[TURN] myTeam:', myTeam);
+  console.log('[TURN] phase atual:', phase);
+  console.log('[TURN] ⚠️ ESTA FUNÇÃO DEVE SER EXECUTADA EM AMBOS OS CLIENTES!');
   
   turnWindowActive = false;
   waitingForTurnResolution = false;
   phase = 'wait';
   
-  debug.turn('[TURN] 🎯 Phase mudou para WAIT - movimento deve começar');
+  console.log('[TURN] 🎯 Phase mudou para WAIT - movimento deve começar');
   
   // Determinar quais são minhas ações e quais são do oponente
   const myAction = (myTeam === 'blue') ? actions.action_blue : actions.action_red;
   const oppAction = (myTeam === 'blue') ? actions.action_red : actions.action_blue;
   
-  debug.turn('[TURN] Minha ação (' + myTeam + '):', JSON.stringify(myAction));
-  debug.turn('[TURN] Ação oponente:', JSON.stringify(oppAction));
+  console.log('[TURN] Minha ação (' + myTeam + '):', JSON.stringify(myAction));
+  console.log('[TURN] Ação oponente:', JSON.stringify(oppAction));
   
   // Aplicar MINHAS ações em playerNaves
   if (myAction && myAction.type === 'play' && myAction.ships) {
-    debug.turn('[TURN] Aplicando minhas ações em playerNaves');
+    console.log('[TURN] Aplicando minhas ações em playerNaves');
     myAction.ships.forEach(shipData => {
       const nave = playerNaves[shipData.index];
       if (nave && nave.hp > 0) {
         nave.target = shipData.target;
         nave.shot = shipData.shot;
-        debug.turn('[TURN]   - Nave #' + shipData.index + ': target=', shipData.target, 'shot=', shipData.shot);
+        console.log('[TURN]   - Nave #' + shipData.index + ': target=', shipData.target, 'shot=', shipData.shot);
       }
     });
   } else {
-    debug.turn('[TURN] ⚠️ Minha ação inválida ou idle');
+    console.log('[TURN] ⚠️ Minha ação inválida ou idle');
   }
   
   // Aplicar ações do OPONENTE em cpuNaves
   if (oppAction && oppAction.type === 'play' && oppAction.ships) {
-    debug.turn('[TURN] Aplicando ações do oponente em cpuNaves');
+    console.log('[TURN] Aplicando ações do oponente em cpuNaves');
     oppAction.ships.forEach(shipData => {
       const nave = cpuNaves[shipData.index];
       if (nave && nave.hp > 0) {
@@ -2268,17 +2265,17 @@ function applyResolvedTurn(actions) {
         if (shipData.angle !== undefined) {
           nave.angle = shipData.angle;
         }
-        debug.turn('[TURN]   - Nave oponente #' + shipData.index + ': target=', shipData.target, 'shot=', shipData.shot, 'angle=', shipData.angle);
+        console.log('[TURN]   - Nave oponente #' + shipData.index + ': target=', shipData.target, 'shot=', shipData.shot, 'angle=', shipData.angle);
       }
     });
   } else {
-    debug.turn('[TURN] ⚠️ Ação do oponente inválida ou idle');
+    console.log('[TURN] ⚠️ Ação do oponente inválida ou idle');
   }
   
   // Iniciar animação simultânea (movimento + tiros)
-  debug.turn('[TURN] 🚀 Iniciando animação de combate simultâneo');
-  debug.turn('[TURN] playerNaves:', playerNaves.map(n => ({ index: playerNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
-  debug.turn('[TURN] cpuNaves:', cpuNaves.map(n => ({ index: cpuNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
+  console.log('[TURN] 🚀 Iniciando animação de combate simultâneo');
+  console.log('[TURN] playerNaves:', playerNaves.map(n => ({ index: playerNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
+  console.log('[TURN] cpuNaves:', cpuNaves.map(n => ({ index: cpuNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
   
   fireProjectiles();
   
@@ -2289,8 +2286,8 @@ function applyResolvedTurn(actions) {
     legendArea.style.color = '#FFB84D';
   }
   
-  debug.turn('[TURN] ✅ Ações aplicadas e animações iniciadas');
-  debug.turn('[TURN] ========================================');
+  console.log('[TURN] ✅ Ações aplicadas e animações iniciadas');
+  console.log('[TURN] ========================================');
 }
 
 // Sincronizar HP das naves no banco após combate
@@ -2298,13 +2295,13 @@ async function syncShipsHP() {
   if (!multiplayerMode || !supabaseClient || !matchData) return;
   
   try {
-    debug.sync('[SYNC] Sincronizando HP das naves...');
+    console.log('[SYNC] Sincronizando HP das naves...');
     
     // Coletar HP das minhas naves
     const myShipsHP = playerNaves.map(n => n.hp);
     
-    debug.sync('[SYNC] Meu HP:', myShipsHP);
-    debug.sync('[SYNC] Meu time:', myTeam);
+    console.log('[SYNC] Meu HP:', myShipsHP);
+    console.log('[SYNC] Meu time:', myTeam);
     
     // Atualizar no banco baseado no meu time
     const updateData = {};
@@ -2324,7 +2321,7 @@ async function syncShipsHP() {
       return;
     }
     
-    debug.sync('[SYNC] ✅ HP sincronizado');
+    console.log('[SYNC] ✅ HP sincronizado');
   } catch (err) {
     console.error('[SYNC] Exceção ao sincronizar HP:', err);
   }
@@ -2412,14 +2409,14 @@ function processRoundXPEvents() {
 
 // Processar eventos de fim de partida
 function processMatchEndXPEvents(result) {
-  debug.xp('[XP] 📊 processMatchEndXPEvents chamada com result:', result);
-  debug.xp('[XP] 📊 xpEvents ANTES:', JSON.parse(JSON.stringify(xpEvents)));
-  debug.xp('[XP] 📊 xpTotalMatch ANTES:', xpTotalMatch);
+  console.log('[XP] 📊 processMatchEndXPEvents chamada com result:', result);
+  console.log('[XP] 📊 xpEvents ANTES:', JSON.parse(JSON.stringify(xpEvents)));
+  console.log('[XP] 📊 xpTotalMatch ANTES:', xpTotalMatch);
   
   // 🔒 Guard: Se eventos de fim já foram processados, não processar novamente
   // (usa variável separada para permitir que applyMatchXP tenha seu próprio guard)
   if (window.__matchEndEventsProcessed) {
-    debug.xp('[XP] ⚠️ processMatchEndXPEvents já foi chamado, ignorando duplicata');
+    console.log('[XP] ⚠️ processMatchEndXPEvents já foi chamado, ignorando duplicata');
     return;
   }
   window.__matchEndEventsProcessed = true;
@@ -2442,30 +2439,30 @@ function processMatchEndXPEvents(result) {
   } else if (result === 'defeat') {
     registerXPEvent('MATCH_DEFEAT');
     // ❌ DERROTA: Zerar todo o XP acumulado
-    debug.xp('[XP] 💀 DERROTA: Zerando XP total (era:', xpTotalMatch, ')');
+    console.log('[XP] 💀 DERROTA: Zerando XP total (era:', xpTotalMatch, ')');
     xpTotalMatch = 0;
   }
   
-  debug.xp('[XP] 📊 xpEvents DEPOIS:', JSON.parse(JSON.stringify(xpEvents)));
-  debug.xp('[XP] 📊 xpTotalMatch ANTES do CAP:', xpTotalMatch);
+  console.log('[XP] 📊 xpEvents DEPOIS:', JSON.parse(JSON.stringify(xpEvents)));
+  console.log('[XP] 📊 xpTotalMatch ANTES do CAP:', xpTotalMatch);
   
   // Aplicar CAP HARD de 450 XP e garantir que nunca seja negativo (apenas se não for derrota)
   if (result !== 'defeat') {
     xpTotalMatch = Math.min(450, Math.max(0, xpTotalMatch));
   }
-  debug.xp('[XP] 📊 xpTotalMatch DEPOIS do CAP:', xpTotalMatch);
+  console.log('[XP] 📊 xpTotalMatch DEPOIS do CAP:', xpTotalMatch);
 }
 
 // Aplicar XP total ao jogador
 async function applyMatchXP() {
   // 🔒 Bloqueia XP, vitórias e progresso no modo prática
   if (!multiplayerMode) {
-    debug.xp('[XP] ⚠️ Modo prática: não aplica XP, vitórias ou progresso.');
+    console.log('[XP] ⚠️ Modo prática: não aplica XP, vitórias ou progresso.');
     return;
   }
   // 🔒 Evitar múltiplas execuções
   if (xpAlreadyApplied) {
-    debug.xp('[XP] ⚠️ XP já foi aplicado nesta partida, ignorando duplicata');
+    console.log('[XP] ⚠️ XP já foi aplicado nesta partida, ignorando duplicata');
     return;
   }
   if (!supabaseClient || !myUserId) {
@@ -2473,7 +2470,7 @@ async function applyMatchXP() {
     return;
   }
   if (xpTotalMatch === 0) {
-    debug.xp('[XP] Nenhum XP para aplicar');
+    console.log('[XP] Nenhum XP para aplicar');
     return;
   }
   
@@ -2481,10 +2478,10 @@ async function applyMatchXP() {
   xpAlreadyApplied = true;
   
   try {
-    debug.xp('[XP] 🚀 INÍCIO applyMatchXP');
-    debug.xp('[XP] 🚀 xpTotalMatch:', xpTotalMatch);
-    debug.xp('[XP] 🚀 xpEvents.length:', xpEvents.length);
-    debug.xp('[XP] 🚀 xpEvents:', JSON.parse(JSON.stringify(xpEvents)));
+    console.log('[XP] 🚀 INÍCIO applyMatchXP');
+    console.log('[XP] 🚀 xpTotalMatch:', xpTotalMatch);
+    console.log('[XP] 🚀 xpEvents.length:', xpEvents.length);
+    console.log('[XP] 🚀 xpEvents:', JSON.parse(JSON.stringify(xpEvents)));
     
     // Buscar progresso atual
     let { data: progress, error: fetchError } = await supabaseClient
@@ -2518,12 +2515,12 @@ async function applyMatchXP() {
     }
     
     // Calcular novo XP e nível
-    debug.xp('[XP] 🔍 progress recebido do DB:', JSON.parse(JSON.stringify(progress)));
+    console.log('[XP] 🔍 progress recebido do DB:', JSON.parse(JSON.stringify(progress)));
     let level = progress.level || 1;
-    debug.xp('[XP] 🔍 progress.xp:', progress.xp);
-    debug.xp('[XP] 🔍 xpTotalMatch neste momento:', xpTotalMatch);
+    console.log('[XP] 🔍 progress.xp:', progress.xp);
+    console.log('[XP] 🔍 xpTotalMatch neste momento:', xpTotalMatch);
     let xp = (progress.xp || 0) + xpTotalMatch;
-    debug.xp('[XP] 🔍 XP CALCULADO (progress.xp + xpTotalMatch):', xp);
+    console.log('[XP] 🔍 XP CALCULADO (progress.xp + xpTotalMatch):', xp);
     let xp_to_next = progress.xp_to_next || 300;
     let levelUps = 0;
     
@@ -2550,7 +2547,7 @@ async function applyMatchXP() {
     }
     
     // ✅ INCREMENTAR TOTAL_XP (sistema de ranks)
-    debug.xp('[XP] 📊 Incrementando total_xp via RPC:', xpTotalMatch);
+    console.log('[XP] 📊 Incrementando total_xp via RPC:', xpTotalMatch);
     
     // 🔍 DEBUG: Buscar total_xp atual ANTES do incremento
     const { data: beforeData } = await supabaseClient
@@ -2558,7 +2555,7 @@ async function applyMatchXP() {
       .select('total_xp')
       .eq('user_id', myUserId)
       .single();
-    debug.xp('[XP] 🔍 total_xp no DB ANTES do RPC:', beforeData?.total_xp ?? 0);
+    console.log('[XP] 🔍 total_xp no DB ANTES do RPC:', beforeData?.total_xp ?? 0);
     
     try {
       const { error: rpcError } = await supabaseClient.rpc('increment_total_xp', {
@@ -2569,7 +2566,7 @@ async function applyMatchXP() {
       if (rpcError) {
         console.warn('[XP] ⚠️ Erro ao incrementar total_xp (não crítico):', rpcError);
       } else {
-        debug.xp('[XP] ✅ total_xp incrementado com sucesso!');
+        console.log('[XP] ✅ total_xp incrementado com sucesso!');
         
         // 🔍 DEBUG: Buscar total_xp atual DEPOIS do incremento
         const { data: afterData } = await supabaseClient
@@ -2577,13 +2574,13 @@ async function applyMatchXP() {
           .select('total_xp')
           .eq('user_id', myUserId)
           .single();
-        debug.xp('[XP] 🔍 total_xp no DB DEPOIS do RPC:', afterData?.total_xp ?? 0);
+        console.log('[XP] 🔍 total_xp no DB DEPOIS do RPC:', afterData?.total_xp ?? 0);
       }
     } catch (rpcErr) {
       console.warn('[XP] ⚠️ Exceção ao incrementar total_xp:', rpcErr);
     }
     
-    debug.xp('[XP] ✅ XP aplicado:', { level, xp, xp_to_next, levelUps, xpGain: xpTotalMatch });
+    console.log('[XP] ✅ XP aplicado:', { level, xp, xp_to_next, levelUps, xpGain: xpTotalMatch });
     
     // Disparar eventos para atualizar o header
     window.dispatchEvent(new CustomEvent('thor_progress_updated', {
@@ -2653,7 +2650,7 @@ async function postXPEventsToChat() {
       });
     }
     
-    debug.xp('[XP] Eventos postados no chat');
+    console.log('[XP] Eventos postados no chat');
   } catch (err) {
     console.error('[XP] Erro ao postar no chat:', err);
   }
@@ -2739,17 +2736,17 @@ function getUrlParams() {
 async function initMultiplayerMode(matchId) {
   // ✅ XP: Resetar sistema de XP para nova partida
   resetMatchXP();
-  debug.pvp('[PVP] ✅ Sistema de XP resetado para nova partida');
+  console.log('[PVP] ✅ Sistema de XP resetado para nova partida');
   
   // (A1) GUARD: Não inicializar duas vezes para o mesmo match
   if (window.__pvpInitializedForMatchId === matchId) {
-    debug.pvp('[PVP] ⚠️ Já inicializado para matchId:', matchId, '- ignorando');
+    console.log('[PVP] ⚠️ Já inicializado para matchId:', matchId, '- ignorando');
     return true;
   }
   
   // (A2) Limpar channels anteriores antes de criar novos
   if (window.__pvpChannel) {
-    debug.pvp('[PVP] Limpando channel anterior...');
+    console.log('[PVP] Limpando channel anterior...');
     try {
       await window.__pvpChannel.unsubscribe();
       window.__pvpChannel = null;
@@ -2759,9 +2756,9 @@ async function initMultiplayerMode(matchId) {
   }
   
   try {
-    debug.pvp('[PVP] ========================================');
-    debug.pvp('[PVP] Inicializando modo multiplayer');
-    debug.pvp('[PVP] matchId recebido:', matchId);
+    console.log('[PVP] ========================================');
+    console.log('[PVP] Inicializando modo multiplayer');
+    console.log('[PVP] matchId recebido:', matchId);
     
     // STEP 1: Ler parâmetros da URL
     console.log('[PVP STEP 1] Lendo parâmetros da URL...');
@@ -2817,7 +2814,7 @@ async function initMultiplayerMode(matchId) {
         autoRefreshToken: false
       }
     });
-    debug.pvp('[PVP] ✓ Supabase client criado');
+    console.log('[PVP] ✓ Supabase client criado');
     
     // STEP 3: Autenticar via tokens (se disponíveis) - ANTES de qualquer query
     let authenticatedUser = null;
@@ -2839,14 +2836,14 @@ async function initMultiplayerMode(matchId) {
           console.warn('[PVP] ⚠️ setSession não retornou sessão');
           myUserId = urlParams.userId;
         } else {
-          debug.pvp('[PVP] ✓ Sessão estabelecida');
+          console.log('[PVP] ✓ Sessão estabelecida');
           
           const { data: userData, error: userError } = await supabaseClient.auth.getUser();
           
           if (!userError && userData?.user) {
             authenticatedUser = userData.user;
             myUserId = authenticatedUser.id;
-            debug.pvp('[PVP] ✓ Autenticado como:', myUserId);
+            console.log('[PVP] ✓ Autenticado como:', myUserId);
           } else {
             console.warn('[PVP] ⚠️ getUser falhou:', userError?.message);
             myUserId = urlParams.userId;
@@ -2875,7 +2872,7 @@ async function initMultiplayerMode(matchId) {
       return;
     }
     
-    debug.pvp('[PVP] ✓ userId final:', myUserId);
+    console.log('[PVP] ✓ userId final:', myUserId);
     
     // STEP 4: Buscar dados do match via supabase-js
     console.log('[PVP STEP 4] Buscando match id=' + matchId + '...');
@@ -2901,7 +2898,7 @@ async function initMultiplayerMode(matchId) {
       return false;
     }
     
-    debug.pvp('[PVP] ✓ Match carregado:', {
+    console.log('[PVP] ✓ Match carregado:', {
       id: match.id,
       player1_id: match.player1_id,
       player2_id: match.player2_id,
@@ -2935,43 +2932,43 @@ async function initMultiplayerMode(matchId) {
     if (myUserId === player1_id) {
       myTeam = 'blue';
       opponentUserId = player2_id;
-      debug.pvp('[PVP] ✓ EU SOU BLUE (player1_id)');
+      console.log('[PVP] ✓ EU SOU BLUE (player1_id)');
     } else if (myUserId === player2_id) {
       myTeam = 'red';
       opponentUserId = player1_id;
-      debug.pvp('[PVP] ✓ EU SOU RED (player2_id)');
+      console.log('[PVP] ✓ EU SOU RED (player2_id)');
     }
     
     // Determinar turno baseado em turn_user_id (não turn_team)
     turnUserId = match.turn_user_id || player1_id; // Default: player1 começa
     isMyTurn = (turnUserId === myUserId);
     
-    debug.pvp('[PVP] ✓ Meu time:', myTeam.toUpperCase());
-    debug.pvp('[PVP] ✓ player1_id (BLUE):', player1_id);
-    debug.pvp('[PVP] ✓ player2_id (RED):', player2_id);
-    debug.pvp('[PVP] ✓ turn_user_id:', turnUserId);
-    debug.pvp('[PVP] ✓ isMyTurn:', isMyTurn);
+    console.log('[PVP] ✓ Meu time:', myTeam.toUpperCase());
+    console.log('[PVP] ✓ player1_id (BLUE):', player1_id);
+    console.log('[PVP] ✓ player2_id (RED):', player2_id);
+    console.log('[PVP] ✓ turn_user_id:', turnUserId);
+    console.log('[PVP] ✓ isMyTurn:', isMyTurn);
     
     // STEP 6: Buscar username do oponente (com cache e maybeSingle)
     console.log('[PVP STEP 6] Buscando username do oponente...');
     opponentUsername = await getOpponentUsername(opponentUserId);
-    debug.pvp('[PVP] ✓ Oponente:', opponentUsername);
+    console.log('[PVP] ✓ Oponente:', opponentUsername);
     
     // STEP 7: Ativar modo multiplayer
     multiplayerMode = true;
     PVP.hasInitialized = true;
-    debug.pvp('[PVP] ✓✓✓ MODO MULTIPLAYER ATIVADO (DETERMINÍSTICO) ✓✓✓');
-    debug.pvp('[PVP] Resumo:');
-    debug.pvp('[PVP]   - Meu time:', myTeam.toUpperCase());
-    debug.pvp('[PVP]   - Meu ID:', myUserId);
-    debug.pvp('[PVP]   - Oponente:', opponentUsername, '('+opponentUserId+')');
-    debug.pvp('[PVP]   - player1_id (BLUE):', player1_id);
-    debug.pvp('[PVP]   - player2_id (RED):', player2_id);
-    debug.pvp('[PVP]   - Fase:', currentPhase);
-    debug.pvp('[PVP]   - turn_user_id:', turnUserId);
-    debug.pvp('[PVP]   - É meu turno?', isMyTurn);
-    debug.pvp('[PVP] CPU DESABILITADA - PVP REAL');
-    debug.pvp('[PVP] ========================================');
+    console.log('[PVP] ✓✓✓ MODO MULTIPLAYER ATIVADO (DETERMINÍSTICO) ✓✓✓');
+    console.log('[PVP] Resumo:');
+    console.log('[PVP]   - Meu time:', myTeam.toUpperCase());
+    console.log('[PVP]   - Meu ID:', myUserId);
+    console.log('[PVP]   - Oponente:', opponentUsername, '('+opponentUserId+')');
+    console.log('[PVP]   - player1_id (BLUE):', player1_id);
+    console.log('[PVP]   - player2_id (RED):', player2_id);
+    console.log('[PVP]   - Fase:', currentPhase);
+    console.log('[PVP]   - turn_user_id:', turnUserId);
+    console.log('[PVP]   - É meu turno?', isMyTurn);
+    console.log('[PVP] CPU DESABILITADA - PVP REAL');
+    console.log('[PVP] ========================================');
     
     // Salvar no localStorage
     localStorage.setItem('thor_match_opponent_name', opponentUsername);
@@ -2985,13 +2982,13 @@ async function initMultiplayerMode(matchId) {
     
     // F) Se já estiver em battle (recarga de página), iniciar sync de movimento
     if (currentPhase === 'battle') {
-      debug.pvp('[PVP] Match já em battle, inicializando syncChannel...');
+      console.log('[PVP] Match já em battle, inicializando syncChannel...');
       setupMultiplayerSync(matchId);
     }
     
     // (A3) Marcar como inicializado para este matchId
     window.__pvpInitializedForMatchId = matchId;
-    debug.pvp('[PVP] ✅ Inicialização completa para matchId:', matchId);
+    console.log('[PVP] ✅ Inicialização completa para matchId:', matchId);
     
     return true;
   } catch (err) {
@@ -3012,7 +3009,7 @@ async function initMultiplayerMode(matchId) {
 function startHeartbeat() {
   if (!multiplayerMode || !supabaseClient || !matchData) return;
   
-  debug.log('[HEARTBEAT] Iniciando sistema de heartbeat');
+  console.log('[HEARTBEAT] Iniciando sistema de heartbeat');
   
   // Enviar heartbeat imediatamente
   sendHeartbeat();
@@ -3079,7 +3076,7 @@ async function checkOpponentHeartbeat() {
     
     // Se não vejo o oponente há mais de 10s, aplicar WO
     if (secondsSinceLastSeen > 10) {
-      debug.log('[HEARTBEAT] 🚨 Oponente desconectado! Aplicando WO...');
+      console.log('[HEARTBEAT] 🚨 Oponente desconectado! Aplicando WO...');
       stopHeartbeat();
       await applyWalkover();
     }
@@ -3093,12 +3090,12 @@ function stopHeartbeat() {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
-    debug.log('[HEARTBEAT] Parando envio de heartbeat');
+    console.log('[HEARTBEAT] Parando envio de heartbeat');
   }
   if (opponentLastSeenCheck) {
     clearInterval(opponentLastSeenCheck);
     opponentLastSeenCheck = null;
-    debug.log('[HEARTBEAT] Parando verificação de oponente');
+    console.log('[HEARTBEAT] Parando verificação de oponente');
   }
 }
 
@@ -3114,12 +3111,12 @@ function setupMatchStateSync(matchId) {
   }
   
   if (matchStateChannel) {
-    debug.realtime('[REALTIME] ⚠️ matchStateChannel já existe, não criar duplicado');
+    console.log('[REALTIME] ⚠️ matchStateChannel já existe, não criar duplicado');
     return;
   }
   
   try {
-    debug.realtime('[REALTIME] 🔗 Criando canal de estado para match:', matchId);
+    console.log('[REALTIME] 🔗 Criando canal de estado para match:', matchId);
     matchStateChannel = supabaseClient.channel(`match-state:${matchId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -3143,12 +3140,12 @@ function setupMatchStateSync(matchId) {
           const amIOnline = onlineUsers.includes(myUserId);
           const isOpponentOnline = onlineUsers.includes(opponentUserId);
           
-          debug.log('[PRESENCE] Eu online?', amIOnline);
-          debug.log('[PRESENCE] Oponente online?', isOpponentOnline);
+          console.log('[PRESENCE] Eu online?', amIOnline);
+          console.log('[PRESENCE] Oponente online?', isOpponentOnline);
           
           // Se eu estou online mas oponente não está
           if (amIOnline && !isOpponentOnline && onlineUsers.length === 1) {
-            debug.log('[PRESENCE] 🚪 Oponente desconectou! Aplicando WO em 3s...');
+            console.log('[PRESENCE] 🚪 Oponente desconectou! Aplicando WO em 3s...');
             // Delay de 3s para garantir que não é falso positivo
             setTimeout(() => {
               // Verificar novamente após delay
@@ -3157,7 +3154,7 @@ function setupMatchStateSync(matchId) {
               const opponentStillOffline = !usersAfterDelay.includes(opponentUserId);
               
               if (opponentStillOffline && currentPhase !== 'finished') {
-                debug.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
+                console.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
                 applyWalkover();
               }
             }, 3000);
@@ -3165,14 +3162,14 @@ function setupMatchStateSync(matchId) {
         }
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        debug.log('[PRESENCE] Jogador entrou:', key, newPresences);
+        console.log('[PRESENCE] Jogador entrou:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
+        console.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
         // Se o oponente saiu durante a partida
         if (key === opponentUserId && multiplayerMode && matchData && currentPhase !== 'finished') {
-          debug.log('[PRESENCE] 🚪 Oponente saiu! Aplicando WO em 2s...');
+          console.log('[PRESENCE] 🚪 Oponente saiu! Aplicando WO em 2s...');
           // Delay curto para evitar falso positivo de reconexão
           setTimeout(() => {
             if (currentPhase !== 'finished') {
@@ -3182,9 +3179,9 @@ function setupMatchStateSync(matchId) {
         }
       })
       .subscribe(async (status) => {
-        debug.realtime('[REALTIME] 🔔 Status da conexão:', status);
+        console.log('[REALTIME] 🔔 Status da conexão:', status);
         if (status === 'SUBSCRIBED') {
-          debug.realtime('[REALTIME] ✅ Canal de estado SUBSCRIBED');
+          console.log('[REALTIME] ✅ Canal de estado SUBSCRIBED');
           window.__pvpChannel = matchStateChannel;
           
           // Registrar minha presença com track
@@ -3194,13 +3191,13 @@ function setupMatchStateSync(matchId) {
             online_at: new Date().toISOString()
           });
           
-          debug.log('[PRESENCE] ✅ Track status:', trackStatus);
-          debug.log('[PRESENCE] Minha presença registrada como:', myUserId);
+          console.log('[PRESENCE] ✅ Track status:', trackStatus);
+          console.log('[PRESENCE] Minha presença registrada como:', myUserId);
           
           // Log estado inicial
           setTimeout(() => {
             const initialState = matchStateChannel.presenceState();
-            debug.log('[PRESENCE] Estado inicial:', initialState);
+            console.log('[PRESENCE] Estado inicial:', initialState);
           }, 1000);
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[REALTIME] ❌ Erro no canal');
@@ -3436,7 +3433,7 @@ async function handleMatchUpdate(payload) {
     let secondsLeft = 15 - secondsElapsed;
     if (secondsLeft < 0) secondsLeft = 0;
     if (!selectionTimerStarted || selectionTimeRemaining !== secondsLeft) {
-      debug.timer('[TIMER][SYNC] Iniciando timer sincronizado para seleção de naves:', { secondsLeft, startedAt, now });
+      console.log('[TIMER][SYNC] Iniciando timer sincronizado para seleção de naves:', { secondsLeft, startedAt, now });
       cancelSelectionTimer();
       selectionTimeRemaining = secondsLeft;
       selectionTimerStarted = true;
@@ -3452,7 +3449,7 @@ async function handleMatchUpdate(payload) {
       }, 1000);
       if (selectionTimer) clearTimeout(selectionTimer);
       selectionTimer = setTimeout(async () => {
-        debug.timer('[TIMER][SYNC] Timeout de seleção atingido (multiplayer sync)');
+        console.log('[TIMER][SYNC] Timeout de seleção atingido (multiplayer sync)');
         if (!selectedNaves || selectedNaves.length < 3) {
           selectedNaves = [1, 1, 1];
           updatePreviews();
@@ -3470,15 +3467,15 @@ async function handleMatchUpdate(payload) {
     
     // Se phase mudou para 'finished', mostrar tela de resultado
     if (phase === 'finished') {
-      debug.win('[WIN] 🏁 Match finalizado via Realtime!');
+      console.log('[WIN] 🏁 Match finalizado via Realtime!');
       
       // ⛔ CRÍTICO: Prevenir processamento múltiplo de finalização
       if (matchFinalizationProcessed) {
-        debug.win('[WIN] ⏭️ Finalização já foi processada, ignorando evento Realtime duplicado');
+        console.log('[WIN] ⏭️ Finalização já foi processada, ignorando evento Realtime duplicado');
         return;
       }
       matchFinalizationProcessed = true;
-      debug.win('[WIN] ✅ Primeira finalização, processando...');
+      console.log('[WIN] ✅ Primeira finalização, processando...');
       
       // Parar heartbeat quando jogo terminar
       stopHeartbeat();
@@ -3504,7 +3501,7 @@ async function handleMatchUpdate(payload) {
         // IMPORTANTE: Sincronizar HP do oponente ANTES de mostrar resultado
         const oppHP = (myTeam === 'blue') ? row.player2_hp : row.player1_hp;
         if (oppHP && Array.isArray(oppHP) && oppHP.length === 3) {
-          debug.win('[WIN] 📥 Sincronizando HP final do oponente:', oppHP);
+          console.log('[WIN] 📥 Sincronizando HP final do oponente:', oppHP);
           cpuNaves.forEach((nave, idx) => {
             if (oppHP[idx] !== undefined) {
               nave.hp = oppHP[idx];
@@ -3529,52 +3526,121 @@ async function handleMatchUpdate(payload) {
       
       // 🚫 NUNCA recalcular placar no handler Realtime
       // O placar correto já foi salvo no checkWinCondition local
-      debug.win('[WIN] ✅ Placar foi salvo anteriormente:', finalScoreSaved);
-      debug.win('[WIN] 📊 Estado das naves (apenas para debug):');
-      debug.win('[WIN]   - playerNaves HP:', playerNaves.map(n => n.hp));
-      debug.win('[WIN]   - cpuNaves HP:', cpuNaves.map(n => n.hp));
-      debug.win('[WIN] ⚠️ NÃO recalcular placar aqui - usar finalScoreSaved');
+      console.log('[WIN] ✅ Placar foi salvo anteriormente:', finalScoreSaved);
+      console.log('[WIN] 📊 Estado das naves (apenas para debug):');
+      console.log('[WIN]   - playerNaves HP:', playerNaves.map(n => n.hp));
+      console.log('[WIN]   - cpuNaves HP:', cpuNaves.map(n => n.hp));
+      console.log('[WIN] ⚠️ NÃO recalcular placar aqui - usar finalScoreSaved');
       
-      // 🎮 ARQUITETURA AAA: Client-side apenas renderiza
-      // Stats são atualizadas APENAS pelo HOST via updateMatchAsAuthority
-      // Aqui só processamos XP local e mostramos resultado
+
+      // Função para atualizar player_stats do usuário
+      async function updatePlayerStats({ userId, result, myKills, oppKills }) {
+        // ⛔ Prevenir múltiplas atualizações na mesma partida
+        if (statsUpdated) {
+          console.log('[STATS] ⏭️ Stats já foram atualizados nesta partida, pulando...');
+          return;
+        }
+        
+        // ⛔ Proteção adicional: verificar sessionStorage com matchId
+        const statsLockKey = `stats_updated_${matchData?.id || 'unknown'}`;
+        if (sessionStorage.getItem(statsLockKey)) {
+          console.log('[STATS] ⏭️ Stats já foram atualizados para este matchId (sessionStorage), pulando...');
+          return;
+        }
+        
+        statsUpdated = true;
+        sessionStorage.setItem(statsLockKey, 'true');
+        console.log('[STATS] 📊 Atualizando stats pela primeira vez nesta partida');
+        console.log('[STATS] 🔒 Lock criado:', statsLockKey);
+        
+        if (!supabaseClient || !userId) return;
+        let statsUpdate = {
+          matches_played: 1,
+          ships_destroyed: Number(myKills ?? 0),
+          ships_lost: Number(oppKills ?? 0),
+          wins: 0,
+          losses: 0,
+          draws: 0,
+        };
+        if (result === "win") statsUpdate.wins = 1;
+        else if (result === "loss") statsUpdate.losses = 1;
+        else statsUpdate.draws = 1;
+
+        // Tenta atualizar stats existentes
+        const { data: statsRow, error: statsError } = await supabaseClient
+          .from("player_stats")
+          .select("matches_played, wins, losses, draws, ships_destroyed, ships_lost")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (statsRow) {
+          // Atualiza somando os valores
+          const updateObj = {
+            matches_played: Number(statsRow.matches_played ?? 0) + 1,
+            wins: Number(statsRow.wins ?? 0) + statsUpdate.wins,
+            losses: Number(statsRow.losses ?? 0) + statsUpdate.losses,
+            draws: Number(statsRow.draws ?? 0) + statsUpdate.draws,
+            ships_destroyed: Number(statsRow.ships_destroyed ?? 0) + statsUpdate.ships_destroyed,
+            ships_lost: Number(statsRow.ships_lost ?? 0) + statsUpdate.ships_lost,
+          };
+          console.log('[STATS] ✅ Atualizando stats:', updateObj);
+          await supabaseClient
+            .from("player_stats")
+            .update(updateObj)
+            .eq("user_id", userId);
+        } else {
+          // Cria row se não existir
+          console.log('[STATS] ✅ Criando stats:', statsUpdate);
+          await supabaseClient
+            .from("player_stats")
+            .insert({
+              user_id: userId,
+              ...statsUpdate,
+            });
+        }
+        // Disparar evento para atualizar header/react
+        window.dispatchEvent(new Event('thor_stats_updated'));
+      }
 
       // Determinar se eu ganhei ou perdi
       let matchResult = null;
       if (winner_id === myUserId) {
-        debug.win('[WIN] 🎉 EU GANHEI!');
+        console.log('[WIN] 🎉 EU GANHEI!');
         winner = "VICTORY";
         matchResult = 'win';
         // ✅ XP: Processar eventos de vitória
         processMatchEndXPEvents('win');
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
-        debug.realtime('[REALTIME] 💾 finalXpForChat salvo (vitória):', finalXpForChat);
-        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
+        console.log('[REALTIME] 💾 finalXpForChat salvo (vitória):', finalXpForChat);
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showVictoryScreen();
       } else if (winner_id === opponentUserId) {
-        debug.win('[WIN] 😢 EU PERDI!');
+        console.log('[WIN] 😢 EU PERDI!');
         winner = "DEFEAT";
         matchResult = 'loss';
         // ✅ XP: Processar eventos de derrota
-        debug.win('[WIN] 🔍 ANTES processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
+        console.log('[WIN] 🔍 ANTES processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
         processMatchEndXPEvents('defeat');
-        debug.win('[WIN] 🔍 DEPOIS processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
+        console.log('[WIN] 🔍 DEPOIS processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat (será 0 em derrota)
-        debug.realtime('[REALTIME] 💾 finalXpForChat salvo (derrota):', finalXpForChat);
-        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
+        console.log('[REALTIME] 💾 finalXpForChat salvo (derrota):', finalXpForChat);
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showDefeatScreen();
       } else {
-        debug.win('[WIN] 🤝 EMPATE!');
+        console.log('[WIN] 🤝 EMPATE!');
         winner = "Empate!";
         matchResult = 'draw';
         // ✅ XP: Processar eventos de empate
         processMatchEndXPEvents('draw');
         applyMatchXP();
         finalXpForChat = xpTotalMatch; // 🎯 Salvar XP para chat
-        debug.realtime('[REALTIME] 💾 finalXpForChat salvo (empate):', finalXpForChat);
-        debug.win('[WIN] 👥 Stats atualizadas pelo HOST com autoridade, apenas renderizando');
+        console.log('[REALTIME] 💾 finalXpForChat salvo (empate):', finalXpForChat);
+        // ❌ REMOVIDO: updatePlayerStats já foi chamado no checkWinCondition local
+        console.log('[WIN] Stats já foram atualizados localmente, não duplicar');
         showDrawScreen();
       }
       
@@ -3620,7 +3686,7 @@ async function handleMatchUpdate(payload) {
   if (row.player1_hp || row.player2_hp) {
     const oppHP = (myTeam === 'blue') ? row.player2_hp : row.player1_hp;
     if (oppHP && Array.isArray(oppHP) && oppHP.length === 3) {
-      debug.sync('[SYNC] 📥 Recebendo HP do oponente do banco:', oppHP);
+      console.log('[SYNC] 📥 Recebendo HP do oponente do banco:', oppHP);
       // Aplicar HP em cpuNaves (naves do oponente)
       cpuNaves.forEach((nave, idx) => {
         if (oppHP[idx] !== undefined && nave.initialized) {
@@ -3629,7 +3695,7 @@ async function handleMatchUpdate(payload) {
           // No início do round, o banco tem HP cheio. Durante batalha, HP reduzido.
           nave.hp = oppHP[idx];
           if (oldHP !== nave.hp) {
-            debug.sync('[SYNC]   - cpuNave #' + idx + ': ' + oldHP + ' → ' + nave.hp);
+            console.log('[SYNC]   - cpuNave #' + idx + ': ' + oldHP + ' → ' + nave.hp);
           }
         }
       });
@@ -3641,10 +3707,10 @@ async function handleMatchUpdate(payload) {
   const turn_number_db = row.turn_number || 1;
   
   if (turn_resolved_at && turn_resolved_at !== lastResolvedAt) {
-    debug.turn('[TURN] 🎯 Turno foi resolvido via Realtime! Aplicando ações...');
-    debug.turn('[TURN] turn_resolved_at:', turn_resolved_at);
-    debug.turn('[TURN] turn_number_db:', turn_number_db);
-    debug.turn('[TURN] currentTurnNumber local:', currentTurnNumber);
+    console.log('[TURN] 🎯 Turno foi resolvido via Realtime! Aplicando ações...');
+    console.log('[TURN] turn_resolved_at:', turn_resolved_at);
+    console.log('[TURN] turn_number_db:', turn_number_db);
+    console.log('[TURN] currentTurnNumber local:', currentTurnNumber);
     
     lastResolvedAt = turn_resolved_at;
     
@@ -3652,14 +3718,14 @@ async function handleMatchUpdate(payload) {
     const action_blue = row.last_action_blue || { type: 'idle' };
     const action_red = row.last_action_red || { type: 'idle' };
     
-    debug.turn('[TURN] Ações do turno resolvido (last_action_*):', { action_blue, action_red });
+    console.log('[TURN] Ações do turno resolvido (last_action_*):', { action_blue, action_red });
     
     // Aplicar as ações
     applyResolvedTurn({ action_blue, action_red });
     
     // Atualizar turno local APÓS aplicar as ações
     currentTurnNumber = turn_number_db;
-    debug.turn('[TURN] Turno local atualizado para:', currentTurnNumber);
+    console.log('[TURN] Turno local atualizado para:', currentTurnNumber);
   }
   
   // (E) REGRA PRINCIPAL: se phase === 'battle', iniciar batalha 1 vez
@@ -3702,14 +3768,14 @@ async function handleMatchUpdate(payload) {
     
     // Se turn_number mudou, iniciar nova janela
     if (turnNumberChanged && turn_deadline_at) {
-      debug.turn('[TURN] 🆕 turn_number mudou via Realtime: ' + currentTurnNumber + ' → ' + turn_number);
+      console.log('[TURN] 🆕 turn_number mudou via Realtime: ' + currentTurnNumber + ' → ' + turn_number);
       currentTurnNumber = turn_number;
       
       // Resetar UI antes de iniciar novo turno
       resetTurnUI();
       
       // Iniciar nova janela de turno com novo deadline
-      debug.turn('[TURN] 🕐 Iniciando janela para turno #' + turn_number + ' com deadline:', turn_deadline_at);
+      console.log('[TURN] 🕐 Iniciando janela para turno #' + turn_number + ' com deadline:', turn_deadline_at);
       startTurnWindow(turn_deadline_at);
     }
     
@@ -3718,7 +3784,7 @@ async function handleMatchUpdate(payload) {
     if (turnIndexChanged) {
       // Guard: se já estiver aplicando transição, ignorar
       if (isApplyingTurnTransition) {
-        debug.turn('[TURN] ⚠️ Já aplicando transição, ignorando update duplicado');
+        console.log('[TURN] ⚠️ Já aplicando transição, ignorando update duplicado');
         return;
       }
       
@@ -3740,7 +3806,7 @@ async function handleMatchUpdate(payload) {
       
       setTimeout(() => {
         isApplyingTurnTransition = false;
-        debug.turn('[TURN] 🔓 Guard liberado');
+        console.log('[TURN] 🔓 Guard liberado');
       }, 50);
     } else if (turnUserChanged) {
       // Apenas atualizar quem é o turno, SEM resetar UI
@@ -3761,33 +3827,33 @@ async function handleMatchUpdate(payload) {
     const blue_data = row.ships_blue;
     const red_data = row.ships_red;
     
-    debug.turn('[TURN] 📬 Verificando submissões via Realtime:');
-    debug.turn('[TURN]   - blue_data:', blue_data ? JSON.stringify(blue_data).substring(0, 100) : 'null');
-    debug.turn('[TURN]   - red_data:', red_data ? JSON.stringify(red_data).substring(0, 100) : 'null');
+    console.log('[TURN] 📬 Verificando submissões via Realtime:');
+    console.log('[TURN]   - blue_data:', blue_data ? JSON.stringify(blue_data).substring(0, 100) : 'null');
+    console.log('[TURN]   - red_data:', red_data ? JSON.stringify(red_data).substring(0, 100) : 'null');
     
     const submitted_blue = blue_data && typeof blue_data === 'object' && blue_data.type === 'ACTION';
     const submitted_red = red_data && typeof red_data === 'object' && red_data.type === 'ACTION';
     
     if (submitted_blue || submitted_red) {
-      debug.turn('[TURN] 📬 Detecção de submissão via Realtime:', { submitted_blue, submitted_red });
+      console.log('[TURN] 📬 Detecção de submissão via Realtime:', { submitted_blue, submitted_red });
       
       // Checar pelo banco se EU submetei (não usar variável local myActionSubmitted que pode estar incorreta)
       const mySubmitted = (myTeam === 'blue') ? submitted_blue : submitted_red;
       const opponentSubmitted = (myTeam === 'blue') ? submitted_red : submitted_blue;
       
-      debug.turn('[TURN] Status das submissões (do banco):');
-      debug.turn('[TURN]   - Eu (' + myTeam + ') enviei?', mySubmitted);
-      debug.turn('[TURN]   - Oponente enviou?', opponentSubmitted);
+      console.log('[TURN] Status das submissões (do banco):');
+      console.log('[TURN]   - Eu (' + myTeam + ') enviei?', mySubmitted);
+      console.log('[TURN]   - Oponente enviou?', opponentSubmitted);
       
       // Se AMBOS submeteram (checando o banco, não variáveis locais)
       if (submitted_blue && submitted_red) {
-        debug.turn('[TURN] ✅ AMBOS SUBMETERAM! Tentando resolver turno via Realtime...');
-        debug.turn('[TURN] Chamando maybeResolveTurn em 500ms...');
+        console.log('[TURN] ✅ AMBOS SUBMETERAM! Tentando resolver turno via Realtime...');
+        console.log('[TURN] Chamando maybeResolveTurn em 500ms...');
         setTimeout(() => maybeResolveTurn(), 500);
       } else if (!mySubmitted) {
-        debug.turn('[TURN] ⏳ Eu ainda não enviei minha ação');
+        console.log('[TURN] ⏳ Eu ainda não enviei minha ação');
       } else {
-        debug.turn('[TURN] ⏳ Aguardando oponente submeter...');
+        console.log('[TURN] ⏳ Aguardando oponente submeter...');
       }
     }
   }
@@ -3795,7 +3861,7 @@ async function handleMatchUpdate(payload) {
 
 // (C) Aplicar transição de turno
 function applyTurnTransition(isMyTurn) {
-  debug.turn('[TURN] 🔄 Aplicando transição de turno, isMyTurn:', isMyTurn);
+  console.log('[TURN] 🔄 Aplicando transição de turno, isMyTurn:', isMyTurn);
   
   // 1) Resetar UI/estado
   resetTurnUI();
@@ -3843,7 +3909,7 @@ function applyTurnTransition(isMyTurn) {
 
 // Aplicar update do match (separado para permitir chamada manual)
 function applyMatchUpdate(newMatch, oldPhase, oldTurnNumber, oldTurnUserId, oldTurnDeadline, oldTurnResolved) {
-  debug.turn('[TURN] applyMatchUpdate chamado (turn logic desativada, usando handleMatchUpdate)');
+  console.log('[TURN] applyMatchUpdate chamado (turn logic desativada, usando handleMatchUpdate)');
   // MERGE de estado: atualizar campos críticos sem apagar interações locais
   matchData = { ...matchData, ...newMatch };
   currentPhase = newMatch.phase;
@@ -3872,11 +3938,11 @@ function resetTurnUI() {
   console.log('[LOCK] roundLocked destravado no resetTurnUI');
   // AAA: Garantir fase interativa no multiplayer
   ensurePvpInteractivePhase('resetTurnUI');
-  debug.turn('[TURN] 🔄 resetTurnUI chamada');
+  console.log('[TURN] 🔄 resetTurnUI chamada');
   
   // NÃO resetar se houver vencedor
   if (winner) {
-    debug.turn('[TURN] Jogo terminado, não resetar UI');
+    console.log('[TURN] Jogo terminado, não resetar UI');
     return;
   }
   
@@ -3886,7 +3952,7 @@ function resetTurnUI() {
     turnTimerInterval = null;
     window.__activeTurnTimer = null; // Limpar referência global também
     window.__currentTurnDeadline = null; // Limpar deadline atual
-    debug.turn('[TURN] ✅ turnTimerInterval limpo');
+    console.log('[TURN] ✅ turnTimerInterval limpo');
   }
   
   // Limpar timer principal se existir
@@ -3927,7 +3993,7 @@ function resetTurnUI() {
   // Limpar guard de aplicação de turno
   window.__lastAppliedTurnKey = null;
   
-  debug.turn('[TURN] ✅ resetTurnUI completo - estado limpo');
+  console.log('[TURN] ✅ resetTurnUI completo - estado limpo');
 }
 
 // Iniciar timer de seleção (15 segundos)
@@ -3938,8 +4004,8 @@ function resetTurnUI() {
 
 // Atualizar phase para battle e iniciar batalha (função única)
 async function updatePhaseAndStartBattle() {
-  debug.pvp('[PVP] 🚀 updatePhaseAndStartBattle chamada');
-  debug.pvp('[PVP] PVP.battleStarted:', PVP.battleStarted);
+  console.log('[PVP] 🚀 updatePhaseAndStartBattle chamada');
+  console.log('[PVP] PVP.battleStarted:', PVP.battleStarted);
   
   // Não usar guard aqui - deixar o startBattleFromSelection controlar
   // Apenas atualizar o banco, o Realtime vai sincronizar para ambos
@@ -3953,8 +4019,8 @@ async function updatePhaseAndStartBattle() {
     if (phaseError) {
       console.error('[PVP] ❌ Erro ao atualizar phase:', phaseError);
     } else {
-      debug.pvp('[PVP] ✅ Phase atualizada para battle no banco');
-      debug.pvp('[PVP] Aguardando Realtime sincronizar e chamar startBattleFromSelection()');
+      console.log('[PVP] ✅ Phase atualizada para battle no banco');
+      console.log('[PVP] Aguardando Realtime sincronizar e chamar startBattleFromSelection()');
       cancelSelectionTimer();
       // Removido: banner central de aguarde. Só usar legendArea no HUD.
     }
@@ -3975,13 +4041,13 @@ async function saveShipSelection() {
   }
   
   try {
-    debug.pvp('[PVP] ========================================');
-    debug.pvp('[PVP] Salvando seleção de naves (DETERMINÍSTICO)');
-    debug.pvp('[PVP] selectedNaves:', selectedNaves);
-    debug.pvp('[PVP] myTeam:', myTeam);
-    debug.pvp('[PVP] myUserId:', myUserId);
-    debug.pvp('[PVP] player1_id:', player1_id);
-    debug.pvp('[PVP] player2_id:', player2_id);
+    console.log('[PVP] ========================================');
+    console.log('[PVP] Salvando seleção de naves (DETERMINÍSTICO)');
+    console.log('[PVP] selectedNaves:', selectedNaves);
+    console.log('[PVP] myTeam:', myTeam);
+    console.log('[PVP] myUserId:', myUserId);
+    console.log('[PVP] player1_id:', player1_id);
+    console.log('[PVP] player2_id:', player2_id);
     
     // Usar array puro de números (JSONB) e salvar em player1_ships/player2_ships
     const shipsData = selectedNaves; // [1, 2, 3] ou similar
@@ -3991,14 +4057,14 @@ async function saveShipSelection() {
     if (myUserId === player1_id) {
       updateData.player1_ships = shipsData;
       updateData.ready_blue = true;
-      debug.pvp('[PVP] Salvando em player1_ships (BLUE)');
+      console.log('[PVP] Salvando em player1_ships (BLUE)');
     } else if (myUserId === player2_id) {
       updateData.player2_ships = shipsData;
       updateData.ready_red = true;
-      debug.pvp('[PVP] Salvando em player2_ships (RED)');
+      console.log('[PVP] Salvando em player2_ships (RED)');
     }
     
-    debug.pvp('[PVP] Payload (JSONB array):', JSON.stringify(updateData));
+    console.log('[PVP] Payload (JSONB array):', JSON.stringify(updateData));
     
     // Atualizar match com minhas naves, ready flag e countdown_started_at (se ainda null)
     const nowIso = new Date().toISOString();
@@ -4026,7 +4092,7 @@ async function saveShipSelection() {
       return false;
     }
     
-    debug.pvp('[PVP] ✅ Seleção salva');
+    console.log('[PVP] ✅ Seleção salva');
     
     // Atualizar matchData local
     if (data) {
@@ -4035,10 +4101,10 @@ async function saveShipSelection() {
       const ready_blue = data.ready_blue;
       const ready_red = data.ready_red;
       
-      debug.pvp('[PVP] Status: ready_blue=' + ready_blue + ', ready_red=' + ready_red);
+      console.log('[PVP] Status: ready_blue=' + ready_blue + ', ready_red=' + ready_red);
       
       if (ready_blue && ready_red) {
-        debug.pvp('[PVP] ✅ Ambos prontos → iniciando batalha');
+        console.log('[PVP] ✅ Ambos prontos → iniciando batalha');
         cancelSelectionTimer();
         updatePhaseAndStartBattle();
       } else {
@@ -4048,7 +4114,7 @@ async function saveShipSelection() {
       }
     }
     
-    debug.pvp('[PVP] ========================================');
+    console.log('[PVP] ========================================');
     return true;
   } catch (err) {
     console.error('[PVP] ❌ EXCEÇÃO ao salvar naves:');
@@ -4069,7 +4135,7 @@ function startBattleFromSelection() {
   }
   
   if (PVP.battleStarted) {
-    debug.pvp('[PVP] ⚠️ Batalha já iniciada, ignorando');
+    console.log('[PVP] ⚠️ Batalha já iniciada, ignorando');
     return;
   }
   
@@ -4079,51 +4145,51 @@ function startBattleFromSelection() {
   }
   
   PVP.battleStarted = true;
-  debug.pvp('[PVP] ========================================');
-  debug.pvp('[PVP] 🚀 INICIANDO BATALHA MULTIPLAYER (DETERMINÍSTICO)');
-  debug.pvp('[PVP] matchData:', matchData);
-  debug.pvp('[PVP] myUserId:', myUserId);
-  debug.pvp('[PVP] myTeam:', myTeam);
-  debug.pvp('[PVP] player1_id:', player1_id);
-  debug.pvp('[PVP] player2_id:', player2_id);
+  console.log('[PVP] ========================================');
+  console.log('[PVP] 🚀 INICIANDO BATALHA MULTIPLAYER (DETERMINÍSTICO)');
+  console.log('[PVP] matchData:', matchData);
+  console.log('[PVP] myUserId:', myUserId);
+  console.log('[PVP] myTeam:', myTeam);
+  console.log('[PVP] player1_id:', player1_id);
+  console.log('[PVP] player2_id:', player2_id);
   
   // GARANTIR que myTeam está definido
   if (!myTeam) {
     console.error('[PVP] ❌ ERRO CRÍTICO: myTeam não foi definido!');
     if (myUserId === player1_id) {
       myTeam = 'blue';
-      debug.pvp('[PVP] 🔧 CORREÇÃO: Definindo myTeam = blue');
+      console.log('[PVP] 🔧 CORREÇÃO: Definindo myTeam = blue');
     } else if (myUserId === player2_id) {
       myTeam = 'red';
-      debug.pvp('[PVP] 🔧 CORREÇÃO: Definindo myTeam = red');
+      console.log('[PVP] 🔧 CORREÇÃO: Definindo myTeam = red');
     }
   }
   
-  debug.pvp('[PVP] ✅ myTeam confirmado:', myTeam);
+  console.log('[PVP] ✅ myTeam confirmado:', myTeam);
   
   // Ler naves DETERMINISTICAMENTE de player1_ships/player2_ships
   const player1Ships = matchData.player1_ships || [];
   const player2Ships = matchData.player2_ships || [];
   
-  debug.pvp('[PVP] player1_ships (BLUE - raw):', player1Ships);
-  debug.pvp('[PVP] player2_ships (RED - raw):', player2Ships);
+  console.log('[PVP] player1_ships (BLUE - raw):', player1Ships);
+  console.log('[PVP] player2_ships (RED - raw):', player2Ships);
   
   // Determinar minhas naves e naves do oponente baseado em player_id
   let myShips, enemyShips;
   if (myUserId === player1_id) {
     myShips = player1Ships;
     enemyShips = player2Ships;
-    debug.pvp('[PVP] ✓ EU SOU PLAYER1 (BLUE)');
+    console.log('[PVP] ✓ EU SOU PLAYER1 (BLUE)');
   } else {
     myShips = player2Ships;
     enemyShips = player1Ships;
-    debug.pvp('[PVP] ✓ EU SOU PLAYER2 (RED)');
+    console.log('[PVP] ✓ EU SOU PLAYER2 (RED)');
   }
   
   const isP1 = (myUserId === player1_id);
-  debug.pvp('[PVP] ✓ isP1:', isP1);
-  debug.pvp('[PVP] ✓ myShips:', myShips);
-  debug.pvp('[PVP] ✓ oppShips (enemyShips):', enemyShips);
+  console.log('[PVP] ✓ isP1:', isP1);
+  console.log('[PVP] ✓ myShips:', myShips);
+  console.log('[PVP] ✓ oppShips (enemyShips):', enemyShips);
   
   // Fix E: Validação arrays vazios/null
   if (!myShips || myShips.length !== 3) {
@@ -4139,20 +4205,20 @@ function startBattleFromSelection() {
   // CORREÇÃO CRÍTICA: playerNaves = minhas (controláveis), cpuNaves = oponente
   // Player1: playerNaves no TOPO (blue), cpuNaves embaixo (red)
   // Player2: playerNaves EMBAIXO (red), cpuNaves no topo (blue)
-  debug.pvp('[PVP] Aplicando minhas naves controláveis (isP1=' + isP1 + ')...');
-  debug.pvp('[PVP] 🔍 ANTES DE APLICAR - myUserId:', myUserId, 'player1_id:', player1_id, 'isP1:', isP1);
+  console.log('[PVP] Aplicando minhas naves controláveis (isP1=' + isP1 + ')...');
+  console.log('[PVP] 🔍 ANTES DE APLICAR - myUserId:', myUserId, 'player1_id:', player1_id, 'isP1:', isP1);
   applyMyShips(myShips, isP1);
   
-  debug.pvp('[PVP] Aplicando naves do oponente (isP1=' + isP1 + ')...');
+  console.log('[PVP] Aplicando naves do oponente (isP1=' + isP1 + ')...');
   applyEnemyShips(enemyShips, isP1);
   
-  debug.pvp('[PVP] ✓ Naves aplicadas com sucesso');
-  debug.pvp('[PVP] 🎨 COR DAS NAVES FINAL:');
-  debug.pvp('[PVP]   - playerNaves (minhas):', playerNaves.map((n, i) => `#${i}: ${n.tint || 'AZUL'}`));
-  debug.pvp('[PVP]   - cpuNaves (oponente):', cpuNaves.map((n, i) => `#${i}: ${n.tint || 'AZUL'}`));
-  debug.pvp('[PVP]   - Resumo: EU sou', isP1 ? 'Player1 (BLUE no topo)' : 'Player2 (RED embaixo)');
-  debug.pvp('[PVP]   - Minhas naves devem ser:', isP1 ? 'AZUL' : 'VERMELHO');
-  debug.pvp('[PVP]   - Naves oponente devem ser:', isP1 ? 'VERMELHO' : 'AZUL');
+  console.log('[PVP] ✓ Naves aplicadas com sucesso');
+  console.log('[PVP] 🎨 COR DAS NAVES FINAL:');
+  console.log('[PVP]   - playerNaves (minhas):', playerNaves.map((n, i) => `#${i}: ${n.tint || 'AZUL'}`));
+  console.log('[PVP]   - cpuNaves (oponente):', cpuNaves.map((n, i) => `#${i}: ${n.tint || 'AZUL'}`));
+  console.log('[PVP]   - Resumo: EU sou', isP1 ? 'Player1 (BLUE no topo)' : 'Player2 (RED embaixo)');
+  console.log('[PVP]   - Minhas naves devem ser:', isP1 ? 'AZUL' : 'VERMELHO');
+  console.log('[PVP]   - Naves oponente devem ser:', isP1 ? 'VERMELHO' : 'AZUL');
   
   // Esconder tela de seleção e mostrar jogo
   document.getElementById('naveSelectScreen').style.display = 'none';
@@ -4168,7 +4234,7 @@ function startBattleFromSelection() {
   document.getElementById('gameContour').style.visibility = 'visible';
   galaxyBg.style.opacity = '0.18';
   
-  debug.pvp('[PVP] ✓ UI atualizada - canvas visível');
+  console.log('[PVP] ✓ UI atualizada - canvas visível');
   
   // Mostrar banner de matchup no multiplayer
   const matchupBanner = document.getElementById("matchupBanner");
@@ -4186,7 +4252,7 @@ function startBattleFromSelection() {
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
     
-    debug.pvp('[PVP] ✓ Banner de matchup exibido:', currentPlayerName, 'vs', displayOpponentName);
+    console.log('[PVP] ✓ Banner de matchup exibido:', currentPlayerName, 'vs', displayOpponentName);
   }
   
   // Iniciar game loop se necessário
@@ -4194,36 +4260,36 @@ function startBattleFromSelection() {
   if (!window._gameLoopStarted && spritesLoaded === 2) {
     window._gameLoopStarted = true;
     gameActive = true;
-    debug.pvp('[PVP] ✓ Iniciando game loop');
+    console.log('[PVP] ✓ Iniciando game loop');
     gameLoop();
   } else {
-    debug.pvp('[PVP] Game loop já iniciado ou aguardando sprites');
+    console.log('[PVP] Game loop já iniciado ou aguardando sprites');
   }
   
   // Atualizar UI de turno
   updateTurnUI();
   
   // G) Log de turno iniciado
-  debug.pvp('[PVP] 🔵 Turno iniciado - aguardando jogadas');
+  console.log('[PVP] 🔵 Turno iniciado - aguardando jogadas');
   
   // B) Ligar sincronização de movimento agora que batalha iniciou
-  debug.pvp('[PVP] Batalha iniciada, configurando syncChannel...');
+  console.log('[PVP] Batalha iniciada, configurando syncChannel...');
   setupMultiplayerSync(matchData.id);
   
   // Fix F: Logs finais de diagnóstico
-  debug.pvp('[PVP] ========================================');
-  debug.pvp('[PVP] READY: phase=' + currentPhase + ', myUserId=' + myUserId + ', isP1=' + isP1 + ', turn_user_id=' + turnUserId + ', canInput=' + isMyTurn);
-  debug.pvp('[PVP] Render: p1ShipsCount=' + (isP1 ? myShips.length : enemyShips.length) + ', p2ShipsCount=' + (isP1 ? enemyShips.length : myShips.length));
-  debug.pvp('[PVP] ========================================');
+  console.log('[PVP] ========================================');
+  console.log('[PVP] READY: phase=' + currentPhase + ', myUserId=' + myUserId + ', isP1=' + isP1 + ', turn_user_id=' + turnUserId + ', canInput=' + isMyTurn);
+  console.log('[PVP] Render: p1ShipsCount=' + (isP1 ? myShips.length : enemyShips.length) + ', p2ShipsCount=' + (isP1 ? enemyShips.length : myShips.length));
+  console.log('[PVP] ========================================');
   
   // INICIAR PRIMEIRO TURNO (idempotente, sem race condition)
   // AAA: Garantir fase interativa no multiplayer
   ensurePvpInteractivePhase('startBattleFromSelection');
   (async () => {
     try {
-      debug.pvp('[PVP] 🎮 Configurando primeiro turno...');
-      debug.pvp('[PVP] matchId:', matchData.id, 'myUserId:', myUserId, 'myTeam:', myTeam);
-      debug.pvp('[PVP] player1_id:', player1_id, 'player2_id:', player2_id);
+      console.log('[PVP] 🎮 Configurando primeiro turno...');
+      console.log('[PVP] matchId:', matchData.id, 'myUserId:', myUserId, 'myTeam:', myTeam);
+      console.log('[PVP] player1_id:', player1_id, 'player2_id:', player2_id);
       
       // Buscar estado atual do match
       const { data: currentMatch, error: fetchError } = await supabaseClient
@@ -4237,11 +4303,11 @@ function startBattleFromSelection() {
         return;
       }
       
-      debug.pvp('[PVP] Estado atual:', JSON.stringify(currentMatch, null, 2));
+      console.log('[PVP] Estado atual:', JSON.stringify(currentMatch, null, 2));
       
       // Se turn_user_id já existe, não sobrescrever (idempotente)
       if (currentMatch.turn_user_id) {
-        debug.pvp('[PVP] ✓ Turno já configurado por outro jogador:', currentMatch.turn_user_id);
+        console.log('[PVP] ✓ Turno já configurado por outro jogador:', currentMatch.turn_user_id);
         turnUserId = currentMatch.turn_user_id;
         isMyTurn = (myUserId === turnUserId);
         currentTurnNumber = currentMatch.turn_number || 1;
@@ -4254,7 +4320,7 @@ function startBattleFromSelection() {
       }
       
       // turn_user_id é null, vou tentar setar (optimistic update)
-      debug.pvp('[PVP] turn_user_id é null, configurando primeiro turno...');
+      console.log('[PVP] turn_user_id é null, configurando primeiro turno...');
       
       const firstDeadline = new Date(Date.now() + 15000).toISOString();
       const now = new Date().toISOString();
@@ -4283,7 +4349,7 @@ function startBattleFromSelection() {
           .single();
         
         if (refetch?.turn_user_id) {
-          debug.pvp('[PVP] ✓ Turno configurado por outro jogador:', refetch.turn_user_id);
+          console.log('[PVP] ✓ Turno configurado por outro jogador:', refetch.turn_user_id);
           turnUserId = refetch.turn_user_id;
           isMyTurn = (myUserId === turnUserId);
           currentTurnNumber = refetch.turn_number || 1;
@@ -4295,7 +4361,7 @@ function startBattleFromSelection() {
       }
       
       if (!updateData || updateData.length === 0) {
-        debug.pvp('[PVP] ⚠️ Update não afetou linhas (outro jogador já configurou)');
+        console.log('[PVP] ⚠️ Update não afetou linhas (outro jogador já configurou)');
         // Buscar novamente
         const { data: refetch } = await supabaseClient
           .from('matches')
@@ -4304,7 +4370,7 @@ function startBattleFromSelection() {
           .single();
         
         if (refetch?.turn_user_id) {
-          debug.pvp('[PVP] ✓ Turno configurado:', refetch.turn_user_id);
+          console.log('[PVP] ✓ Turno configurado:', refetch.turn_user_id);
           turnUserId = refetch.turn_user_id;
           isMyTurn = (myUserId === turnUserId);
           currentTurnNumber = refetch.turn_number || 1;
@@ -4316,15 +4382,15 @@ function startBattleFromSelection() {
       }
       
       // Sucesso! Eu configurei o turno
-      debug.pvp('[PVP] ✅ Primeiro turno configurado com sucesso');
-      debug.pvp('[PVP] turn_user_id:', player1_id, 'turn_number: 1');
-      debug.pvp('[PVP] deadline:', firstDeadline);
+      console.log('[PVP] ✅ Primeiro turno configurado com sucesso');
+      console.log('[PVP] turn_user_id:', player1_id, 'turn_number: 1');
+      console.log('[PVP] deadline:', firstDeadline);
       
       turnUserId = player1_id;
       isMyTurn = (myUserId === turnUserId);
       currentTurnNumber = 1;
       
-      debug.pvp('[PVP] isMyTurn:', isMyTurn);
+      console.log('[PVP] isMyTurn:', isMyTurn);
       
       startTurnWindow(firstDeadline);
       
@@ -4334,7 +4400,7 @@ function startBattleFromSelection() {
     }
   })();
   
-  debug.pvp('[PVP] ========================================');
+  console.log('[PVP] ========================================');
 }
 
 // Aplicar naves do OPONENTE (inimigas em cpuNaves)
@@ -4401,11 +4467,11 @@ function applyEnemyShips(shipsArray, myIsP1) {
     }
   });
   
-  debug.pvp('[PVP] cpuNaves aplicadas:', cpuNaves.map(n => ({ x: n.x, y: n.y, tipo: n.tipo, angle: n.angle, tint: n.tint })));
-  debug.pvp('[PVP] ✅ RENDERIZAÇÃO COMPLETA');
-  debug.pvp('[PVP] Player1 (BLUE) sempre no TOPO, Player2 (RED) sempre EMBAIXO');
-  debug.pvp('[PVP] Cada jogador controla suas próprias naves (playerNaves)');
-  debug.pvp('[PVP] myTeam:', myTeam, '- Minhas naves:', playerNaves.map(n => n.tint || 'BLUE'), '- Oponente:', cpuNaves.map(n => n.tint || 'BLUE'));
+  console.log('[PVP] cpuNaves aplicadas:', cpuNaves.map(n => ({ x: n.x, y: n.y, tipo: n.tipo, angle: n.angle, tint: n.tint })));
+  console.log('[PVP] ✅ RENDERIZAÇÃO COMPLETA');
+  console.log('[PVP] Player1 (BLUE) sempre no TOPO, Player2 (RED) sempre EMBAIXO');
+  console.log('[PVP] Cada jogador controla suas próprias naves (playerNaves)');
+  console.log('[PVP] myTeam:', myTeam, '- Minhas naves:', playerNaves.map(n => n.tint || 'BLUE'), '- Oponente:', cpuNaves.map(n => n.tint || 'BLUE'));
 }
 
 // Mantém compatibilidade
@@ -4475,7 +4541,7 @@ function updateTurnUI() {
 // Finalizar turno - alternar turn_user_id de forma atômica
 async function endTurn() {
   if (!multiplayerMode || !supabaseClient || !matchData || !isMyTurn) {
-    debug.turn('[TURN] Não é possível finalizar turno:', {
+    console.log('[TURN] Não é possível finalizar turno:', {
       multiplayerMode,
       hasClient: !!supabaseClient,
       hasMatch: !!matchData,
@@ -4488,9 +4554,9 @@ async function endTurn() {
     // Alternar turn_user_id entre player1_id e player2_id
     const nextTurnUserId = (turnUserId === player1_id) ? player2_id : player1_id;
     
-    debug.turn('[TURN] Finalizando turno...');
-    debug.turn('[TURN] turnUserId atual:', turnUserId);
-    debug.turn('[TURN] Próximo turnUserId:', nextTurnUserId);
+    console.log('[TURN] Finalizando turno...');
+    console.log('[TURN] turnUserId atual:', turnUserId);
+    console.log('[TURN] Próximo turnUserId:', nextTurnUserId);
     
     const { error } = await supabaseClient
       .from('matches')
@@ -4506,9 +4572,9 @@ async function endTurn() {
       return;
     }
     
-    debug.turn('[TURN] ✅ Turno finalizado, turn_user_id agora é:', nextTurnUserId);
+    console.log('[TURN] ✅ Turno finalizado, turn_user_id agora é:', nextTurnUserId);
     
-    debug.pvp('[PVP] Turno finalizado, próximo:', nextTurn);
+    console.log('[PVP] Turno finalizado, próximo:', nextTurn);
   } catch (err) {
     console.error('[PVP] Erro ao finalizar turno:', err);
   }
@@ -4534,7 +4600,7 @@ function setupMultiplayerSync(matchId) {
   
   // (E) Guard robusto: nunca criar duplicatas
   if (syncChannel) {
-    debug.pvp('[PVP] ⚠️ syncChannel já existe, não recriar (evitando duplicata)');
+    console.log('[PVP] ⚠️ syncChannel já existe, não recriar (evitando duplicata)');
     return;
   }
   
@@ -4544,7 +4610,7 @@ function setupMultiplayerSync(matchId) {
   }
   
   try {
-    debug.pvp('[PVP] 🔗 Criando syncChannel TURN-BASED para match:', matchId);
+    console.log('[PVP] 🔗 Criando syncChannel TURN-BASED para match:', matchId);
     
     syncChannel = supabaseClient.channel(`match:${matchId}`, {
       config: { broadcast: { self: false } }
@@ -4554,7 +4620,7 @@ function setupMultiplayerSync(matchId) {
     syncChannel.on('broadcast', { event: 'turn_action' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
       
-      debug.pvp('[PVP] 📨 Jogada recebida do oponente:', {
+      console.log('[PVP] 📨 Jogada recebida do oponente:', {
         userId: payload.userId,
         team: payload.team,
         actions: payload.actions?.length
@@ -4565,7 +4631,7 @@ function setupMultiplayerSync(matchId) {
       
       // D) Se eu já enviei e recebi a dele, executar turno
       if (turnSubmitted && opponentTurnAction) {
-        debug.pvp('[PVP] Ambas jogadas prontas, executando turno...');
+        console.log('[PVP] Ambas jogadas prontas, executando turno...');
         executeTurn();
       }
     });
@@ -4574,7 +4640,7 @@ function setupMultiplayerSync(matchId) {
     syncChannel.on('broadcast', { event: 'realtime_state' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
       
-      debug.realtime('[REALTIME] 📨 Estado em tempo real do oponente:', {
+      console.log('[REALTIME] 📨 Estado em tempo real do oponente:', {
         userId: payload.userId,
         team: payload.team,
         phase: payload.phase,
@@ -4584,7 +4650,7 @@ function setupMultiplayerSync(matchId) {
       
       // Se usuário está interagindo, não aplicar
       if (isInteracting) {
-        debug.realtime('[REALTIME] 🔒 Ignorando update - usuário interagindo');
+        console.log('[REALTIME] 🔒 Ignorando update - usuário interagindo');
         return;
       }
       
@@ -4602,21 +4668,21 @@ function setupMultiplayerSync(matchId) {
             if (shipData.shot) cpuNaves[idx].shot = shipData.shot;
           }
         });
-        debug.realtime('[REALTIME] ✅ Posições do oponente aplicadas (angle/target/hp bloqueados)');
+        console.log('[REALTIME] ✅ Posições do oponente aplicadas (angle/target/hp bloqueados)');
       }
     });
     
     syncChannel.subscribe((status) => {
-      debug.pvp('[PVP] syncChannel status:', status);
+      console.log('[PVP] syncChannel status:', status);
       
       if (status === 'SUBSCRIBED') {
-        debug.pvp('[PVP] ✅ syncChannel TURN-BASED SUBSCRIBED', { matchId, myUserId, myTeam });
+        console.log('[PVP] ✅ syncChannel TURN-BASED SUBSCRIBED', { matchId, myUserId, myTeam });
       } else if (status === 'CHANNEL_ERROR') {
         console.error('[PVP] ❌ CHANNEL_ERROR no syncChannel - tentando reconectar em 2s...');
         
         // Tentar reconectar após 2 segundos
         setTimeout(() => {
-          debug.pvp('[PVP] 🔄 Tentando reconectar syncChannel...');
+          console.log('[PVP] 🔄 Tentando reconectar syncChannel...');
           if (syncChannel) {
             syncChannel.unsubscribe();
           }
@@ -4626,7 +4692,7 @@ function setupMultiplayerSync(matchId) {
         console.error('[PVP] ⏰ TIMED_OUT no syncChannel - tentando reconectar...');
         
         setTimeout(() => {
-          debug.pvp('[PVP] 🔄 Tentando reconectar após timeout...');
+          console.log('[PVP] 🔄 Tentando reconectar após timeout...');
           if (syncChannel) {
             syncChannel.unsubscribe();
           }
@@ -4637,7 +4703,7 @@ function setupMultiplayerSync(matchId) {
       }
     });
     
-    debug.pvp('[PVP] setupMultiplayerSync TURN-BASED configurado');
+    console.log('[PVP] setupMultiplayerSync TURN-BASED configurado');
   } catch (err) {
     console.error('[PVP] ❌ Erro ao configurar sincronização:', err);
   }
@@ -4669,7 +4735,7 @@ function broadcastRealtimeState() {
       }
     });
     
-    debug.realtime('[REALTIME] 📤 Estado em tempo real enviado');
+    console.log('[REALTIME] 📤 Estado em tempo real enviado');
   } catch (err) {
     console.error('[REALTIME] ❌ Erro ao enviar estado:', err);
   }
@@ -4679,7 +4745,7 @@ function broadcastRealtimeState() {
 function submitTurnAction() {
   if (!multiplayerMode || !syncChannel || turnSubmitted) return;
   
-  debug.pvp('[PVP] 📤 Enviando jogada do turno...');
+  console.log('[PVP] 📤 Enviando jogada do turno...');
   
   try {
     // Coletar ações de todas as naves controladoras (playerNaves)
@@ -4704,14 +4770,14 @@ function submitTurnAction() {
     });
     
     turnSubmitted = true;
-    debug.pvp('[PVP] ✅ Jogada enviada', myTeam, actions.length);
+    console.log('[PVP] ✅ Jogada enviada', myTeam, actions.length);
     
     // D) Se já recebi a do oponente, executar
     if (opponentTurnAction) {
-      debug.pvp('[PVP] Oponente já enviou, executando turno...');
+      console.log('[PVP] Oponente já enviou, executando turno...');
       executeTurn();
     } else {
-      debug.pvp('[PVP] Aguardando jogada do oponente...');
+      console.log('[PVP] Aguardando jogada do oponente...');
     }
   } catch (err) {
     console.error('[PVP] ❌ Erro ao enviar jogada:', err);
@@ -4725,7 +4791,7 @@ function executeTurn() {
     return;
   }
   
-  debug.pvp('[PVP] 🎮 Executando turno sincronizado');
+  console.log('[PVP] 🎮 Executando turno sincronizado');
   
   // Aplicar minhas ações em playerNaves
   myTurnAction.actions.forEach(action => {
@@ -4758,7 +4824,7 @@ function executeTurn() {
   
  
   
-  debug.pvp('[PVP] ✅ Turno finalizado e estado limpo para round 2');
+  console.log('[PVP] ✅ Turno finalizado e estado limpo para round 2');
 }
 
 // A) Função removida - NÃO sincronizar movimento em tempo real
@@ -4964,7 +5030,7 @@ function backToStartMenu() {
   // E) Cleanup: remover canais Realtime
   if (syncChannel) {
     try {
-      debug.realtime('[REALTIME] Removendo syncChannel');
+      console.log('[REALTIME] Removendo syncChannel');
       supabaseClient.removeChannel(syncChannel);
     } catch(e) {
       console.error('[REALTIME] Erro ao remover syncChannel:', e);
@@ -4974,7 +5040,7 @@ function backToStartMenu() {
   
   if (matchStateChannel) {
     try {
-      debug.realtime('[REALTIME] Removendo matchStateChannel');
+      console.log('[REALTIME] Removendo matchStateChannel');
       supabaseClient.removeChannel(matchStateChannel);
     } catch(e) {
       console.error('[REALTIME] Erro ao remover matchStateChannel:', e);
@@ -5215,7 +5281,7 @@ function applyMyShips(selecao, isP1) {
     return nave;
   });
   
-  debug.pvp('[PVP] playerNaves aplicadas (isP1=' + isP1 + '):', playerNaves.map(n => ({ x: n.x, y: n.y, tipo: n.tipo, angle: n.angle, tint: n.tint })));
+  console.log('[PVP] playerNaves aplicadas (isP1=' + isP1 + '):', playerNaves.map(n => ({ x: n.x, y: n.y, tipo: n.tipo, angle: n.angle, tint: n.tint })));
 }
 
 // Mantém compatibilidade com modo solo
@@ -5294,7 +5360,7 @@ const cpuNaves = Array.from({ length: 3 }, (_, i) => {
 // Inicializar cpuNaves como CPU padrão (apenas para modo solo)
 function initCpuNaves() {
   if (multiplayerMode) {
-    debug.pvp('[PVP] Modo multiplayer - não inicializar CPU');
+    console.log('[PVP] Modo multiplayer - não inicializar CPU');
     return;
   }
   
@@ -5420,10 +5486,10 @@ function handleCanvasClick(event) {
       })));
   
       if (allShipsReady) {
-        debug.pvp('[PVP] ✅ Todas as naves configuradas! Enviando ação via Supabase...');
-        debug.pvp('[PVP] myUserId:', myUserId);
-        debug.pvp('[PVP] matchData.player1_id:', matchData?.player1_id);
-        debug.pvp('[PVP] Sou Player 1?', myUserId === matchData?.player1_id);
+        console.log('[PVP] ✅ Todas as naves configuradas! Enviando ação via Supabase...');
+        console.log('[PVP] myUserId:', myUserId);
+        console.log('[PVP] matchData.player1_id:', matchData?.player1_id);
+        console.log('[PVP] Sou Player 1?', myUserId === matchData?.player1_id);
     
         // Coletar ações de todas as naves
         const ships = playerNaves.map((n, idx) => ({
@@ -5618,7 +5684,7 @@ function moveTowards(nave) {
 function generateCpuOrders() {
   // Em modo PVP real, não gerar ordens automáticas de CPU
   if (multiplayerMode) {
-    debug.pvp('[PVP] Modo PVP ativo - CPU desabilitada, ações vem do Supabase');
+    console.log('[PVP] Modo PVP ativo - CPU desabilitada, ações vem do Supabase');
     return;
   }
   
@@ -6117,7 +6183,7 @@ function updateGame() {
   
   // Aplicar estado pendente se houver
   if (pendingRemoteState) {
-    debug.realtime('[REALTIME] 📥 Aplicando estado pendente após Ready/Go');
+    console.log('[REALTIME] 📥 Aplicando estado pendente após Ready/Go');
     const pending = pendingRemoteState;
     pendingRemoteState = null;
     applyMatchUpdate(pending, currentPhase, currentTurnNumber, turnUserId, matchData?.turn_deadline_at, matchData?.turn_resolved_at);
@@ -6201,8 +6267,8 @@ function updateGame() {
           phase = "selectMove";
           isInteracting = false; // Garantir que não está mais interagindo
           
-          debug.turn('[TURN] Animações concluídas, iniciando próximo turno...');
-          debug.turn('[TURN] currentTurnNumber:', currentTurnNumber);
+          console.log('[TURN] Animações concluídas, iniciando próximo turno...');
+          console.log('[TURN] currentTurnNumber:', currentTurnNumber);
           document.getElementById("legendArea").textContent = t('nextTurn');
           
           // Resetar flag de ação enviada
@@ -6210,7 +6276,7 @@ function updateGame() {
           
           // Iniciar nova janela de turno
           if (matchData && matchData.turn_deadline_at) {
-            debug.turn('[TURN] Iniciando nova janela com deadline:', matchData.turn_deadline_at);
+            console.log('[TURN] Iniciando nova janela com deadline:', matchData.turn_deadline_at);
             startTurnWindow(matchData.turn_deadline_at);
           } else {
             console.warn('[TURN] ⚠️ Sem deadline para novo turno!');
@@ -6218,7 +6284,7 @@ function updateGame() {
           
           // Aplicar estado pendente se houver
           if (pendingRemoteState) {
-            debug.realtime('[REALTIME] 📥 Aplicando estado pendente após fim de turno');
+            console.log('[REALTIME] 📥 Aplicando estado pendente após fim de turno');
             const pending = pendingRemoteState;
             pendingRemoteState = null;
             applyMatchUpdate(pending, currentPhase, currentTurnNumber, turnUserId, matchData?.turn_deadline_at, matchData?.turn_resolved_at);
@@ -6301,38 +6367,32 @@ timerSpan.style.textShadow = "0 0 14px #0ff8";
 
 
 function checkWinCondition() {
-  // 🛡️ AAA GUARD: Prevenir múltiplas execuções (só pode terminar uma vez)
-  if (gameActive === false || phase === 'finished') {
-    debug.win('[WIN] ⚠️ Jogo já terminou, ignorando checkWinCondition');
-    return true; // Já processado
-  }
-  
   // Calcular perdas totais (combate + autocolisão)
   const myLost = getMyLost();
   const oppLost = getOppLost();
   
-  debug.win('[WIN] checkWinCondition chamada:');
-  debug.win('[WIN]   - myLost:', myLost, '(playerNaves hp:', playerNaves.map(n => n.hp), ')');
-  debug.win('[WIN]   - oppLost:', oppLost, '(cpuNaves hp:', cpuNaves.map(n => n.hp), ')');
+  console.log('[WIN] checkWinCondition chamada:');
+  console.log('[WIN]   - myLost:', myLost, '(playerNaves hp:', playerNaves.map(n => n.hp), ')');
+  console.log('[WIN]   - oppLost:', oppLost, '(cpuNaves hp:', cpuNaves.map(n => n.hp), ')');
 
   // Condição de fim de jogo: 3 naves destruídas de qualquer lado
   if (myLost >= 3 || oppLost >= 3) {
-    debug.win('[WIN] 🏁 Jogo terminado! myLost=' + myLost + ', oppLost=' + oppLost);
+    console.log('[WIN] 🏁 Jogo terminado! myLost=' + myLost + ', oppLost=' + oppLost);
     
-    // 🔒 LOCK IMEDIATO: Prevenir race conditions
+    // Parar o jogo
     gameActive = false;
     phase = 'finished';
 
     // 🎯 SALVAR PLACAR FINAL IMEDIATAMENTE
     finalScoreSaved = { myLost, oppLost };
-    debug.win('[WIN] 💾 finalScoreSaved atualizado:', finalScoreSaved);
+    console.log('[WIN] 💾 finalScoreSaved atualizado:', finalScoreSaved);
 
     // Determinar vencedor baseado em kills
     let localWinner;
     if (oppLost > myLost) {
       localWinner = "VICTORY"; // Eu ganhei
       winner = "VICTORY"; // Correto para a tela
-      debug.win('[WIN] 🎉 VITÓRIA LOCAL (oppLost > myLost)');
+      console.log('[WIN] 🎉 VITÓRIA LOCAL (oppLost > myLost)');
       
       // ✅ XP: Processar eventos de vitória
       processMatchEndXPEvents('win');
@@ -6345,12 +6405,12 @@ function checkWinCondition() {
     else if (oppLost < myLost) {
       localWinner = "DEFEAT"; // Eu perdi
       winner = "DEFEAT"; // Correto para a tela
-      debug.win('[WIN] 😢 DERROTA LOCAL (oppLost < myLost)');
+      console.log('[WIN] 😢 DERROTA LOCAL (oppLost < myLost)');
       
       // ✅ XP: Processar eventos de derrota
-      debug.win('[WIN] 🔍 ANTES processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
+      console.log('[WIN] 🔍 ANTES processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
       processMatchEndXPEvents('defeat');
-      debug.win('[WIN] 🔍 DEPOIS processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
+      console.log('[WIN] 🔍 DEPOIS processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
       applyMatchXP();
       
       showDefeatScreen();
@@ -6358,7 +6418,7 @@ function checkWinCondition() {
     else {
       localWinner = "DRAW";
       winner = "Empate!";
-      debug.win('[WIN] 🤝 EMPATE LOCAL (oppLost == myLost)');
+      console.log('[WIN] 🤝 EMPATE LOCAL (oppLost == myLost)');
       
       // ✅ XP: Processar eventos de empate
       processMatchEndXPEvents('draw');
@@ -6377,22 +6437,11 @@ function checkWinCondition() {
     finalXpForChat = xpTotalMatch;
     console.log("[THOR.HTML] 💾 finalXpForChat salvo:", finalXpForChat);
     
-    // 🎮 ARQUITETURA AAA: Authority Pattern
-    // Apenas Player1 (host) tem autoridade para processar fim de jogo no servidor
+    // Em multiplayer, atualizar match no banco com vencedor
     if (multiplayerMode && supabaseClient && matchData) {
-      const isPlayer1 = myUserId === matchData.player1_id;
-      
-      if (isPlayer1) {
-        debug.win('[WIN] 👑 SOU HOST (Player1) - Processando fim de jogo com autoridade');
-        // Host processa TUDO: match update + stats de AMBOS jogadores
-        updateMatchAsAuthority(localWinner, myLost, oppLost).catch(err => {
-          console.error('[WIN] Erro ao processar fim de jogo:', err);
-        });
-      } else {
-        debug.win('[WIN] 👥 SOU CLIENT (Player2) - Aguardando confirmação do host via Realtime');
-        // Client apenas atualiza display local, servidor é atualizado pelo host
-        // Stats serão atualizadas pelo host no servidor
-      }
+      updateMatchWinner(localWinner, myLost, oppLost).catch(err => {
+        console.error('[WIN] Erro ao atualizar vencedor:', err);
+      });
     }
 
     // Enviar GAME_OVER uma única vez
@@ -6433,130 +6482,14 @@ function checkWinCondition() {
   return false; // Jogo continua
 }
 
-// 🎮 ARQUITETURA AAA: Authority-Based Match Processing
-// Apenas o HOST (Player1) executa esta função para processar fim de jogo
-// Client (Player2) recebe resultado via Realtime e apenas renderiza
-async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
-  // 🛡️ AAA GUARD: Prevenir múltiplas execuções (idempotência)
-  if (matchEndProcessed) {
-    debug.win('[WIN] ⚠️ Match já foi processado, ignorando chamada duplicada');
-    return;
-  }
-  matchEndProcessed = true; // Lock imediato
-  
-  try {
-    debug.win('[WIN] ========================================');
-    debug.win('[WIN] 👑 HOST processando fim de jogo com autoridade');
-    debug.win('[WIN] localWinner (meu resultado):', localWinner);
-    debug.win('[WIN] myTeam:', myTeam);
-    debug.win('[WIN] myLost:', myLost, 'oppLost:', oppLost);
-    
-    // Determinar vencedor global (player1 ou player2)
-    let winner_id = null;
-    if (localWinner === 'VICTORY') {
-      winner_id = myUserId; // Player1 ganhou
-    } else if (localWinner === 'DEFEAT') {
-      winner_id = opponentUserId; // Player2 ganhou
-    }
-    // Se DRAW, winner_id fica null
-    
-    debug.win('[WIN] winner_id:', winner_id);
-    
-    // 1️⃣ Atualizar match no banco (fonte única de verdade)
-    const { error: matchError } = await supabaseClient
-      .from('matches')
-      .update({
-        phase: 'finished',
-        winner_id: winner_id,
-        finished_at: new Date().toISOString()
-      })
-      .eq('id', matchData.id);
-    
-    if (matchError) {
-      console.error('[WIN] Erro ao atualizar match:', matchError);
-      return;
-    }
-    
-    debug.win('[WIN] ✅ Match atualizado');
-    
-    // 2️⃣ Atualizar stats de AMBOS jogadores (host tem autoridade)
-    // Player1 (eu, o host)
-    const player1Result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
-    const player1Stats = {
-      ships_destroyed: Number(oppLost ?? 0),
-      ships_lost: Number(myLost ?? 0),
-    };
-    
-    // Player2 (oponente)
-    const player2Result = localWinner === 'VICTORY' ? 'loss' : localWinner === 'DEFEAT' ? 'win' : 'draw';
-    const player2Stats = {
-      ships_destroyed: Number(myLost ?? 0), // inverso
-      ships_lost: Number(oppLost ?? 0),     // inverso
-    };
-    
-    debug.win('[WIN] 📊 Atualizando stats de ambos jogadores:');
-    debug.win('[WIN]   Player1 (host):', { id: myUserId, result: player1Result, stats: player1Stats });
-    debug.win('[WIN]   Player2:', { id: opponentUserId, result: player2Result, stats: player2Stats });
-    
-    // Atualizar Player1 (host)
-    await updatePlayerStatsAtomic(myUserId, player1Result, player1Stats);
-    
-    // Atualizar Player2 (client)
-    await updatePlayerStatsAtomic(opponentUserId, player2Result, player2Stats);
-    
-    debug.win('[WIN] ✅ Stats de ambos jogadores atualizadas com autoridade');
-    
-  } catch (err) {
-    console.error('[WIN] Exceção ao processar fim de jogo:', err);
-  }
-}
-
-// 🎯 Função atômica para atualizar stats de um jogador (chamada pelo host)
-async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_lost }) {
-  if (!supabaseClient || !userId) return;
-  
-  console.log('🔍 [STATS-DEBUG] updatePlayerStatsAtomic chamada:', {
-    userId,
-    result,
-    ships_destroyed,
-    ships_lost,
-    callStack: new Error().stack
-  });
-  
-  try {
-    // 🎮 AAA SOLUTION: Usar RPC atômico do Postgres com UPSERT
-    // Previne race conditions com ON CONFLICT
-    const { data, error } = await supabaseClient.rpc('update_player_stats_atomic', {
-      p_user_id: userId,
-      p_matches_played: 1,
-      p_wins: result === 'win' ? 1 : 0,
-      p_losses: result === 'loss' ? 1 : 0,
-      p_draws: result === 'draw' ? 1 : 0,
-      p_ships_destroyed: Number(ships_destroyed),
-      p_ships_lost: Number(ships_lost)
-    });
-    
-    if (error) {
-      console.error('[STATS] ❌ Erro ao atualizar stats de', userId, ':', error);
-      return;
-    }
-    
-    console.log('[STATS] ✅ Stats atualizadas atomicamente:', data);
-  } catch (err) {
-    console.error('[STATS] Exceção ao atualizar stats de', userId, ':', err);
-  }
-}
-
-// ⚠️ DEPRECATED: Mantida por compatibilidade, mas não deve ser mais usada
-// Nova arquitetura usa updateMatchAsAuthority (apenas pelo host)
+// Atualizar match no banco com vencedor
 async function updateMatchWinner(localWinner, myLost, oppLost) {
-  console.warn('[WIN] ⚠️ updateMatchWinner DEPRECATED - use updateMatchAsAuthority');
   try {
-    debug.win('[WIN] ========================================');
-    debug.win('[WIN] Atualizando match com vencedor');
-    debug.win('[WIN] localWinner:', localWinner);
-    debug.win('[WIN] myTeam:', myTeam);
-    debug.win('[WIN] myLost:', myLost, 'oppLost:', oppLost);
+    console.log('[WIN] ========================================');
+    console.log('[WIN] Atualizando match com vencedor');
+    console.log('[WIN] localWinner:', localWinner);
+    console.log('[WIN] myTeam:', myTeam);
+    console.log('[WIN] myLost:', myLost, 'oppLost:', oppLost);
     
     // Determinar vencedor global (player1 ou player2)
     let winner_id = null;
@@ -6567,7 +6500,7 @@ async function updateMatchWinner(localWinner, myLost, oppLost) {
     }
     // Se DRAW, winner_id fica null
     
-    debug.win('[WIN] winner_id:', winner_id);
+    console.log('[WIN] winner_id:', winner_id);
     
     // Atualizar match
     const { error } = await supabaseClient
@@ -6584,63 +6517,18 @@ async function updateMatchWinner(localWinner, myLost, oppLost) {
       return;
     }
     
-    debug.win('[WIN] ✅ Match atualizado com vencedor');
+    console.log('[WIN] ✅ Match atualizado com vencedor');
     
     // 🎯 ATUALIZAR PLAYER STATS (uma única vez, no fluxo local)
-    if (multiplayerMode && myUserId && supabaseClient) {
-      // ⛔ Prevenir múltiplas atualizações na mesma partida
-      const statsLockKey = `stats_updated_${matchData?.id || 'unknown'}`;
-      if (!sessionStorage.getItem(statsLockKey)) {
-        sessionStorage.setItem(statsLockKey, 'true');
-        debug.stats('[STATS] 🔒 Lock criado:', statsLockKey);
-        
-        const result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
-        const statsUpdate = {
-          matches_played: 1,
-          ships_destroyed: Number(oppLost ?? 0),
-          ships_lost: Number(myLost ?? 0),
-          wins: result === 'win' ? 1 : 0,
-          losses: result === 'loss' ? 1 : 0,
-          draws: result === 'draw' ? 1 : 0,
-        };
-        
-        try {
-          // Buscar stats atuais
-          const { data: statsRow } = await supabaseClient
-            .from("player_stats")
-            .select("matches_played, wins, losses, draws, ships_destroyed, ships_lost")
-            .eq("user_id", myUserId)
-            .maybeSingle();
-          
-          if (statsRow) {
-            // Atualizar somando os valores
-            const updateObj = {
-              matches_played: Number(statsRow.matches_played ?? 0) + 1,
-              wins: Number(statsRow.wins ?? 0) + statsUpdate.wins,
-              losses: Number(statsRow.losses ?? 0) + statsUpdate.losses,
-              draws: Number(statsRow.draws ?? 0) + statsUpdate.draws,
-              ships_destroyed: Number(statsRow.ships_destroyed ?? 0) + statsUpdate.ships_destroyed,
-              ships_lost: Number(statsRow.ships_lost ?? 0) + statsUpdate.ships_lost,
-            };
-            debug.stats('[STATS] ✅ Atualizando stats:', updateObj);
-            await supabaseClient
-              .from("player_stats")
-              .update(updateObj)
-              .eq("user_id", myUserId);
-          } else {
-            // Inserir novo registro
-            debug.stats('[STATS] ✅ Inserindo stats iniciais:', statsUpdate);
-            await supabaseClient
-              .from("player_stats")
-              .insert([{ user_id: myUserId, ...statsUpdate }]);
-          }
-          debug.win('[WIN] 📊 Stats atualizados com sucesso');
-        } catch (statsErr) {
-          console.error('[WIN] Erro ao atualizar stats:', statsErr);
-        }
-      } else {
-        debug.stats('[STATS] ⏭️ Stats já foram atualizados para este matchId, pulando...');
-      }
+    if (multiplayerMode && myUserId) {
+      const result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
+      await updatePlayerStats({
+        userId: myUserId,
+        result: result,
+        myKills: oppLost,
+        oppKills: myLost
+      });
+      console.log('[WIN] 📊 Stats atualizados:', { result, myKills: oppLost, oppKills: myLost });
     }
   } catch (err) {
     console.error('[WIN] Exceção ao atualizar vencedor:', err);
@@ -6896,7 +6784,7 @@ function restartGame() {
   if (multiplayerMode && currentPhase === 'select') {
     PVP.hasSavedSelection = false;
     startSelectionTimer();
-    debug.pvp('[PVP] ⏱️ Timer de seleção de 15s iniciado');
+    console.log('[PVP] ⏱️ Timer de seleção de 15s iniciado');
   }
 
   // Reseta variáveis de rodada e estado (mantém os dados prontos para próxima partida)
@@ -7552,14 +7440,14 @@ function startGameAfterSelection() {
 
   // MODO MULTIPLAYER: Sistema de turnos
   if (multiplayerMode && matchData) {
-    debug.pvp('[PVP] ========================================');
-    debug.pvp('[PVP] MODO MULTIPLAYER - Salvando seleção de naves...');
-    debug.pvp('[PVP] Meu time:', myTeam);
-    debug.pvp('[PVP] Naves selecionadas:', selectedNaves);
+    console.log('[PVP] ========================================');
+    console.log('[PVP] MODO MULTIPLAYER - Salvando seleção de naves...');
+    console.log('[PVP] Meu time:', myTeam);
+    console.log('[PVP] Naves selecionadas:', selectedNaves);
     
     // Guard: evitar salvar múltiplas vezes
     if (PVP.hasSavedSelection) {
-      debug.pvp('[PVP] ⚠️ Seleção já salva, ignorando');
+      console.log('[PVP] ⚠️ Seleção já salva, ignorando');
       return;
     }
     
@@ -7582,7 +7470,7 @@ function startGameAfterSelection() {
         return;
       }
       
-      debug.pvp('[PVP] ✅ Seleção salva com sucesso');
+      console.log('[PVP] ✅ Seleção salva com sucesso');
       
       // (H) Feedback visual: desabilitar botão e mostrar aguardando
       const btn = document.getElementById('startGameBtn');
@@ -7595,7 +7483,7 @@ function startGameAfterSelection() {
       // Aguardar Realtime ou fallback REST chamar startBattleFromSelection
     });
     
-    debug.pvp('[PVP] ========================================');
+    console.log('[PVP] ========================================');
     return;
   }
 
@@ -7699,10 +7587,10 @@ function applyServerSnapshot(newShips) {
   if (typeof ships !== 'undefined' && Array.isArray(ships)) {
     const merged = mergeShipsPreservingFlags(ships, newShips);
     ships = merged;
-    debug.sync('[SYNC] merge snapshot preserving ready/selected');
+    console.log('[SYNC] merge snapshot preserving ready/selected');
   } else {
     ships = newShips;
-    debug.sync('[SYNC] initial snapshot');
+    console.log('[SYNC] initial snapshot');
   }
   updatePreviews();
 }
@@ -7840,7 +7728,7 @@ showOnly("modeSelectionScreen");
         });
         
         if (urlParams.mode === 'multiplayer' && urlParams.matchId) {
-          debug.pvp('[PVP] Detectado matchId na URL:', urlParams.matchId);
+          console.log('[PVP] Detectado matchId na URL:', urlParams.matchId);
           
           // AGUARDAR um pouco para garantir que o Supabase client está disponível
           setTimeout(async () => {
@@ -7849,7 +7737,7 @@ showOnly("modeSelectionScreen");
               const success = await initMultiplayerMode(urlParams.matchId);
               
               if (success) {
-                debug.pvp('[PVP] ✅ Multiplayer inicializado com sucesso');
+                console.log('[PVP] ✅ Multiplayer inicializado com sucesso');
                 // Ir para seleção de naves
                 showOnly('naveSelectScreen');
                 selectedNaves = [];
@@ -8013,12 +7901,12 @@ document.getElementById("multiplayerBtn").onclick = () => {
       // Fora da seleção de naves, aplicar guardas multiplayer
       if (multiplayerMode) {
         if (!isMyTurn) {
-          debug.pvp('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: não é meu turno.');
+          console.log('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: não é meu turno.');
           e.stopPropagation();
           return;
         }
         if (typeof phase !== 'undefined' && phase !== 'select') {
-          debug.pvp('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: phase != select. phase:', phase);
+          console.log('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: phase != select. phase:', phase);
           e.stopPropagation();
           return;
         }
@@ -8084,12 +7972,12 @@ function startMatchmakingSlot() {
             }
             if (multiplayerMode) {
               if (!isMyTurn) {
-                debug.pvp('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: não é meu turno.');
+                console.log('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: não é meu turno.');
                 e.stopPropagation();
                 return;
               }
               if (typeof phase !== 'undefined' && phase !== 'select') {
-                debug.pvp('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: phase != select. phase:', phase);
+                console.log('[PVP][INPUT][GUARD][CARD] Ignorando clique em nave-card: phase != select. phase:', phase);
                 e.stopPropagation();
                 return;
               }
@@ -8156,11 +8044,11 @@ window.addEventListener('beforeunload', () => {
     try {
       if (syncChannel) {
         supabaseClient.removeChannel(syncChannel);
-        debug.pvp('[PVP] Canal broadcast removido ao fechar');
+        console.log('[PVP] Canal broadcast removido ao fechar');
       }
       if (matchStateChannel) {
         supabaseClient.removeChannel(matchStateChannel);
-        debug.pvp('[PVP] Canal de estado removido ao fechar');
+        console.log('[PVP] Canal de estado removido ao fechar');
       }
     } catch (err) {
       console.error('[PVP] Erro ao remover canais:', err);
