@@ -1203,7 +1203,7 @@ background: rgba(0, 165, 242, 0.04);
 // ========================================
 // true = logs ativos (desenvolvimento)
 // false = logs desativados (produção - MELHOR PERFORMANCE)
-const DEBUG_MODE = true; // ✅ ATIVADO para diagnosticar bug de stats duplicadas
+const DEBUG_MODE = false; // ✅ Desativado após correção do bug de stats duplicadas
 
 // Funções de log que só executam se DEBUG_MODE = true
 const debug = {
@@ -6514,6 +6514,21 @@ async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
 // 🎯 Função atômica para atualizar stats de um jogador (chamada pelo host)
 async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_lost }) {
   if (!supabaseClient || !userId) return;
+  
+  // 🛡️ GUARD CRÍTICO: Prevenir duplicação de stats para o mesmo jogador na mesma partida
+  const matchId = matchData?.id;
+  if (!matchId) {
+    console.error('[STATS] ❌ matchId não encontrado, abortando atualização');
+    return;
+  }
+  
+  const statsLockKey = `stats_atomic_${matchId}_${userId}`;
+  if (sessionStorage.getItem(statsLockKey)) {
+    debug.stats('[STATS] ⚠️ Stats de', userId, 'já foram atualizadas nesta partida, ignorando duplicata');
+    return;
+  }
+  sessionStorage.setItem(statsLockKey, 'true');
+  debug.stats('[STATS] 🔒 Lock criado:', statsLockKey);
   
   const statsUpdate = {
     matches_played: 1,
