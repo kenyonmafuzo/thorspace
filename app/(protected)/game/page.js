@@ -224,34 +224,46 @@ export default function GamePage() {
           }
 
           console.log('[GamePage] Calling /api/finalize-match...');
-          const response = await fetch('/api/finalize-match', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              matchId,
-              myLost: deaths,
-              oppLost: kills,
-              accessToken,
-              refreshToken,
-            }),
-          });
+          
+          let response;
+          let finalizationResult;
+          
+          try {
+            response = await fetch('/api/finalize-match', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                matchId,
+                myLost: deaths,
+                oppLost: kills,
+                accessToken,
+                refreshToken,
+              }),
+            });
 
-          const finalizationResult = await response.json();
+            finalizationResult = await response.json();
+          } catch (fetchError) {
+            console.error('[GamePage] Fetch error:', fetchError);
+            // Continuar mesmo com erro - não bloquear UI
+            window.dispatchEvent(new CustomEvent("thor_match_finalized"));
+            return;
+          }
 
           if (!response.ok) {
-            // Se já foi processado, não é erro
-            if (finalizationResult.alreadyProcessed) {
-              console.log('[GamePage] Match já foi finalizado anteriormente');
-            } else {
-              console.error('[GamePage] API error:', finalizationResult);
-              return;
-            }
+            console.error('[GamePage] API returned error:', finalizationResult);
+            // Continuar mesmo com erro - não bloquear UI
+            window.dispatchEvent(new CustomEvent("thor_match_finalized"));
+            return;
           }
 
           if (finalizationResult.success) {
-            console.log('[GamePage] ✅ Match finalized via API:', finalizationResult);
+            if (finalizationResult.alreadyFinalized) {
+              console.log('[GamePage] ℹ️ Match was already finalized (idempotent)');
+            } else {
+              console.log('[GamePage] ✅ Match finalized successfully');
+            }
             
             // Disparar evento de finalização completa para refetch
             window.dispatchEvent(new CustomEvent("thor_match_finalized"));

@@ -1,12 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-// 🎮 AAA ARCHITECTURE: Server-side match finalization with validation
-// This is the SINGLE SOURCE OF TRUTH for match finalization
-// - Validates match ownership
-// - Prevents cheating
-// - Atomic stats updates via RPC
-// - Host-authoritative (only Player1 should call this)
+// 🎮 AAA ARCHITECTURE: Server-side match finalization with idempotent RPC
+// Uses finalize_match_once() RPC with match_results table (PK on match_id)
+// - Single database call with atomic guarantees
+// - Prevents duplicate finalization via ON CONFLICT
+// - Service role (backend authoritative)
 
 export async function POST(request) {
   try {
@@ -28,7 +27,7 @@ export async function POST(request) {
       );
     }
 
-    // Create authenticated Supabase client
+    // Create authenticated Supabase client for validation
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -70,96 +69,73 @@ export async function POST(request) {
       );
     }
 
-    // Prevent double-processing
-    if (match.status === 'finished') {
-      return NextResponse.json(
-        { error: 'Match already finalized', alreadyProcessed: true },
-        { status: 409 }
-      );
-    }
-
     // Determine winner
     let winner_id = null;
+    let loser_id = null;
+    let winner_score = 0;
+    let loser_score = 0;
+
     if (oppLost > myLost) {
-      winner_id = match.player1_id; // Host won
+      // Host won
+      winner_id = match.player1_id;
+      loser_id = match.player2_id;
+      winner_score = oppLost;
+      loser_score = myLost;
     } else if (myLost > oppLost) {
-      winner_id = match.player2_id; // Opponent won
+      // Opponent won
+      winner_id = match.player2_id;
+      loser_id = match.player1_id;
+      winner_score = myLost;
+      loser_score = oppLost;
+    } else {
+      // Draw - não tem winner/loser
+      return NextResponse.json(
+        { error: 'Draw not supported yet' },
+        { status: 400 }
+      );
     }
-    // If equal, it's a draw (winner_id stays null)
 
-    // 🎯 UPDATE STATS FOR PLAYER 1 (HOST)
-    const player1Result = oppLost > myLost ? 'win' : myLost > oppLost ? 'loss' : 'draw';
-    const { error: stats1Error } = await supabase.rpc('update_player_stats_atomic', {
-      p_user_id: match.player1_id,
-      p_matches_played: 1,
-      p_wins: player1Result === 'win' ? 1 : 0,
-      p_losses: player1Result === 'loss' ? 1 : 0,
-      p_draws: player1Result === 'draw' ? 1 : 0,
-      p_ships_destroyed: Number(oppLost),
-      p_ships_lost: Number(myLost)
+    // 🎯 CALL IDEMPOTENT RPC (service role)
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('finalize_match_once', {
+      p_match_id: matchId,
+      p_winner_id: winner_id,
+      p_loser_id: loser_id,
+      p_winner_score: winner_score,
+      p_loser_score: loser_score,
+      p_winner_xp: 0, // XP será calculado no frontend
+      p_loser_xp: 0
     });
 
-    if (stats1Error) {
-      console.error('[API] Error updating Player1 stats:', stats1Error);
+    if (rpcError) {
+      console.error('[API] RPC error:', rpcError);
       return NextResponse.json(
-        { error: 'Failed to update Player1 stats', details: stats1Error },
+        { error: 'Failed to finalize match', details: rpcError },
         { status: 500 }
       );
     }
 
-    // 🎯 UPDATE STATS FOR PLAYER 2 (OPPONENT)
-    const player2Result = myLost > oppLost ? 'win' : oppLost > myLost ? 'loss' : 'draw';
-    const { error: stats2Error } = await supabase.rpc('update_player_stats_atomic', {
-      p_user_id: match.player2_id,
-      p_matches_played: 1,
-      p_wins: player2Result === 'win' ? 1 : 0,
-      p_losses: player2Result === 'loss' ? 1 : 0,
-      p_draws: player2Result === 'draw' ? 1 : 0,
-      p_ships_destroyed: Number(myLost), // From opponent's perspective
-      p_ships_lost: Number(oppLost)
-    });
+    // RPC returns { ok: true, already_finalized: true/false }
+    const alreadyFinalized = rpcResult?.already_finalized || false;
 
-    if (stats2Error) {
-      console.error('[API] Error updating Player2 stats:', stats2Error);
-      return NextResponse.json(
-        { error: 'Failed to update Player2 stats', details: stats2Error },
-        { status: 500 }
-      );
-    }
-
-    // 🏁 UPDATE MATCH STATUS
-    const { error: updateError } = await supabase
-      .from('matches')
-      .update({
-        status: 'finished',
-        winner_id,
-        finished_at: new Date().toISOString()
-      })
-      .eq('id', matchId);
-
-    if (updateError) {
-      console.error('[API] Error updating match status:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update match status', details: updateError },
-        { status: 500 }
-      );
-    }
-
-    console.log('[API] ✅ Match finalized successfully:', {
+    console.log('[API] ✅ Match finalization result:', {
       matchId,
       winner_id,
-      player1Result,
-      player2Result,
-      myLost,
-      oppLost
+      loser_id,
+      winner_score,
+      loser_score,
+      alreadyFinalized
     });
 
     return NextResponse.json({
       success: true,
       matchId,
       winner_id,
-      player1Result,
-      player2Result
+      alreadyFinalized
     });
 
   } catch (error) {
