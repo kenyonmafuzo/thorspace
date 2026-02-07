@@ -305,6 +305,12 @@ export default function GamePage() {
         timestamp: Date.now()
       }));
       
+      // 🧹 CRITICAL: Limpar matchId para não recarregar o mesmo jogo
+      localStorage.removeItem('thor_match_id');
+      localStorage.removeItem('thor_match_source');
+      localStorage.removeItem('thor_match_opponent_name');
+      console.log('[GamePage] 🧹 Cleared match localStorage to prevent reload');
+      
       // Navegar de volta para o multiplayer (que tem o chat)
       router.push('/multiplayer');
       return;
