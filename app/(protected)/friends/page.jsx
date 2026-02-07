@@ -81,7 +81,7 @@ const tabsRowStyle = {
 };
 const gridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(3, 352px)",
+  gridTemplateColumns: "repeat(auto-fill, minmax(320px, 352px))",
   gap: "22px",
   width: "100%",
   maxWidth: 1100,
@@ -97,6 +97,8 @@ const gridContainerStyle = {
   minWidth: 0,
   marginLeft: 0,
   marginRight: "auto",
+  paddingLeft: 24,
+  paddingRight: 24,
   boxSizing: "border-box",
   display: "flex",
   justifyContent: "start"
