@@ -290,9 +290,11 @@ export default function LoginPage() {
     fontFamily: "'Orbitron', sans-serif",
     fontWeight: 700,
     fontSize: 15,
-    boxShadow: "0 8px 30px rgba(0, 140, 255, 0.18)",
+    boxShadow: "0 0 20px #0ff5",
     marginBottom: 8,
     opacity: loading ? 0.75 : 1,
+    transform: "translateY(0)",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
   };
 
   const googleBtn = {
@@ -392,7 +394,21 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button style={primaryBtn} type="submit" disabled={loading}>
+            <button 
+              style={primaryBtn} 
+              type="submit" 
+              disabled={loading}
+              onMouseEnter={(e) => {
+                if (!loading) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 0 30px rgba(0,229,255,0.6), 0 8px 20px rgba(0,114,255,0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 0 20px #0ff5';
+              }}
+            >
               {loading ? "Entrando..." : "ENTRAR"}
             </button>
           </form>

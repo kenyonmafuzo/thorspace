@@ -293,7 +293,9 @@ export default function SignupPage() {
     fontFamily: "'Orbitron', sans-serif",
     fontWeight: 700,
     fontSize: '15px',
-    boxShadow: '0 8px 30px rgba(0, 140, 255, 0.18)',
+    boxShadow: '0 0 20px #0ff5',
+    transform: 'translateY(0)',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
   const smallText = { fontSize: '13px', color: 'rgba(230,251,255,0.8)' };
@@ -404,7 +406,23 @@ export default function SignupPage() {
             </button>
           </div>
 
-          <button type="submit" style={primaryBtn} disabled={loading}>{loading ? 'Criando...' : 'Criar conta'}</button>
+          <button 
+            type="submit" 
+            style={primaryBtn} 
+            disabled={loading}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 0 30px rgba(0,229,255,0.6), 0 8px 20px rgba(0,114,255,0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 0 20px #0ff5';
+            }}
+          >
+            {loading ? 'Criando...' : 'Criar conta'}
+          </button>
         </form>
 
         <div style={{ height: 12 }} />

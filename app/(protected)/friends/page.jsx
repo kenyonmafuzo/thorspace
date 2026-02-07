@@ -67,7 +67,7 @@ const searchInputStyle = {
   background: '#181c24',
   color: '#fff',
   fontSize: 16,
-  marginLeft: 18,
+  marginLeft: 0,
   marginBottom: 0
 };
 const tabsRowStyle = {

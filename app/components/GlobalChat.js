@@ -712,7 +712,21 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
           <button
             type="submit"
             disabled={sending || !newMessage.trim()}
-            style={sendButtonStyle}
+            style={{
+              ...sendButtonStyle,
+              opacity: (sending || !newMessage.trim()) ? 0.4 : 1,
+              cursor: (sending || !newMessage.trim()) ? 'not-allowed' : 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              if (!sending && newMessage.trim()) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(0,229,255,0.5), 0 6px 16px rgba(0,114,255,0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
             tabIndex={-1}
           >
             {sending ? "..." : t("multiplayer.send")}
@@ -879,6 +893,7 @@ const sendButtonStyle = {
   border: "none",
   borderRadius: 8,
   cursor: "pointer",
-  transition: "opacity 0.2s",
+  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  transform: "translateY(0)",
   fontFamily: "'Orbitron',sans-serif",
 };
