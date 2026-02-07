@@ -248,7 +248,22 @@ export default function MultiplayerPage() {
               filter: `invite_from=eq.${user.id}`,
             },
             async (payload) => {
-              if (payload.new && payload.new.state === "accepted" && payload.new.mode === "multiplayer") {
+              // ✅ APENAS redirecionar se: estado = "accepted" E phase != "finished"
+              // Isso evita redirecionamento automático após match terminar
+              const isAccepted = payload.new?.state === "accepted";
+              const isFinished = payload.new?.phase === "finished";
+              const isMultiplayer = payload.new?.mode === "multiplayer";
+              
+              console.log("[MULTIPLAYER SUBSCRIBE] UPDATE recebido:", {
+                matchId: payload.new?.id,
+                state: payload.new?.state,
+                phase: payload.new?.phase,
+                isAccepted,
+                isFinished,
+                willRedirect: isAccepted && !isFinished && isMultiplayer
+              });
+              
+              if (isAccepted && !isFinished && isMultiplayer) {
                 // Buscar username do oponente
                 const { data: opponentProfile } = await supabase
                   .from("profiles")
@@ -263,6 +278,7 @@ export default function MultiplayerPage() {
                 localStorage.setItem("thor_match_source", "multiplayer");
                 localStorage.setItem("thor_selected_mode", "multiplayer");
 
+                console.log("[MULTIPLAYER SUBSCRIBE] Redirecionando para /game...");
                 // Redirecionar para /game com matchId
                 router.push(`/game?mode=multiplayer&matchId=${payload.new.id}`);
               }
