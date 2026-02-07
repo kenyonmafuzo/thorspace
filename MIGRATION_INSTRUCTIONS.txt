@@ -1,0 +1,51 @@
+# Como aplicar a migration manualmente
+
+## Opção 1: Via Supabase Dashboard (Recomendado)
+
+1. Acesse: https://supabase.com/dashboard/project/[SEU_PROJECT_ID]/sql/new
+2. Copie e cole o conteúdo do arquivo: `supabase/migrations/20260207_finalize_match_once_rpc.sql`
+3. Clique em "Run" ou "Execute"
+
+## Opção 2: Via psql (CLI)
+
+```bash
+# Obter connection string no Supabase Dashboard → Settings → Database
+psql "postgresql://postgres:[YOUR_PASSWORD]@[YOUR_HOST]:5432/postgres" \
+  -f supabase/migrations/20260207_finalize_match_once_rpc.sql
+```
+
+## Opção 3: Via Supabase CLI (se configurado)
+
+```bash
+# Configurar link (apenas primeira vez)
+npx supabase link --project-ref [SEU_PROJECT_REF]
+
+# Aplicar migrations
+npx supabase db push
+```
+
+## Verificar se funcionou
+
+Execute no SQL Editor:
+
+```sql
+-- Verificar se função existe
+SELECT routine_name, routine_type 
+FROM information_schema.routines 
+WHERE routine_name = 'finalize_match_once';
+
+-- Verificar se tabela foi criada
+SELECT table_name 
+FROM information_schema.tables 
+WHERE table_name = 'match_results';
+
+-- Verificar permissões
+SELECT routine_name, grantee, privilege_type
+FROM information_schema.routine_privileges
+WHERE routine_name = 'finalize_match_once';
+```
+
+Deve retornar:
+- 1 função `finalize_match_once`
+- 1 tabela `match_results`
+- Grant para `authenticated`

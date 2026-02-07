@@ -6432,7 +6432,7 @@ function checkWinCondition() {
 }
 
 // 🎮 ARQUITETURA AAA: Authority-Based Match Processing
-// HOST (Player1) apenas ENVIA dados para API - backend processa com validação
+// HOST (Player1) ENVIA dados para API - backend valida e processa
 async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
   // 🛡️ AAA GUARD: Verificação de segurança (lock já foi feito no checkWinCondition)
   if (!matchEndProcessed) {
@@ -6446,16 +6446,52 @@ async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
     debug.win('[WIN] localWinner:', localWinner);
     debug.win('[WIN] myLost:', myLost, 'oppLost:', oppLost);
     
-    // 🎯 AAA ARCHITECTURE: Enviar para API Route que valida e processa
+    // 🎯 AAA ARCHITECTURE: Chamar API Route que valida e processa
     // Backend garante segurança, validação e atomicidade
-    debug.win('[WIN] 📡 Notificando GamePage para chamar API...');
     
-    // Apenas informar GamePage que o jogo terminou
-    // GamePage chamará a API /api/finalize-match
-    debug.win('[WIN] ✅ Authority pattern: dados serão validados pelo backend');
+    // Obter tokens de auth para API
+    const { data: sessionData } = await supabaseClient.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    const refreshToken = sessionData?.session?.refresh_token;
+    
+    if (!accessToken || !refreshToken) {
+      console.error('[WIN] ❌ Tokens de autenticação não encontrados');
+      return;
+    }
+    
+    debug.win('[WIN] 📡 Chamando API /api/finalize-match...');
+    
+    const response = await fetch('/api/finalize-match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        matchId: matchData.id,
+        myLost: myLost,
+        oppLost: oppLost,
+        accessToken: accessToken,
+        refreshToken: refreshToken
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('[WIN] ❌ Erro na API:', errorData);
+      return;
+    }
+    
+    const result = await response.json();
+    debug.win('[WIN] ✅ API respondeu:', result);
+    
+    if (result.alreadyFinalized) {
+      debug.win('[WIN] ⏭️ Match já foi finalizado anteriormente (idempotente)');
+    } else {
+      debug.win('[WIN] 🎉 Match finalizado com sucesso!');
+    }
     
   } catch (err) {
-    console.error('[WIN] Exceção ao processar fim de jogo:', err);
+    console.error('[WIN] ❌ Exceção ao processar fim de jogo:', err);
   }
 }
 
