@@ -6302,6 +6302,11 @@ timerSpan.style.textShadow = "0 0 14px #0ff8";
 
 function checkWinCondition() {
   // 🛡️ AAA GUARD: Prevenir múltiplas execuções (só pode terminar uma vez)
+  if (matchEndProcessed) {
+    debug.win('[WIN] ⚠️ matchEndProcessed=true, ignorando checkWinCondition');
+    return true; // Já processado
+  }
+  
   if (gameActive === false || phase === 'finished') {
     debug.win('[WIN] ⚠️ Jogo já terminou, ignorando checkWinCondition');
     return true; // Já processado
@@ -6319,7 +6324,8 @@ function checkWinCondition() {
   if (myLost >= 3 || oppLost >= 3) {
     debug.win('[WIN] 🏁 Jogo terminado! myLost=' + myLost + ', oppLost=' + oppLost);
     
-    // 🔒 LOCK IMEDIATO: Prevenir race conditions
+    // 🔒 LOCK IMEDIATO: Prevenir race conditions E MÚLTIPLAS EXECUÇÕES
+    matchEndProcessed = true; // ⚠️ CRITICAL: Lock antes de qualquer async
     gameActive = false;
     phase = 'finished';
 
@@ -6437,12 +6443,11 @@ function checkWinCondition() {
 // Apenas o HOST (Player1) executa esta função para processar fim de jogo
 // Client (Player2) recebe resultado via Realtime e apenas renderiza
 async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
-  // 🛡️ AAA GUARD: Prevenir múltiplas execuções (idempotência)
-  if (matchEndProcessed) {
-    debug.win('[WIN] ⚠️ Match já foi processado, ignorando chamada duplicada');
-    return;
+  // 🛡️ AAA GUARD: Verificação de segurança (lock já foi feito no checkWinCondition)
+  if (!matchEndProcessed) {
+    console.error('[WIN] ❌ ERRO CRÍTICO: updateMatchAsAuthority chamado sem matchEndProcessed=true');
+    matchEndProcessed = true; // Forçar lock
   }
-  matchEndProcessed = true; // Lock imediato
   
   try {
     debug.win('[WIN] ========================================');
@@ -6480,18 +6485,25 @@ async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
     debug.win('[WIN] ✅ Match atualizado');
     
     // 2️⃣ Atualizar stats de AMBOS jogadores (host tem autoridade)
-    // Player1 (eu, o host)
+    // 
+    // IMPORTANTE: ships_destroyed/ships_lost do meu ponto de vista (HOST):
+    // - myLost: naves que EU perdi
+    // - oppLost: naves que o OPONENTE perdeu (= naves que EU destruí)
+    //
+    // Para o OPONENTE (Player2):
+    // - ships_destroyed: naves que ELE destruiu = myLost (do HOST)
+    // - ships_lost: naves que ELE perdeu = oppLost (do HOST)
+    
     const player1Result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
     const player1Stats = {
-      ships_destroyed: Number(oppLost ?? 0),
-      ships_lost: Number(myLost ?? 0),
+      ships_destroyed: Number(oppLost ?? 0), // Naves que EU (host) destruí
+      ships_lost: Number(myLost ?? 0),       // Naves que EU (host) perdi
     };
     
-    // Player2 (oponente)
     const player2Result = localWinner === 'VICTORY' ? 'loss' : localWinner === 'DEFEAT' ? 'win' : 'draw';
     const player2Stats = {
-      ships_destroyed: Number(myLost ?? 0), // inverso
-      ships_lost: Number(oppLost ?? 0),     // inverso
+      ships_destroyed: Number(myLost ?? 0),  // Naves que ELE (oponente) destruiu = minhas perdas
+      ships_lost: Number(oppLost ?? 0),      // Naves que ELE (oponente) perdeu
     };
     
     debug.win('[WIN] 📊 Atualizando stats de ambos jogadores:');
@@ -6520,6 +6532,8 @@ async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_
     result,
     ships_destroyed,
     ships_lost,
+    increment_wins: result === 'win' ? 1 : 0,
+    increment_losses: result === 'loss' ? 1 : 0,
     callStack: new Error().stack
   });
   
@@ -6541,7 +6555,14 @@ async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_
       return;
     }
     
-    console.log('[STATS] ✅ Stats atualizadas atomicamente:', data);
+    console.log('[STATS] ✅ Stats atualizadas atomicamente:', {
+      userId,
+      result: data,
+      increment_applied: {
+        wins: result === 'win' ? '+1' : '+0',
+        losses: result === 'loss' ? '+1' : '+0'
+      }
+    });
   } catch (err) {
     console.error('[STATS] Exceção ao atualizar stats de', userId, ':', err);
   }
