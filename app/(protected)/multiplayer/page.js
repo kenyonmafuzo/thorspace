@@ -236,7 +236,8 @@ export default function MultiplayerPage() {
           console.error("[BADGES] Erro ao verificar badges retroativas:", badgeError);
         }
 
-        // Subscribe para matches aceitos onde sou o desafiante
+        // ✅ AAA PATTERN: Subscription APENAS para sync de dados
+        // Lógica de navegação é responsabilidade da UI, não do DB
         const acceptedChannel = supabase
           .channel(`match-accepted:${user.id}`)
           .on(
@@ -248,39 +249,63 @@ export default function MultiplayerPage() {
               filter: `invite_from=eq.${user.id}`,
             },
             async (payload) => {
-              // ✅ APENAS redirecionar se: estado = "accepted" E phase != "finished"
-              // Isso evita redirecionamento automático após match terminar
-              const isAccepted = payload.new?.state === "accepted";
-              const isFinished = payload.new?.phase === "finished";
-              const isMultiplayer = payload.new?.mode === "multiplayer";
-              
-              console.log("[MULTIPLAYER SUBSCRIBE] UPDATE recebido:", {
+              // 🔍 LOGS: Debug completo do evento
+              console.log("[MATCH SYNC] Match UPDATE recebido:", {
                 matchId: payload.new?.id,
                 state: payload.new?.state,
                 phase: payload.new?.phase,
-                isAccepted,
-                isFinished,
-                willRedirect: isAccepted && !isFinished && isMultiplayer
+                timestamp: new Date().toISOString()
               });
               
-              if (isAccepted && !isFinished && isMultiplayer) {
-                // Buscar username do oponente
+              // ✅ VALIDAÇÃO ROBUSTA: Prevenir race conditions e estados inválidos
+              const isAccepted = payload.new?.state === "accepted";
+              const isFinished = payload.new?.phase === "finished";
+              const isPending = payload.new?.phase === "pending" || !payload.new?.phase;
+              const isMultiplayer = payload.new?.mode === "multiplayer";
+              
+              // ⛔ GUARDS: Não redirecionar se match já terminou
+              if (isFinished) {
+                console.log("[MATCH SYNC] ⏭️ Match já finalizado, ignorando redirecionamento");
+                return;
+              }
+              
+              // ⛔ GUARD: Só processar matches multiplayer aceitos
+              if (!isAccepted || !isMultiplayer) {
+                console.log("[MATCH SYNC] ⏭️ Match não está em estado válido para iniciar");
+                return;
+              }
+              
+              // ⛔ GUARD: Prevenir redirecionamento duplicado
+              const lastProcessedMatch = sessionStorage.getItem('last_redirected_match');
+              if (lastProcessedMatch === payload.new.id) {
+                console.log("[MATCH SYNC] ⏭️ Match já foi processado, ignorando duplicata");
+                return;
+              }
+              
+              // ✅ PROCESSAMENTO: Buscar dados do oponente
+              try {
                 const { data: opponentProfile } = await supabase
                   .from("profiles")
                   .select("username")
                   .eq("id", payload.new.invite_to)
                   .single();
 
-                // Salvar match_id e modo no localStorage
+                // 💾 Salvar contexto do match (necessário para /game)
                 localStorage.setItem("thor_match_id", payload.new.id);
                 localStorage.setItem("thor_match_opponent_name", opponentProfile?.username || "Opponent");
                 localStorage.setItem("thor_match_opponent_id", payload.new.invite_to);
                 localStorage.setItem("thor_match_source", "multiplayer");
                 localStorage.setItem("thor_selected_mode", "multiplayer");
+                
+                // 🚫 Prevenir processamento duplicado
+                sessionStorage.setItem('last_redirected_match', payload.new.id);
 
-                console.log("[MULTIPLAYER SUBSCRIBE] Redirecionando para /game...");
-                // Redirecionar para /game com matchId
+                console.log("[MATCH SYNC] ✅ Navegando para /game com matchId:", payload.new.id);
+                
+                // 🎮 NAVEGAÇÃO: Redirecionar para tela de jogo
                 router.push(`/game?mode=multiplayer&matchId=${payload.new.id}`);
+              } catch (error) {
+                console.error("[MATCH SYNC] ❌ Erro ao processar match aceito:", error);
               }
             }
           )
