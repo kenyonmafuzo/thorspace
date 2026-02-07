@@ -95,13 +95,9 @@ export async function POST(request) {
       );
     }
 
-    // 🎯 CALL IDEMPOTENT RPC (service role)
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-
-    const { data: rpcResult, error: rpcError } = await supabaseAdmin.rpc('finalize_match_once', {
+    // 🎯 CALL IDEMPOTENT RPC (authenticated client with RLS)
+    // RPC deve ter GRANT EXECUTE para authenticated users no Supabase
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
       p_match_id: matchId,
       p_winner_id: winner_id,
       p_loser_id: loser_id,
