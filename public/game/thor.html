@@ -2258,20 +2258,26 @@ function applyResolvedTurn(actions) {
   
   // Aplicar ações do OPONENTE em cpuNaves
   if (oppAction && oppAction.type === 'play' && oppAction.ships) {
+    console.log('[TURN] 🎯 Aplicando ações do oponente em cpuNaves');
     debug.turn('[TURN] Aplicando ações do oponente em cpuNaves');
     oppAction.ships.forEach(shipData => {
       const nave = cpuNaves[shipData.index];
       if (nave && nave.hp > 0) {
+        console.log('[TURN]   - cpuNave #' + shipData.index + ' ANTES:', { x: nave.x, y: nave.y, target: nave.target, hp: nave.hp });
         nave.target = shipData.target;
         nave.shot = shipData.shot;
         // Aplicar ângulo salvo pelo oponente (sem recalcular)
         if (shipData.angle !== undefined) {
           nave.angle = shipData.angle;
         }
+        console.log('[TURN]   - cpuNave #' + shipData.index + ' DEPOIS:', { target: nave.target, shot: nave.shot, angle: nave.angle });
         debug.turn('[TURN]   - Nave oponente #' + shipData.index + ': target=', shipData.target, 'shot=', shipData.shot, 'angle=', shipData.angle);
+      } else {
+        console.warn('[TURN]   - ⚠️ cpuNave #' + shipData.index + ' não existe ou HP=0');
       }
     });
   } else {
+    console.warn('[TURN] ⚠️ Ação do oponente inválida ou idle:', oppAction);
     debug.turn('[TURN] ⚠️ Ação do oponente inválida ou idle');
   }
   
