@@ -137,75 +137,36 @@ export default function SelectShipsClient() {
         <h1 style={titleStyle}>Select Your Ships</h1>
         <p style={subtitleStyle}>Match ID: {matchId || "N/A"}</p>
 
-        <div style={shipsGridStyle}>
-          {[1, 2, 3].map(shipIndex => (
-            <div key={shipIndex} style={shipCardStyle}>
-              {/* Ship Icon */}
-              <div style={shipIconContainerStyle}>
-                <div style={shipIconStyle}>🚀</div>
-              </div>
-
-              {/* Ship Name */}
-              <div style={shipNameStyle}>
-                Nave {shipIndex}
-              </div>
-
-              {/* Shot Type Display */}
-              <div style={shotTypeDisplayStyle}>
-                <div style={shotTypeIconStyle}>
-                  <img 
-                    src={`/game/images/shots/${shotPreferences[shipIndex.toString()] || 'plasma'}.png`}
-                    alt={shotPreferences[shipIndex.toString()]}
-                    style={{ width: 40, height: 40, objectFit: 'contain' }}
-                  />
-                </div>
-                <div style={shotTypeLabelStyle}>
-                  {shotPreferences[shipIndex.toString()] === 'plasma' && 'Plasma Clássico'}
-                  {shotPreferences[shipIndex.toString()] === 'pulse' && 'Pulse Energy'}
-                  {shotPreferences[shipIndex.toString()] === 'energy' && 'Ion Spark'}
-                </div>
-              </div>
-
-              {/* Change Shot Type Button */}
-              <button
-                onClick={() => {
-                  setCurrentShipIndex(shipIndex);
-                  setShotTypeModalOpen(true);
-                }}
-                style={changeShotButtonStyle}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,229,255,0.5)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,229,255,0.3)';
-                }}
-              >
-                Trocar Tipo de Tiro
-              </button>
-            </div>
-          ))}
+        <div style={contentStyle}>
+          <p style={{ color: "#FFF", fontSize: 16 }}>🚧 Ship selection interface coming soon...</p>
+          <p style={{ color: "#AAA", fontSize: 14, marginTop: 20 }}>
+            This page will allow you to select your fleet configuration before the battle.
+          </p>
         </div>
 
-        {/* Ready Button */}
+        {/* Shot Type Selection Button */}
         <button
-          onClick={handleReadyForBattle}
-          style={readyButtonStyle}
+          onClick={() => {
+            setCurrentShipIndex(1); // Default to ship 1
+            setShotTypeModalOpen(true);
+          }}
+          style={shotTypeButtonStyle}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
-            e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,229,255,0.7)';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+            e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,229,255,0.5)';
+            e.currentTarget.style.borderColor = '#00E5FF';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-            e.currentTarget.style.boxShadow = '0 6px 24px rgba(0,229,255,0.5)';
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,229,255,0.3)';
+            e.currentTarget.style.borderColor = 'rgba(0,229,255,0.4)';
           }}
         >
-          🚀 PRONTO PARA BATALHA
+          🎨 Trocar Tipo de Tiro
         </button>
 
         <button onClick={() => router.push("/multiplayer")} style={backButtonStyle}>
-          ← Voltar ao Hub
+          ← Back to Multiplayer Hub
         </button>
       </div>
 
@@ -240,7 +201,7 @@ const pageStyle = {
 };
 
 const containerStyle = {
-  maxWidth: 1200,
+  maxWidth: 800,
   width: "100%",
   background: "rgba(0, 0, 0, 0.4)",
   border: "1px solid rgba(0, 229, 255, 0.3)",
@@ -251,13 +212,11 @@ const containerStyle = {
 
 const titleStyle = {
   margin: 0,
-  fontSize: 38,
+  fontSize: 32,
   fontWeight: 700,
   color: "#00E5FF",
   textShadow: "0 0 20px rgba(0, 229, 255, 0.5)",
   marginBottom: 10,
-  fontFamily: "'Orbitron', sans-serif",
-  letterSpacing: 2
 };
 
 const subtitleStyle = {
@@ -267,87 +226,22 @@ const subtitleStyle = {
   marginBottom: 40,
 };
 
-const shipsGridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: 24,
-  marginBottom: 40
-};
-
-const shipCardStyle = {
-  background: 'linear-gradient(135deg, rgba(0,20,40,0.8) 0%, rgba(0,10,25,0.8) 100%)',
-  border: '2px solid rgba(0,229,255,0.3)',
-  borderRadius: 16,
-  padding: 32,
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 20,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-};
-
-const shipIconContainerStyle = {
-  width: 120,
-  height: 120,
-  borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(0,229,255,0.2) 0%, rgba(0,114,255,0.1) 100%)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '3px solid rgba(0,229,255,0.4)',
-  boxShadow: '0 0 30px rgba(0,229,255,0.3)'
-};
-
-const shipIconStyle = {
-  fontSize: 56
-};
-
-const shipNameStyle = {
-  fontSize: 22,
-  fontWeight: 700,
-  color: '#00E5FF',
-  fontFamily: "'Orbitron', sans-serif",
-  letterSpacing: 1
-};
-
-const shotTypeDisplayStyle = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 12,
-  padding: 20,
-  background: 'rgba(0,0,0,0.3)',
+const contentStyle = {
+  padding: 40,
+  background: "rgba(255, 255, 255, 0.02)",
   borderRadius: 12,
+  marginBottom: 30,
+};
+
+const shotTypeButtonStyle = {
   width: '100%',
-  border: '1px solid rgba(0,229,255,0.2)'
-};
-
-const shotTypeIconStyle = {
-  width: 60,
-  height: 60,
-  borderRadius: 12,
-  background: 'rgba(0,229,255,0.1)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  border: '1px solid rgba(0,229,255,0.3)'
-};
-
-const shotTypeLabelStyle = {
-  fontSize: 14,
-  fontWeight: 600,
-  color: '#FFF',
-  fontFamily: "'Orbitron', sans-serif"
-};
-
-const changeShotButtonStyle = {
-  width: '100%',
-  padding: '12px 20px',
+  padding: '16px 32px',
+  marginBottom: 20,
   background: 'rgba(0,229,255,0.1)',
   border: '2px solid rgba(0,229,255,0.4)',
-  borderRadius: 10,
+  borderRadius: 12,
   color: '#00E5FF',
-  fontSize: 13,
+  fontSize: 16,
   fontWeight: 700,
   fontFamily: "'Orbitron', sans-serif",
   cursor: 'pointer',
@@ -355,26 +249,6 @@ const changeShotButtonStyle = {
   transform: 'translateY(0)',
   boxShadow: '0 4px 12px rgba(0,229,255,0.3)',
   letterSpacing: 1
-};
-
-const readyButtonStyle = {
-  width: '100%',
-  maxWidth: 500,
-  padding: '20px 40px',
-  margin: '20px auto',
-  background: 'linear-gradient(90deg, #00E5FF, #0072FF)',
-  color: '#001018',
-  border: 'none',
-  borderRadius: 14,
-  fontSize: 20,
-  fontWeight: 700,
-  fontFamily: "'Orbitron', sans-serif",
-  cursor: 'pointer',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  transform: 'translateY(0) scale(1)',
-  boxShadow: '0 6px 24px rgba(0,229,255,0.5)',
-  letterSpacing: 3,
-  display: 'block'
 };
 
 const backButtonStyle = {
@@ -387,5 +261,4 @@ const backButtonStyle = {
   borderRadius: 8,
   cursor: "pointer",
   transition: "all 0.2s",
-  marginTop: 20
 };

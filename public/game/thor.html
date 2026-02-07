@@ -932,6 +932,12 @@ background: rgba(0, 165, 242, 0.04);
   box-shadow: 0 0 18px rgba(255,77,77,.35);
 }
 
+.shot-type-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,229,255,0.5) !important;
+  border-color: #00E5FF !important;
+}
+
 
     </style>
     <link href="https://fonts.googleapis.com/css?family=Orbitron:wght@700" rel="stylesheet" />
@@ -1153,6 +1159,12 @@ background: rgba(0, 165, 242, 0.04);
         <strong>Maya V1</strong><br>
         <span class="ship-desc-text" data-ship="1">Especialista em ataques de longa distância. Ideal para surpreender inimigos fora do alcance deles.</span>
       </div>
+      
+      <!-- Shot Type Button for Ship 1 -->
+      <button onclick="event.stopPropagation(); openShotTypeModal(1);" class="shot-type-btn" data-ship="1" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+        Tipo de Tiro
+      </button>
     </div>
   </div>
 
@@ -1167,6 +1179,12 @@ background: rgba(0, 165, 242, 0.04);
         <strong>Aegis JK-05</strong><br>
         <span class="ship-desc-text" data-ship="2">Blindagem reforçada e resistência extrema. Perfeita para absorver dano e proteger sua frota.</span>
       </div>
+      
+      <!-- Shot Type Button for Ship 2 -->
+      <button onclick="event.stopPropagation(); openShotTypeModal(2);" class="shot-type-btn" data-ship="2" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+        Tipo de Tiro
+      </button>
     </div>
   </div>
 
@@ -1181,12 +1199,15 @@ background: rgba(0, 165, 242, 0.04);
         <strong>Orion-7</strong><br>
         <span class="ship-desc-text" data-ship="3">Equilíbrio entre mobilidade e defesa. Versátil em qualquer situação de combate.</span>
       </div>
+      
+      <!-- Shot Type Button for Ship 3 -->
+      <button onclick="event.stopPropagation(); openShotTypeModal(3);" class="shot-type-btn" data-ship="3" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+        Tipo de Tiro
+      </button>
     </div>
   </div>
 </div>
-
-
-
 
   <button id="startGameBtn" onclick="startGameAfterSelection()" style="display:none; margin-top:34px; background: linear-gradient(90deg, #07d8ff, #005ea8 70%); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 22px; border: none; border-radius: 8px; padding: 10px 44px; letter-spacing: 2px; box-shadow: 0 0 20px #0ff5; cursor: pointer; transition: background 0.3s;">Iniciar Jogo</button>
 
@@ -8117,5 +8138,274 @@ window.addEventListener('beforeunload', () => {
 });
 
 </script>
+
+<!-- Shot Type Modal -->
+<div id="shotTypeModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; padding:20px; animation:fadeIn 0.2s ease;">
+  <div id="shotTypeModalContent" style="background:linear-gradient(135deg, rgba(0,15,30,0.98) 0%, rgba(0,5,15,0.98) 100%); border:2px solid rgba(0,229,255,0.5); border-radius:16px; padding:24px; max-width:800px; width:100%; position:relative; box-shadow:0 0 40px rgba(0,229,255,0.3); animation:slideUp 0.3s ease;">
+    
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h2 style="font-size:22px; font-weight:700; color:#00E5FF; margin:0; font-family:'Orbitron',sans-serif; text-shadow:0 0 20px rgba(0,229,255,0.6); letter-spacing:1px;">
+        Tipo de Tiro
+      </h2>
+      <button onclick="closeShotTypeModal()" style="background:transparent; border:2px solid rgba(0,229,255,0.4); border-radius:8px; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:#00E5FF;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Ship Indicator -->
+    <div id="shotTypeShipLabel" style="font-size:12px; color:rgba(255,255,255,0.6); margin-bottom:16px; font-family:'Orbitron',sans-serif;">
+      Nave 1 / 3
+    </div>
+
+    <!-- Cards Grid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:16px; margin-bottom:20px;">
+      
+      <!-- Plasma Card -->
+      <div class="shot-card" data-type="plasma" onclick="selectShotType('plasma')" style="background:rgba(0,20,40,0.6); border:2px solid rgba(0,229,255,0.3); border-radius:12px; padding:14px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
+        <div class="shot-check" style="position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:rgba(0,229,255,0.2); display:none; align-items:center; justify-content:center; border:2px solid #00E5FF;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div style="width:100%; height:100px; border-radius:8px; background:rgba(0,0,0,0.4); margin-bottom:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid rgba(0,229,255,0.2);">
+          <img src="images/shots/plasma.png" alt="Plasma" style="max-width:70%; max-height:70%; object-fit:contain;">
+        </div>
+        <div style="font-size:15px; font-weight:700; color:#FFF; margin-bottom:6px; font-family:'Orbitron',sans-serif;">
+          Plasma Clássico
+        </div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.7); line-height:1.4; margin-bottom:8px; font-family:'Orbitron',sans-serif;">
+          Projétil clássico de energia azul.
+        </div>
+        <div class="shot-active-badge" style="display:none; align-items:center; gap:4px; padding:4px 8px; background:rgba(0,229,255,0.15); border:1px solid rgba(0,229,255,0.4); border-radius:12px; font-size:10px; font-weight:700; color:#00E5FF; font-family:'Orbitron',sans-serif; width:fit-content;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+            <path d="M5 13l4 4L19 7" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          ATIVO
+        </div>
+      </div>
+
+      <!-- Pulse Card -->
+      <div class="shot-card shot-locked" data-type="pulse" style="background:rgba(0,20,40,0.6); border:2px solid rgba(100,100,100,0.3); border-radius:12px; padding:14px; cursor:not-allowed; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden; opacity:0.5;">
+        <div style="position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:rgba(100,100,100,0.2); display:flex; align-items:center; justify-content:center; border:2px solid #666;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="5" y="11" width="14" height="10" rx="2" stroke="#666" stroke-width="2"/>
+            <path d="M8 11V7a4 4 0 118 0v4" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="width:100%; height:100px; border-radius:8px; background:rgba(0,0,0,0.4); margin-bottom:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid rgba(0,229,255,0.2);">
+          <img src="images/shots/pulse.png" alt="Pulse" style="max-width:70%; max-height:70%; object-fit:contain; filter:grayscale(1) brightness(0.5);">
+        </div>
+        <div style="font-size:15px; font-weight:700; color:#888; margin-bottom:6px; font-family:'Orbitron',sans-serif;">
+          Pulse Energy
+        </div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.7); line-height:1.4; margin-bottom:8px; font-family:'Orbitron',sans-serif;">
+          Projétil energético pulsante roxo.
+        </div>
+        <div style="font-size:10px; color:#888; font-style:italic;">
+          Desbloqueie com VIP
+        </div>
+      </div>
+
+      <!-- Energy Card -->
+      <div class="shot-card shot-locked" data-type="energy" style="background:rgba(0,20,40,0.6); border:2px solid rgba(100,100,100,0.3); border-radius:12px; padding:14px; cursor:not-allowed; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden; opacity:0.5;">
+        <div style="position:absolute; top:10px; right:10px; width:28px; height:28px; border-radius:50%; background:rgba(100,100,100,0.2); display:flex; align-items:center; justify-content:center; border:2px solid #666;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <rect x="5" y="11" width="14" height="10" rx="2" stroke="#666" stroke-width="2"/>
+            <path d="M8 11V7a4 4 0 118 0v4" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div style="width:100%; height:100px; border-radius:8px; background:rgba(0,0,0,0.4); margin-bottom:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid rgba(0,229,255,0.2);">
+          <img src="images/shots/energy.png" alt="Energy" style="max-width:70%; max-height:70%; object-fit:contain; filter:grayscale(1) brightness(0.5);">
+        </div>
+        <div style="font-size:15px; font-weight:700; color:#888; margin-bottom:6px; font-family:'Orbitron',sans-serif;">
+          Ion Spark
+        </div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.7); line-height:1.4; margin-bottom:8px; font-family:'Orbitron',sans-serif;">
+          Projétil de íons elétricos amarelo.
+        </div>
+        <div style="font-size:10px; color:#888; font-style:italic;">
+          Desbloqueie no Rank 10
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Confirm Button -->
+    <button onclick="confirmShotType()" style="width:100%; padding:12px 24px; background:linear-gradient(90deg, #00E5FF, #0072FF); color:#001018; border:none; border-radius:10px; font-size:15px; font-weight:700; font-family:'Orbitron',sans-serif; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform:translateY(0); box-shadow:0 4px 20px rgba(0,229,255,0.4); letter-spacing:1px;">
+      CONFIRMAR
+    </button>
+
+  </div>
+</div>
+
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.shot-card:not(.shot-locked):hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(0,229,255,0.6) !important;
+  box-shadow: 0 8px 32px rgba(0,229,255,0.4);
+}
+.shot-card.selected {
+  background: linear-gradient(135deg, rgba(0,229,255,0.15) 0%, rgba(0,114,255,0.15) 100%) !important;
+  border-color: rgba(0,229,255,0.8) !important;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 32px rgba(0,229,255,0.4);
+}
+.shot-card.selected .shot-check {
+  display: flex !important;
+}
+.shot-card.selected .shot-active-badge {
+  display: inline-flex !important;
+}
+#shotTypeModalContent button:last-child:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 30px rgba(0,229,255,0.6);
+}
+</style>
+
+<script>
+// Shot Type Modal Variables
+let currentModalShipIndex = 1;
+let currentShotPreferences = { "1": "plasma", "2": "plasma", "3": "plasma" };
+let selectedShotType = "plasma";
+
+// Load shot preferences on init
+async function loadShotPreferences() {
+  const userId = localStorage.getItem('thor_user_id');
+  if (!userId || !supabaseClient) return;
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('shot_preferences')
+      .eq('id', userId)
+      .single();
+
+    if (data?.shot_preferences) {
+      currentShotPreferences = data.shot_preferences;
+      localStorage.setItem('thor_shot_preferences', JSON.stringify(currentShotPreferences));
+      console.log('[SHOT TYPE] Preferences loaded:', currentShotPreferences);
+      updateButtonThumbnails(); // Update button thumbnails
+    }
+  } catch (err) {
+    console.error('[SHOT TYPE] Error loading preferences:', err);
+  }
+}
+
+// Update button thumbnails based on preferences
+function updateButtonThumbnails() {
+  for (let i = 1; i <= 3; i++) {
+    const btn = document.querySelector(`.shot-type-btn[data-ship="${i}"]`);
+    if (btn) {
+      const thumb = btn.querySelector('.shot-thumb');
+      const shotType = currentShotPreferences[i.toString()] || 'plasma';
+      if (thumb) {
+        thumb.src = `images/shots/${shotType}.png`;
+      }
+    }
+  }
+}
+
+// Open modal
+function openShotTypeModal(shipIndex) {
+  console.log('[SHOT TYPE] Opening modal for ship:', shipIndex);
+  currentModalShipIndex = shipIndex;
+  selectedShotType = currentShotPreferences[shipIndex.toString()] || 'plasma';
+  
+  // Update ship label
+  document.getElementById('shotTypeShipLabel').textContent = `Nave ${shipIndex} / 3`;
+  
+  // Update selected state
+  document.querySelectorAll('.shot-card').forEach(card => {
+    card.classList.remove('selected');
+    if (card.dataset.type === selectedShotType) {
+      card.classList.add('selected');
+    }
+  });
+  
+  // Show modal
+  const modal = document.getElementById('shotTypeModal');
+  modal.style.display = 'flex';
+}
+
+// Close modal
+function closeShotTypeModal() {
+  document.getElementById('shotTypeModal').style.display = 'none';
+}
+
+// Select shot type
+function selectShotType(type) {
+  if (document.querySelector(`.shot-card[data-type="${type}"]`).classList.contains('shot-locked')) {
+    return; // Locked
+  }
+  
+  selectedShotType = type;
+  
+  // Update UI
+  document.querySelectorAll('.shot-card').forEach(card => {
+    card.classList.remove('selected');
+    if (card.dataset.type === type) {
+      card.classList.add('selected');
+    }
+  });
+}
+
+// Confirm and save
+async function confirmShotType() {
+  console.log('[SHOT TYPE] Saving:', { ship: currentModalShipIndex, type: selectedShotType });
+  
+  // Update preferences
+  currentShotPreferences[currentModalShipIndex.toString()] = selectedShotType;
+  localStorage.setItem('thor_shot_preferences', JSON.stringify(currentShotPreferences));
+  
+  // Update button thumbnail
+  updateButtonThumbnails();
+  
+  // Save to Supabase
+  const userId = localStorage.getItem('thor_user_id');
+  if (userId && supabaseClient) {
+    try {
+      const { error } = await supabaseClient
+        .from('profiles')
+        .update({ shot_preferences: currentShotPreferences })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      console.log('[SHOT TYPE] ✅ Saved to Supabase');
+    } catch (err) {
+      console.error('[SHOT TYPE] Error saving:', err);
+    }
+  }
+  
+  closeShotTypeModal();
+}
+
+// Load preferences on page load
+if (typeof window !== 'undefined') {
+  // Load from localStorage immediately
+  const cached = localStorage.getItem('thor_shot_preferences');
+  if (cached) {
+    currentShotPreferences = JSON.parse(cached);
+  }
+  
+  // Load from Supabase when ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadShotPreferences);
+  } else {
+    loadShotPreferences();
+  }
+}
+</script>
+
 </body>
 </html>
