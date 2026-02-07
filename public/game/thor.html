@@ -3508,15 +3508,44 @@ async function handleMatchUpdate(payload) {
         }
       } else {
         // IMPORTANTE: Sincronizar HP do oponente ANTES de mostrar resultado
-        const oppHP = (myTeam === 'blue') ? row.player2_hp : row.player1_hp;
-        if (oppHP && Array.isArray(oppHP) && oppHP.length === 3) {
-          debug.win('[WIN] 📥 Sincronizando HP final do oponente:', oppHP);
-          cpuNaves.forEach((nave, idx) => {
-            if (oppHP[idx] !== undefined) {
-              nave.hp = oppHP[idx];
-              console.log(`[WIN] cpuNaves[${idx}].hp = ${nave.hp}`);
+        // ✅ BUSCAR HP ATUALIZADO DO BANCO PARA GARANTIR SINCRONIZAÇÃO
+        debug.win('[WIN] 🔄 Buscando HP atualizado do banco antes de mostrar resultado...');
+        
+        try {
+          const { data: freshMatch, error: fetchError } = await supabaseClient
+            .from('matches')
+            .select('player1_hp, player2_hp')
+            .eq('id', matchData.id)
+            .single();
+          
+          if (!fetchError && freshMatch) {
+            const oppHP = (myTeam === 'blue') ? freshMatch.player2_hp : freshMatch.player1_hp;
+            if (oppHP && Array.isArray(oppHP) && oppHP.length === 3) {
+              debug.win('[WIN] 📥 Sincronizando HP final do oponente (do banco):', oppHP);
+              cpuNaves.forEach((nave, idx) => {
+                if (oppHP[idx] !== undefined) {
+                  nave.hp = oppHP[idx];
+                  console.log(`[WIN] cpuNaves[${idx}].hp = ${nave.hp}`);
+                }
+              });
+            } else {
+              debug.win('[WIN] ⚠️ HP do oponente não encontrado no banco, usando do payload:', row.player2_hp, row.player1_hp);
+              // Fallback: usar HP do payload
+              const fallbackHP = (myTeam === 'blue') ? row.player2_hp : row.player1_hp;
+              if (fallbackHP && Array.isArray(fallbackHP) && fallbackHP.length === 3) {
+                cpuNaves.forEach((nave, idx) => {
+                  if (fallbackHP[idx] !== undefined) {
+                    nave.hp = fallbackHP[idx];
+                    console.log(`[WIN] cpuNaves[${idx}].hp = ${nave.hp} (fallback)`);
+                  }
+                });
+              }
             }
-          });
+          } else {
+            debug.win('[WIN] ⚠️ Erro ao buscar HP do banco:', fetchError);
+          }
+        } catch (hpSyncErr) {
+          console.error('[WIN] Exceção ao sincronizar HP:', hpSyncErr);
         }
       }
       
@@ -3586,32 +3615,12 @@ async function handleMatchUpdate(payload) {
       
       document.getElementById('gameCanvas').style.display = "none";
       
-      // ✅ Enviar GAME_OVER para o parent (Realtime sempre envia, não usa gameOverSent)
-      console.log("[THOR.HTML] 📡 [REALTIME] Enviando THOR:GAME_OVER");
-      console.log("[THOR.HTML] 📡 [REALTIME] xpTotalMatch:", xpTotalMatch);
-      if (window.parent && window.parent !== window) {
-        const myLost = getMyLost();
-        const oppLost = getOppLost();
-        try {
-            window.parent.postMessage({
-              type: "THOR:GAME_OVER",
-              payload: {
-                myLost,
-                oppLost,
-                myKills: getOppLost(),
-                oppKills: getMyLost(),
-                xpGained: xpTotalMatch,
-                matchId: localStorage.getItem("thor_match_id"),
-                opponentName: localStorage.getItem("thor_match_opponent_name"),
-              }
-            }, window.location.origin);
-          console.log("[THOR.HTML] 📡 [REALTIME] THOR:GAME_OVER enviado com sucesso!", { myLost, oppLost, xpGained: xpTotalMatch });
-        } catch (err) {
-          console.error("[THOR.HTML] 📡 [REALTIME] Error sending THOR:GAME_OVER:", err);
-        }
-      } else {
-        console.warn("[THOR.HTML] 📡 [REALTIME] THOR:GAME_OVER NÃO enviado. No parent window!");
-      }
+      // ⚠️ NÃO enviar mensagem automaticamente via Realtime
+      // Aguardar o usuário clicar no botão "Voltar ao Lobby" (backToStartMenu)
+      debug.realtime('[REALTIME] 📡 Match finalizado via Realtime');
+      debug.realtime('[REALTIME] ⏳ Aguardando usuário clicar em "Voltar ao Lobby"');
+      debug.realtime('[REALTIME] xpTotalMatch:', xpTotalMatch);
+      debug.realtime('[REALTIME] Modo:', multiplayerMode ? 'Multiplayer' : 'Solo');
       
       // IMPORTANTE: Retornar para não processar mais nada
       return;
@@ -6407,37 +6416,14 @@ function checkWinCondition() {
       }
     }
 
-    // Enviar GAME_OVER uma única vez
-    console.log("[THOR.HTML] Verificando condições para enviar THOR:GAME_OVER...");
-    console.log("[THOR.HTML]   - !gameOverSent:", !gameOverSent);
-    console.log("[THOR.HTML]   - window.parent exists:", !!(window.parent));
-    console.log("[THOR.HTML]   - window.parent !== window:", window.parent !== window);
-    if (!gameOverSent && window.parent && window.parent !== window) {
-      gameOverSent = true;
-      console.log("[THOR.HTML] Preparando para enviar THOR:GAME_OVER");
-      console.log("[THOR.HTML] xpTotalMatch:", xpTotalMatch);
-      console.log("[THOR.HTML] matchId:", localStorage.getItem("thor_match_id"));
-      console.log("[THOR.HTML] opponentName:", localStorage.getItem("thor_match_opponent_name"));
-      try {
-        window.parent.postMessage({
-          type: "THOR:GAME_OVER",
-          payload: {
-            myLost,
-            oppLost,
-            myKills: oppLost,
-            oppKills: myLost,
-            xpGained: xpTotalMatch, // ✅ XP real calculado no thor.html
-            matchId: localStorage.getItem("thor_match_id"),
-            opponentName: localStorage.getItem("thor_match_opponent_name"),
-          }
-        }, window.location.origin);
-        console.log("[THOR.HTML] THOR:GAME_OVER enviado com sucesso!", { myLost, oppLost, myKills: oppLost, oppKills: myLost, xpGained: xpTotalMatch });
-      } catch (err) {
-        console.error("[THOR.HTML] Error sending THOR:GAME_OVER:", err);
-      }
-    } else {
-      console.warn("[THOR.HTML] THOR:GAME_OVER NÃO enviado. gameOverSent:", gameOverSent, "hasParent:", !!(window.parent && window.parent !== window));
-    }
+    // ⚠️ NÃO enviar mensagem aqui - será enviado pelo botão "Voltar ao Lobby"
+    // Em multiplayer: backToStartMenu() envia THOR:RETURN_TO_CHAT
+    // Em modo solo: backToStartMenu() envia THOR:GAME_OVER
+    console.log("[THOR.HTML] ✅ Fim de jogo detectado. Aguardando usuário clicar em 'Voltar ao Lobby'.");
+    console.log("[THOR.HTML] Modo:", multiplayerMode ? "Multiplayer" : "Solo");
+    console.log("[THOR.HTML] xpTotalMatch:", xpTotalMatch);
+    console.log("[THOR.HTML] matchId:", localStorage.getItem("thor_match_id"));
+    console.log("[THOR.HTML] opponentName:", localStorage.getItem("thor_match_opponent_name"));
 
     return true; // Indica que o jogo terminou
   }
