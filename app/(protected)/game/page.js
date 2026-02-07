@@ -209,39 +209,50 @@ export default function GamePage() {
         console.warn("[GamePage] No xpGained to add:", xpGained);
       }
 
-      // Se for match multiplayer válido, finalizar
+      // Se for match multiplayer válido, finalizar via API
       const matchSource = localStorage.getItem("thor_match_source");
       if (matchSource === "multiplayer" && matchId && opponentName && userId) {
         try {
-          const finalizationResult = await finalizeMatch({
-            matchId,
-            winnerId: userId,
-            myKills: kills,
-            oppKills: deaths,
-            result,
-            matchSource,
-            xpGained: xpGained || null, // ✅ XP do thor.html
+          // 🎯 AAA ARCHITECTURE: Chamar API Route que valida e processa no backend
+          const { data: session } = await supabase.auth.getSession();
+          const accessToken = session?.session?.access_token;
+          const refreshToken = session?.session?.refresh_token;
+
+          if (!accessToken || !refreshToken) {
+            console.error('[GamePage] Missing auth tokens');
+            return;
+          }
+
+          console.log('[GamePage] Calling /api/finalize-match...');
+          const response = await fetch('/api/finalize-match', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              matchId,
+              myLost: deaths,
+              oppLost: kills,
+              accessToken,
+              refreshToken,
+            }),
           });
 
-          if (finalizationResult.success) {
-            console.log("Match finalized:", finalizationResult);
-            
-            // Sync context with database result (in case of discrepancies)
-            if (finalizationResult.totalXpFromDb !== undefined) {
-              setTotalXp(finalizationResult.totalXpFromDb);
-            }
-            
-            // Disparar evento para atualizar UI
-            window.dispatchEvent(
-              new CustomEvent("thor_progress_updated", {
-                detail: {
-                  xp: finalizationResult.newXP,
-                  level: finalizationResult.newLevel,
-                  xp_to_next: finalizationResult.xp_to_next,
-                },
-              })
-            );
+          const finalizationResult = await response.json();
 
+          if (!response.ok) {
+            // Se já foi processado, não é erro
+            if (finalizationResult.alreadyProcessed) {
+              console.log('[GamePage] Match já foi finalizado anteriormente');
+            } else {
+              console.error('[GamePage] API error:', finalizationResult);
+              return;
+            }
+          }
+
+          if (finalizationResult.success) {
+            console.log('[GamePage] ✅ Match finalized via API:', finalizationResult);
+            
             // Disparar evento de finalização completa para refetch
             window.dispatchEvent(new CustomEvent("thor_match_finalized"));
           }

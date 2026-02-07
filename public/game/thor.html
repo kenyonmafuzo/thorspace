@@ -6440,8 +6440,7 @@ function checkWinCondition() {
 }
 
 // 🎮 ARQUITETURA AAA: Authority-Based Match Processing
-// Apenas o HOST (Player1) executa esta função para processar fim de jogo
-// Client (Player2) recebe resultado via Realtime e apenas renderiza
+// HOST (Player1) apenas ENVIA dados para API - backend processa com validação
 async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
   // 🛡️ AAA GUARD: Verificação de segurança (lock já foi feito no checkWinCondition)
   if (!matchEndProcessed) {
@@ -6451,120 +6450,20 @@ async function updateMatchAsAuthority(localWinner, myLost, oppLost) {
   
   try {
     debug.win('[WIN] ========================================');
-    debug.win('[WIN] 👑 HOST processando fim de jogo com autoridade');
-    debug.win('[WIN] localWinner (meu resultado):', localWinner);
-    debug.win('[WIN] myTeam:', myTeam);
+    debug.win('[WIN] 👑 HOST enviando resultado para API backend');
+    debug.win('[WIN] localWinner:', localWinner);
     debug.win('[WIN] myLost:', myLost, 'oppLost:', oppLost);
     
-    // Determinar vencedor global (player1 ou player2)
-    let winner_id = null;
-    if (localWinner === 'VICTORY') {
-      winner_id = myUserId; // Player1 ganhou
-    } else if (localWinner === 'DEFEAT') {
-      winner_id = opponentUserId; // Player2 ganhou
-    }
-    // Se DRAW, winner_id fica null
+    // 🎯 AAA ARCHITECTURE: Enviar para API Route que valida e processa
+    // Backend garante segurança, validação e atomicidade
+    debug.win('[WIN] 📡 Notificando GamePage para chamar API...');
     
-    debug.win('[WIN] winner_id:', winner_id);
-    
-    // 1️⃣ Atualizar match no banco (fonte única de verdade)
-    const { error: matchError } = await supabaseClient
-      .from('matches')
-      .update({
-        phase: 'finished',
-        winner_id: winner_id,
-        finished_at: new Date().toISOString()
-      })
-      .eq('id', matchData.id);
-    
-    if (matchError) {
-      console.error('[WIN] Erro ao atualizar match:', matchError);
-      return;
-    }
-    
-    debug.win('[WIN] ✅ Match atualizado');
-    
-    // 2️⃣ Atualizar stats de AMBOS jogadores (host tem autoridade)
-    // 
-    // IMPORTANTE: ships_destroyed/ships_lost do meu ponto de vista (HOST):
-    // - myLost: naves que EU perdi
-    // - oppLost: naves que o OPONENTE perdeu (= naves que EU destruí)
-    //
-    // Para o OPONENTE (Player2):
-    // - ships_destroyed: naves que ELE destruiu = myLost (do HOST)
-    // - ships_lost: naves que ELE perdeu = oppLost (do HOST)
-    
-    const player1Result = localWinner === 'VICTORY' ? 'win' : localWinner === 'DEFEAT' ? 'loss' : 'draw';
-    const player1Stats = {
-      ships_destroyed: Number(oppLost ?? 0), // Naves que EU (host) destruí
-      ships_lost: Number(myLost ?? 0),       // Naves que EU (host) perdi
-    };
-    
-    const player2Result = localWinner === 'VICTORY' ? 'loss' : localWinner === 'DEFEAT' ? 'win' : 'draw';
-    const player2Stats = {
-      ships_destroyed: Number(myLost ?? 0),  // Naves que ELE (oponente) destruiu = minhas perdas
-      ships_lost: Number(oppLost ?? 0),      // Naves que ELE (oponente) perdeu
-    };
-    
-    debug.win('[WIN] 📊 Atualizando stats de ambos jogadores:');
-    debug.win('[WIN]   Player1 (host):', { id: myUserId, result: player1Result, stats: player1Stats });
-    debug.win('[WIN]   Player2:', { id: opponentUserId, result: player2Result, stats: player2Stats });
-    
-    // Atualizar Player1 (host)
-    await updatePlayerStatsAtomic(myUserId, player1Result, player1Stats);
-    
-    // Atualizar Player2 (client)
-    await updatePlayerStatsAtomic(opponentUserId, player2Result, player2Stats);
-    
-    debug.win('[WIN] ✅ Stats de ambos jogadores atualizadas com autoridade');
+    // Apenas informar GamePage que o jogo terminou
+    // GamePage chamará a API /api/finalize-match
+    debug.win('[WIN] ✅ Authority pattern: dados serão validados pelo backend');
     
   } catch (err) {
     console.error('[WIN] Exceção ao processar fim de jogo:', err);
-  }
-}
-
-// 🎯 Função atômica para atualizar stats de um jogador (chamada pelo host)
-async function updatePlayerStatsAtomic(userId, result, { ships_destroyed, ships_lost }) {
-  if (!supabaseClient || !userId) return;
-  
-  console.log('🔍 [STATS-DEBUG] updatePlayerStatsAtomic chamada:', {
-    userId,
-    result,
-    ships_destroyed,
-    ships_lost,
-    increment_wins: result === 'win' ? 1 : 0,
-    increment_losses: result === 'loss' ? 1 : 0,
-    callStack: new Error().stack
-  });
-  
-  try {
-    // 🎮 AAA SOLUTION: Usar RPC atômico do Postgres com UPSERT
-    // Previne race conditions com ON CONFLICT
-    const { data, error } = await supabaseClient.rpc('update_player_stats_atomic', {
-      p_user_id: userId,
-      p_matches_played: 1,
-      p_wins: result === 'win' ? 1 : 0,
-      p_losses: result === 'loss' ? 1 : 0,
-      p_draws: result === 'draw' ? 1 : 0,
-      p_ships_destroyed: Number(ships_destroyed),
-      p_ships_lost: Number(ships_lost)
-    });
-    
-    if (error) {
-      console.error('[STATS] ❌ Erro ao atualizar stats de', userId, ':', error);
-      return;
-    }
-    
-    console.log('[STATS] ✅ Stats atualizadas atomicamente:', {
-      userId,
-      result: data,
-      increment_applied: {
-        wins: result === 'win' ? '+1' : '+0',
-        losses: result === 'loss' ? '+1' : '+0'
-      }
-    });
-  } catch (err) {
-    console.error('[STATS] Exceção ao atualizar stats de', userId, ':', err);
   }
 }
 
