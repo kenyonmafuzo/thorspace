@@ -1760,6 +1760,8 @@ let eventSequence = 0; // Sequence number para garantir ordem de eventos
 let eventQueue = []; // Fila de eventos pendentes (ordenados)
 let lastProcessedSequence = -1; // Último evento processado
 let isPlayer1Host = false; // Se sou P1 (authoritative host)
+let projectileIdCounter = 0; // ID único para cada projétil
+let projectileHitRegistry = new Set(); // Registrar hits já processados
 
 // PVP State Object (evita duplicações de variáveis)
 const PVP = {
@@ -2318,6 +2320,10 @@ function applyResolvedTurn(actions) {
   debug.turn('[TURN] 🚀 Iniciando animação de combate simultâneo');
   debug.turn('[TURN] playerNaves:', playerNaves.map(n => ({ index: playerNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
   debug.turn('[TURN] cpuNaves:', cpuNaves.map(n => ({ index: cpuNaves.indexOf(n), hp: n.hp, target: n.target, shot: n.shot })));
+  
+  // 🔥 AAA: Limpar registro de hits do turno anterior
+  projectileHitRegistry.clear();
+  console.log('[AAA-HIT] 🧹 Registro de hits limpo para novo turno');
   
   fireProjectiles();
   
@@ -3459,6 +3465,7 @@ async function sendHitEvent(hitData) {
       type: 'PROJECTILE_HIT',
       user_id: myUserId,
       payload: {
+        hit_id: hitData.hitId, // ID único do hit
         projectile_id: hitData.projectileId,
         target_team: hitData.targetTeam, // 'player' ou 'cpu'
         target_index: hitData.targetIndex,
@@ -3495,6 +3502,14 @@ function processHitEvent(event) {
   console.log('[AAA-HIT] 📨 P2 processando hit event:', event);
   
   const payload = event.payload;
+  
+  // Verificar se já processamos este hit (evitar duplicatas)
+  if (projectileHitRegistry.has(payload.hit_id)) {
+    console.log('[AAA-HIT] ⏭️ Hit já processado, ignorando:', payload.hit_id);
+    return;
+  }
+  projectileHitRegistry.add(payload.hit_id);
+  
   const targets = payload.target_team === 'player' ? playerNaves : cpuNaves;
   const target = targets[payload.target_index];
   
@@ -3503,10 +3518,18 @@ function processHitEvent(event) {
     return;
   }
   
-  // Aplicar dano exato do servidor
+  // Aplicar dano exato do servidor (SOBRESCREVER HP)
+  const oldHp = target.hp;
   target.hp = payload.hp_after;
   
-  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP=${target.hp}`);
+  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP ${oldHp} → ${target.hp}`);
+  
+  // Remover projétil correspondente se existir
+  const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
+  if (projectileIndex >= 0) {
+    projectiles.splice(projectileIndex, 1);
+    console.log('[AAA-HIT] 🗑️ Projétil removido:', payload.projectile_id);
+  }
   
   // Efeitos visuais
   sfxHit.play();
@@ -6234,6 +6257,7 @@ function fireProjectiles() {
       console.log('[COMBAT] Nave #' + idx + ' (slot ' + shipSlot + ', tipo nave ' + n.tipo + ') shot type:', shotType);
       
       projectiles.push({
+        id: projectileIdCounter++, // ID único
         x: n.x,
         y: n.y,
         prevX: n.x,
@@ -6270,6 +6294,7 @@ function fireProjectiles() {
       }
       
       projectiles.push({
+        id: projectileIdCounter++, // ID único
         x: n.x,
         y: n.y,
         prevX: n.x,
@@ -6409,8 +6434,10 @@ function updateProjectiles() {
           
           // 📡 MULTIPLAYER: Enviar evento de hit para P2
           if (multiplayerMode) {
+            const hitId = `${p.id}_${targetIndex}_${Date.now()}`;
             sendHitEvent({
-              projectileId: i,
+              hitId: hitId,
+              projectileId: p.id,
               targetTeam: p.target,
               targetIndex: targetIndex,
               damage: 33,
