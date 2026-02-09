@@ -1718,6 +1718,7 @@ let myTeam = null; // 'blue' ou 'red'
 let myUserId = null;
 let opponentUserId = null;
 let opponentUsername = "Oponente";
+let opponentShotPreferences = {}; // Shot preferences do oponente (ex: {"1": "pulse", "2": "energy", "3": "plasma"})
 let matchData = null;
 
 // 🛡️ AAA GUARD: Prevenir processamento duplo de fim de jogo
@@ -2761,6 +2762,33 @@ async function getOpponentUsername(opponentId) {
   }
 }
 
+// Buscar shot preferences do oponente
+async function getOpponentShotPreferences(opponentId) {
+  console.log('[SHOT-PREFS] Buscando shot preferences para opponentId:', opponentId);
+  try {
+    const { data, error } = await supabaseClient
+      .from('profiles')
+      .select('shot_preferences')
+      .eq('id', opponentId)
+      .maybeSingle();
+    
+    console.log('[SHOT-PREFS] Resposta do banco:', { data, error });
+    
+    if (error) {
+      console.warn('[PVP] ⚠️ Erro ao buscar shot_preferences do oponente:', error.message);
+      return {}; // Default: todos plasma
+    }
+    
+    const prefs = data?.shot_preferences || {};
+    console.log('[SHOT-PREFS] ✅ Preferences carregadas:', prefs);
+    debug.pvp('[PVP] ✓ Shot preferences do oponente carregadas:', prefs);
+    return prefs;
+  } catch (err) {
+    console.error('[PVP] ❌ Exceção ao buscar shot preferences:', err);
+    return {};
+  }
+}
+
 // Ler parâmetros da URL com validação
 function getUrlParams() {
   const params = new URLSearchParams(window.location.search);
@@ -2933,6 +2961,10 @@ async function initMultiplayerMode(matchId) {
     
     debug.pvp('[PVP] ✓ userId final:', myUserId);
     
+    // Salvar userId no localStorage para ShotTypeManager
+    localStorage.setItem('thor_user_id', myUserId);
+    debug.pvp('[PVP] ✓ thor_user_id salvo no localStorage');
+    
     // STEP 4: Buscar dados do match via supabase-js
     console.log('[PVP STEP 4] Buscando match id=' + matchId + '...');
     
@@ -3012,6 +3044,11 @@ async function initMultiplayerMode(matchId) {
     console.log('[PVP STEP 6] Buscando username do oponente...');
     opponentUsername = await getOpponentUsername(opponentUserId);
     debug.pvp('[PVP] ✓ Oponente:', opponentUsername);
+    
+    // STEP 6.5: Buscar shot preferences do oponente
+    console.log('[PVP STEP 6.5] Buscando shot preferences do oponente...');
+    opponentShotPreferences = await getOpponentShotPreferences(opponentUserId);
+    debug.pvp('[PVP] ✓ Shot preferences do oponente:', opponentShotPreferences);
     
     // STEP 7: Ativar modo multiplayer
     multiplayerMode = true;
@@ -5218,7 +5255,7 @@ const SHOT_TYPES = {
     glowSize: 20,
     glowIntensity: 0.7,
     pulseSpeed: 200, // ms por ciclo
-    particleCount: 8
+    particleCount: 5 // Otimizado: reduzido de 8 para 5
   },
   energy: {
     accentColor: "#d946ef", // Roxo/Magenta
@@ -6023,21 +6060,22 @@ function fireProjectiles() {
       const dy = (end.y - n.y) / dist * PROJECTILE_SPEED;
       
       // Obter shot type usando ShotTypeManager (AAA quality)
-      const shipType = n.tipo || (idx + 1); // Fallback para idx+1 se tipo não existir
+      // IMPORTANTE: usar idx+1 (SLOT da nave) ao invés de n.tipo
+      const shipSlot = idx + 1; // Slots: 1, 2, 3
       let shotType = 'plasma';
       if (typeof ShotTypeManager !== 'undefined') {
-        shotType = ShotTypeManager.getShotType(shipType);
+        shotType = ShotTypeManager.getShotType(shipSlot);
       } else {
         // Fallback: ler do localStorage diretamente
         try {
           const prefs = JSON.parse(localStorage.getItem('thor_shot_preferences') || '{}');
-          shotType = prefs[String(shipType)] || 'plasma';
+          shotType = prefs[String(shipSlot)] || 'plasma';
         } catch (e) {
           shotType = 'plasma';
         }
       }
       
-      console.log('[COMBAT] Nave #' + idx + ' (tipo ' + shipType + ') shot type:', shotType);
+      console.log('[COMBAT] Nave #' + idx + ' (slot ' + shipSlot + ', tipo nave ' + n.tipo + ') shot type:', shotType);
       
       projectiles.push({
         x: n.x,
@@ -6066,8 +6104,14 @@ function fireProjectiles() {
       const dx = (end.x - n.x) / dist * PROJECTILE_SPEED;
       const dy = (end.y - n.y) / dist * PROJECTILE_SPEED;
       
-      // CPU/Oponente sempre usa plasma (pode ser estendido para multiplayer depois)
-      const shotType = 'plasma';
+      // Obter shot type do oponente (multiplayer) ou usar plasma (CPU solo)
+      let shotType = 'plasma';
+      if (multiplayerMode && opponentShotPreferences) {
+        // IMPORTANTE: usar idx+1 (SLOT da nave) ao invés de n.tipo
+        const shipSlot = idx + 1; // Slots: 1, 2, 3
+        shotType = opponentShotPreferences[String(shipSlot)] || 'plasma';
+        console.log('[COMBAT] Oponente nave #' + idx + ' (slot ' + shipSlot + ', tipo nave ' + n.tipo + ') shot type:', shotType);
+      }
       
       projectiles.push({
         x: n.x,
@@ -7227,9 +7271,14 @@ projectiles.forEach(p => {
     ctx.shadowBlur = 10 * pulseScale;
     ctx.lineWidth = 5 * pulseScale;
     
-    // Partículas laranjas ao longo do rastro
+    // Partículas laranjas ao longo do rastro (otimizado)
     ctx.shadowColor = `rgb(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]})`;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 12; // Reduzido de 15 para 12
+    
+    // Pre-calcular perpendiculares (evita Math.sqrt repetido)
+    const magnitude = Math.sqrt(p.dx * p.dx + p.dy * p.dy) || 1;
+    const perpX = -p.dy / magnitude;
+    const perpY = p.dx / magnitude;
     
     for (let i = 0; i < shotConfig.particleCount; i++) {
       const offset = (i / shotConfig.particleCount) * shotConfig.tailLength;
@@ -7238,8 +7287,6 @@ projectiles.forEach(p => {
       
       // Movimento errático tipo raio
       const zigzag = Math.sin(t / 60 + i * 1.5) * 4;
-      const perpX = -p.dy / Math.sqrt(p.dx * p.dx + p.dy * p.dy) || 0;
-      const perpY = p.dx / Math.sqrt(p.dx * p.dx + p.dy * p.dy) || 0;
       
       // Partícula brilhante
       ctx.beginPath();
@@ -7250,27 +7297,14 @@ projectiles.forEach(p => {
         0, 
         Math.PI * 2
       );
-      ctx.fillStyle = `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, ${0.8 - i * 0.1})`;
+      ctx.fillStyle = `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, ${0.8 - i * 0.15})`;
       ctx.fill();
-      
-      // Mini-raio conectando partícula à cauda
-      if (i > 0) {
-        ctx.beginPath();
-        const prevOffset = ((i - 1) / shotConfig.particleCount) * shotConfig.tailLength;
-        const prevX = p.x - p.dx * prevOffset;
-        const prevY = p.y - p.dy * prevOffset;
-        ctx.moveTo(prevX, prevY);
-        ctx.lineTo(particleX + perpX * zigzag, particleY + perpY * zigzag);
-        ctx.strokeStyle = `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, 0.4)`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
     }
     
-    // RELÂMPAGOS EM FLASH (aparecem aleatoriamente)
+    // RELÂMPAGOS EM FLASH (otimizado - aparecem aleatoriamente)
     const lightningChance = Math.random();
-    if (lightningChance > 0.85) { // 15% de chance por frame
-      ctx.shadowBlur = 20;
+    if (lightningChance > 0.92) { // 8% de chance por frame (reduzido de 15%)
+      ctx.shadowBlur = 15; // Reduzido de 20 para 15
       ctx.shadowColor = `rgb(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]})`;
       
       // Desenhar 2-3 raios laterais
@@ -7280,20 +7314,17 @@ projectiles.forEach(p => {
         const boltX = p.x - p.dx * boltStart;
         const boltY = p.y - p.dy * boltStart;
         
-        // Direção perpendicular aleatória
-        const perpX = -p.dy / Math.sqrt(p.dx * p.dx + p.dy * p.dy) || 0;
-        const perpY = p.dx / Math.sqrt(p.dx * p.dx + p.dy * p.dy) || 0;
+        // Usar perpendiculares já calculadas
         const side = Math.random() > 0.5 ? 1 : -1;
         
-        // Raio com segmentos em ziguezague
+        // Raio com 2 segmentos (simplificado de 3)
         ctx.beginPath();
         ctx.moveTo(boltX, boltY);
         
-        const segments = 3;
         let currentX = boltX;
         let currentY = boltY;
         
-        for (let s = 0; s < segments; s++) {
+        for (let s = 0; s < 2; s++) {
           const segmentLength = 8 + Math.random() * 6;
           const randomOffset = (Math.random() - 0.5) * 8;
           currentX += perpX * side * segmentLength + p.dx * randomOffset;
@@ -7305,15 +7336,10 @@ projectiles.forEach(p => {
         ctx.lineWidth = 2 + Math.random();
         ctx.stroke();
         
-        // Fade suave na ponta do raio com gradiente radial
-        const fadeGrad = ctx.createRadialGradient(currentX, currentY, 0, currentX, currentY, 8);
-        fadeGrad.addColorStop(0, `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, 0.9)`);
-        fadeGrad.addColorStop(0.5, `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, 0.4)`);
-        fadeGrad.addColorStop(1, `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, 0)`);
-        
+        // Fade simples sem gradiente (muito mais rápido)
         ctx.beginPath();
-        ctx.arc(currentX, currentY, 8, 0, Math.PI * 2);
-        ctx.fillStyle = fadeGrad;
+        ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${accentRGB[0]}, ${accentRGB[1]}, ${accentRGB[2]}, 0.5)`;
         ctx.fill();
       }
     }
@@ -8248,6 +8274,10 @@ showOnly("modeSelectionScreen");
         if (userId && initName) {
           window.THOR_PLAYER = { userId, username: initName, matchId };
           console.log('[THOR] Jogador autenticado via postMessage:', window.THOR_PLAYER);
+          
+          // Salvar userId no localStorage para ShotTypeManager
+          localStorage.setItem('thor_user_id', userId);
+          console.log('[THOR] thor_user_id salvo no localStorage');
         } else {
           console.error('[THOR] ❌ ATENÇÃO: userId ou username não recebidos!', { userId, initName });
         }
