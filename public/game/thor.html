@@ -3532,11 +3532,11 @@ function processHitEvent(event) {
     return;
   }
   
-  // Aplicar dano exato do servidor (SOBRESCREVER HP)
+  // Aplicar dano exato do servidor (SOBRESCREVER HP com valor authoritative)
   const oldHp = target.hp;
-  target.hp = payload.hp_after;
+  target.hp = payload.hp_after; // HP do P1 é a verdade absoluta
   
-  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP ${oldHp} → ${target.hp}`);
+  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP ${oldHp} → ${target.hp} (authoritative)`);
   
   // Remover projétil correspondente se existir
   const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
@@ -3544,12 +3544,15 @@ function processHitEvent(event) {
     projectiles.splice(projectileIndex, 1);
     console.log('[AAA-HIT] 🗑️ Projétil removido via evento:', payload.projectile_id);
   } else {
-    console.log('[AAA-HIT] ℹ️ Projétil já foi removido visualmente (colisão local)');
+    console.log('[AAA-HIT] ℹ️ Projétil já foi removido visualmente (client-prediction)');
   }
   
-  // Efeitos visuais
-  sfxHit.play();
-  explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
+  // 🔥 AAA: Efeitos visuais APENAS se projétil ainda existia
+  // Se já foi removido visualmente, não duplicar efeitos
+  if (projectileIndex >= 0) {
+    sfxHit.play();
+    explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
+  }
   
   if (payload.destroyed) {
     console.log('[AAA-HIT] ☠️ Nave destruída');
@@ -6419,13 +6422,18 @@ function updateProjectiles() {
         if (t.hp <= 0) continue;
         if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
           const targetIndex = targets.indexOf(t);
-          console.log(`[AAA-HIT] 🎯 P1 detectou HIT! target=${p.target} idx=${targetIndex} HP antes=${t.hp}`);
+          const oldHp = t.hp;
+          console.log(`[AAA-HIT] 🎯 P1 detectou HIT! proj=${p.id} target=${p.target}[${targetIndex}] HP ANTES=${oldHp}`);
           
           // Aplicar dano localmente no P1
           t.hp -= 33;
           if (t.hp < 0) t.hp = 0;
           
-          console.log(`[AAA-HIT] 💔 HP depois=${t.hp}${t.hp <= 0 ? ' (DESTRUÍDA)' : ''}`);
+          console.log(`[AAA-HIT] 💔 HP DEPOIS=${t.hp} (delta=-33)${t.hp <= 0 ? ' ☠️ DESTRUÍDA' : ''}`);
+          console.log(`[AAA-HIT] 📡 Enviando evento: hpAfter=${t.hp}`);
+          
+          console.log(`[AAA-HIT] 💔 HP DEPOIS=${t.hp} (delta=-33)${t.hp <= 0 ? ' ☠️ DESTRUÍDA' : ''}`);
+          console.log(`[AAA-HIT] 📡 Enviando evento: hpAfter=${t.hp}`);
           
           // Efeitos visuais no P1
           sfxHit.play();
@@ -6488,13 +6496,18 @@ function updateProjectiles() {
         }
       }
     } else {
-      // 🔇 P2: Detectar colisões VISUAIS (sem aplicar dano)
-      // Remove projétil visualmente para evitar "passar por cima"
+      // �️ P2: Detectar colisões VISUAIS (sem aplicar dano)
+      // Remove projétil e mostra efeitos imediatamente (zero lag)
       // Dano será aplicado quando evento chegar do P1 (authoritative)
       for (let t of targets) {
         if (t.hp <= 0) continue;
         if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
-          console.log(`[AAA-HIT] 👁️ P2 detectou colisão VISUAL, removendo projétil ${p.id}`);
+          console.log(`[AAA-HIT] 👁️ P2 detectou colisão VISUAL projétil ${p.id}`);
+          
+          // 🔥 AAA: Efeitos visuais IMEDIATOS (client-side prediction)
+          sfxHit.play();
+          explosions.push({ x: t.x, y: t.y, radius: 1 });
+          
           projectiles.splice(i, 1);
           hit = true;
           break;
