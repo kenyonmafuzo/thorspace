@@ -3542,7 +3542,9 @@ function processHitEvent(event) {
   const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
   if (projectileIndex >= 0) {
     projectiles.splice(projectileIndex, 1);
-    console.log('[AAA-HIT] 🗑️ Projétil removido:', payload.projectile_id);
+    console.log('[AAA-HIT] 🗑️ Projétil removido via evento:', payload.projectile_id);
+  } else {
+    console.log('[AAA-HIT] ℹ️ Projétil já foi removido visualmente (colisão local)');
   }
   
   // Efeitos visuais
@@ -6486,9 +6488,18 @@ function updateProjectiles() {
         }
       }
     } else {
-      // 🔇 P2: NÃO calcular colisões, apenas atualizar posição de projéteis
-      // Os hits serão aplicados quando eventos chegarem via Realtime
-      // Ainda precisa verificar se projétil saiu da tela
+      // 🔇 P2: Detectar colisões VISUAIS (sem aplicar dano)
+      // Remove projétil visualmente para evitar "passar por cima"
+      // Dano será aplicado quando evento chegar do P1 (authoritative)
+      for (let t of targets) {
+        if (t.hp <= 0) continue;
+        if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
+          console.log(`[AAA-HIT] 👁️ P2 detectou colisão VISUAL, removendo projétil ${p.id}`);
+          projectiles.splice(i, 1);
+          hit = true;
+          break;
+        }
+      }
     }
     // Remove só se realmente saiu da tela (borda do canvas!)
     if (!hit && (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height)) {
