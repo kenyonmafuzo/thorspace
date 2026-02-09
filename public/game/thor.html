@@ -1766,7 +1766,7 @@ let projectileHitRegistry = new Set(); // Registrar hits já processados
 // ========================================
 // AAA COMBAT PHASE SYSTEM
 // ========================================
-let combatPhase = 'idle'; // idle | movement | shooting | cleanup
+let combatPhase = 'idle'; // idle | combat | cleanup (movimento + tiros em paralelo)
 let movementComplete = false; // Todas as naves completaram movimento?
 let shootingComplete = false; // Todos os projéteis terminaram?
 
@@ -2332,24 +2332,14 @@ function applyResolvedTurn(actions) {
   projectileHitRegistry.clear();
   console.log('[AAA-HIT] 🧹 Registro de hits limpo para novo turno');
   
-  // 🔥 AAA: Verificar se há movimento planejado
-  const hasMovement = playerNaves.some(n => n.target !== null && n.hp > 0) || 
-                      cpuNaves.some(n => n.target !== null && n.hp > 0);
+  // 🔥 AAA: MOVIMENTO E TIROS SIMULTÂNEOS (AAA Quality)
+  combatPhase = 'combat'; // Fase única: movimento + tiros ao mesmo tempo
+  movementComplete = false;
+  shootingComplete = false;
+  console.log('[AAA-COMBAT] 🚀 Iniciando COMBATE (movimento + tiros SIMULTÂNEOS)');
   
-  if (hasMovement) {
-    // Iniciar fase de movimento
-    combatPhase = 'movement';
-    movementComplete = false;
-    shootingComplete = false;
-    console.log('[AAA-COMBAT] 🚀 Fase MOVEMENT iniciada');
-  } else {
-    // Sem movimento, pular direto para shooting
-    combatPhase = 'shooting';
-    movementComplete = true;
-    shootingComplete = false;
-    console.log('[AAA-COMBAT] ⏭️ Sem movimento, iniciando SHOOTING direto');
-    fireProjectiles();
-  }
+  // Disparar projéteis IMEDIATAMENTE
+  fireProjectiles();
   
   // Atualizar UI
   const legendArea = document.getElementById('legendArea');
@@ -6624,34 +6614,33 @@ function updateGame() {
       });
     }
     
-    // 🔥 AAA: SISTEMA DE FASES DE COMBATE ROBUSTO
-    // Fase 1: MOVEMENT - Todas as naves se movem até destino
-    if (combatPhase === 'movement') {
+    // 🔥 AAA: COMBATE PARALELO (movimento + tiros simultâneos)
+    if (combatPhase === 'combat') {
+      // Processar MOVIMENTO
       playerNaves.forEach(moveTowards);
       cpuNaves.forEach(moveTowards);
       checkNaveCollisions();
       
-      // Verificar se todas as naves terminaram de se mover
-      if (allShipsFinishedMoving() && !movementComplete) {
+      // Verificar se movimento terminou
+      if (!movementComplete && allShipsFinishedMoving()) {
         movementComplete = true;
-        combatPhase = 'shooting';
-        console.log('[AAA-COMBAT] ✅ MOVEMENT completo, iniciando SHOOTING');
-        
-        // AGORA SIM disparar projéteis
-        fireProjectiles();
+        console.log('[AAA-COMBAT] ✅ MOVEMENT completo');
       }
-    }
-    
-    // Fase 2: SHOOTING - Todos os projéteis seguem trajetória
-    if (combatPhase === 'shooting') {
+      
+      // Processar TIROS (em paralelo com movimento)
       updateProjectiles();
       updateExplosions();
       
-      // Verificar se todos os projéteis terminaram
-      if (projectiles.length === 0 && explosions.length === 0 && !shootingComplete) {
+      // Verificar se tiros terminaram
+      if (!shootingComplete && projectiles.length === 0 && explosions.length === 0) {
         shootingComplete = true;
+        console.log('[AAA-COMBAT] ✅ SHOOTING completo');
+      }
+      
+      // Round só termina quando AMBOS terminarem
+      if (movementComplete && shootingComplete) {
         combatPhase = 'cleanup';
-        console.log('[AAA-COMBAT] ✅ SHOOTING completo, iniciando CLEANUP');
+        console.log('[AAA-COMBAT] 🏁 Movimento E tiros completos, iniciando CLEANUP');
       }
     }
     
@@ -6744,12 +6733,15 @@ function updateGame() {
     document.getElementById("legendArea").textContent = t('attentionCommander');
     generateCpuOrders();
     
-    // 🔥 AAA: Usar sistema de fases também no modo solo
-    combatPhase = 'movement';
+    // 🔥 AAA: Combate paralelo no modo solo
+    combatPhase = 'combat';
     movementComplete = false;
     shootingComplete = false;
     projectileHitRegistry.clear();
-    console.log('[AAA-COMBAT] 🚀 Modo SOLO: Fase MOVEMENT iniciada');
+    console.log('[AAA-COMBAT] 🚀 Modo SOLO: COMBATE iniciado (movimento + tiros simultâneos)');
+    
+    // Disparar projéteis IMEDIATAMENTE
+    fireProjectiles();
   }
 }
 
