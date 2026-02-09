@@ -2332,14 +2332,24 @@ function applyResolvedTurn(actions) {
   projectileHitRegistry.clear();
   console.log('[AAA-HIT] 🧹 Registro de hits limpo para novo turno');
   
-  // 🔥 AAA: Iniciar sistema de fases de combate
-  combatPhase = 'movement';
-  movementComplete = false;
-  shootingComplete = false;
-  console.log('[AAA-COMBAT] 🚀 Fase MOVEMENT iniciada');
+  // 🔥 AAA: Verificar se há movimento planejado
+  const hasMovement = playerNaves.some(n => n.target !== null && n.hp > 0) || 
+                      cpuNaves.some(n => n.target !== null && n.hp > 0);
   
-  // NÃO disparar projéteis ainda - esperar movimento completar
-  // fireProjectiles() será chamado quando movimento terminar
+  if (hasMovement) {
+    // Iniciar fase de movimento
+    combatPhase = 'movement';
+    movementComplete = false;
+    shootingComplete = false;
+    console.log('[AAA-COMBAT] 🚀 Fase MOVEMENT iniciada');
+  } else {
+    // Sem movimento, pular direto para shooting
+    combatPhase = 'shooting';
+    movementComplete = true;
+    shootingComplete = false;
+    console.log('[AAA-COMBAT] ⏭️ Sem movimento, iniciando SHOOTING direto');
+    fireProjectiles();
+  }
   
   // Atualizar UI
   const legendArea = document.getElementById('legendArea');
@@ -5963,7 +5973,18 @@ function isSelectionLocked() {
 function allShipsFinishedMoving() {
   const playerMoving = playerNaves.some(n => n.target !== null && n.hp > 0);
   const cpuMoving = cpuNaves.some(n => n.target !== null && n.hp > 0);
-  return !playerMoving && !cpuMoving;
+  const finished = !playerMoving && !cpuMoving;
+  
+  if (!finished) {
+    console.log('[AAA-MOVEMENT] Ainda movendo:', {
+      playerMoving,
+      cpuMoving,
+      playerTargets: playerNaves.map(n => ({ hp: n.hp, hasTarget: !!n.target })),
+      cpuTargets: cpuNaves.map(n => ({ hp: n.hp, hasTarget: !!n.target }))
+    });
+  }
+  
+  return finished;
 }
 
 function moveTowards(nave) {
@@ -6588,6 +6609,19 @@ function updateGame() {
     if (!gameActive || winner) {
       console.log('[GAME] ⚠️ Jogo terminado, ignorando phase=wait');
       return;
+    }
+    
+    // Log de debugging a cada 60 frames (1 segundo)
+    if (typeof window.combatDebugCounter === 'undefined') window.combatDebugCounter = 0;
+    window.combatDebugCounter++;
+    if (window.combatDebugCounter % 60 === 0) {
+      console.log('[AAA-COMBAT] Status:', {
+        phase: combatPhase,
+        movementComplete,
+        shootingComplete,
+        projectiles: projectiles.length,
+        explosions: explosions.length
+      });
     }
     
     // 🔥 AAA: SISTEMA DE FASES DE COMBATE ROBUSTO
