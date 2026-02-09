@@ -1753,6 +1753,14 @@ let myPendingAction = null; // ação que estou montando localmente
 let turnWindowActive = false; // se a janela de 15s está ativa
 let waitingForTurnResolution = false; // se estou aguardando resolução após enviar
 
+// ========================================
+// AAA MULTIPLAYER: Event Sourcing System
+// ========================================
+let eventSequence = 0; // Sequence number para garantir ordem de eventos
+let eventQueue = []; // Fila de eventos pendentes (ordenados)
+let lastProcessedSequence = -1; // Último evento processado
+let isPlayer1Host = false; // Se sou P1 (authoritative host)
+
 // PVP State Object (evita duplicações de variáveis)
 const PVP = {
   hasInitialized: false,
@@ -3348,14 +3356,14 @@ function setupMatchEventsSync(matchId) {
         schema: 'public',
         table: 'match_events',
         filter: `match_id=eq.${matchId}`
-      }, handleMatchEvent)
+      }, handleMatchEventAAA) // 🔥 AAA: Usar handler com event queue
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[EVENTS] Canal de eventos do match conectado');
+          console.log('[AAA-EVENTS] ✅ Canal de eventos AAA conectado');
         }
       });
   } catch (err) {
-    console.error('[EVENTS] Erro ao configurar sync de eventos:', err);
+    console.error('[AAA-EVENTS] ❌ Erro ao configurar sync:', err);
   }
 }
 
@@ -3434,6 +3442,150 @@ async function sendMatchEvent(type, payload) {
     console.error('[EVENTS] ❌ Exceção ao enviar evento:', err);
     return false;
   }
+}
+
+// ========================================
+// AAA MULTIPLAYER: Authoritative Event System
+// ========================================
+
+// P1 (HOST): Enviar evento de hit (authoritative)
+async function sendHitEvent(hitData) {
+  if (!isPlayer1Host || !multiplayerMode) return;
+  
+  try {
+    const event = {
+      match_id: matchData.id,
+      sequence_number: eventSequence++,
+      type: 'PROJECTILE_HIT',
+      user_id: myUserId,
+      payload: {
+        projectile_id: hitData.projectileId,
+        target_team: hitData.targetTeam, // 'player' ou 'cpu'
+        target_index: hitData.targetIndex,
+        damage: hitData.damage,
+        position: hitData.position,
+        hp_after: hitData.hpAfter,
+        destroyed: hitData.destroyed,
+        timestamp: Date.now()
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('[AAA-HIT] 🎯 P1 enviando evento de hit:', event);
+    
+    const { error } = await supabaseClient
+      .from('match_events')
+      .insert([event]);
+    
+    if (error) {
+      console.error('[AAA-HIT] ❌ Erro ao enviar hit:', error);
+      return false;
+    }
+    
+    console.log('[AAA-HIT] ✅ Hit event enviado');
+    return true;
+  } catch (err) {
+    console.error('[AAA-HIT] ❌ Exceção:', err);
+    return false;
+  }
+}
+
+// P2 (CLIENT): Processar evento de hit recebido
+function processHitEvent(event) {
+  console.log('[AAA-HIT] 📨 P2 processando hit event:', event);
+  
+  const payload = event.payload;
+  const targets = payload.target_team === 'player' ? playerNaves : cpuNaves;
+  const target = targets[payload.target_index];
+  
+  if (!target) {
+    console.error('[AAA-HIT] ❌ Target não encontrado:', payload.target_index);
+    return;
+  }
+  
+  // Aplicar dano exato do servidor
+  target.hp = payload.hp_after;
+  
+  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP=${target.hp}`);
+  
+  // Efeitos visuais
+  sfxHit.play();
+  explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
+  
+  if (payload.destroyed) {
+    console.log('[AAA-HIT] ☠️ Nave destruída');
+    sfxExplode.play();
+    wrecks.push({ x: target.x, y: target.y });
+    
+    const teamColor = payload.target_team === 'cpu' ? '#ff6600' : '#0ff';
+    spawnExplosionParticles(target.x, target.y, teamColor);
+    
+    screenShake = 10;
+    
+    // Atualizar placar
+    if (payload.target_team === 'cpu') {
+      cpuDestroyed++;
+      playerScore += 100;
+    } else {
+      playerDestroyed++;
+      navesPerdidas++;
+    }
+  }
+}
+
+// Processar fila de eventos em ordem
+function processEventQueue() {
+  if (eventQueue.length === 0) return;
+  
+  // Ordenar por sequence_number
+  eventQueue.sort((a, b) => a.sequence_number - b.sequence_number);
+  
+  // Processar eventos na ordem
+  while (eventQueue.length > 0) {
+    const event = eventQueue[0];
+    
+    // Verificar se é o próximo evento esperado
+    if (event.sequence_number <= lastProcessedSequence) {
+      // Evento duplicado ou já processado
+      eventQueue.shift();
+      continue;
+    }
+    
+    if (event.sequence_number !== lastProcessedSequence + 1) {
+      // Falta evento anterior, aguardar
+      console.warn('[AAA-QUEUE] ⏳ Aguardando evento #' + (lastProcessedSequence + 1));
+      break;
+    }
+    
+    // Processar evento
+    console.log('[AAA-QUEUE] ⚙️ Processando evento #' + event.sequence_number);
+    
+    if (event.type === 'PROJECTILE_HIT') {
+      processHitEvent(event);
+    }
+    
+    lastProcessedSequence = event.sequence_number;
+    eventQueue.shift();
+  }
+}
+
+// Handler melhorado para eventos do match (com queue)
+function handleMatchEventAAA(payload) {
+  const event = payload.new;
+  
+  console.log('[AAA-EVENT] 📨 Evento recebido:', event.type, '#' + event.sequence_number);
+  
+  // Ignorar meus próprios eventos (já executei localmente)
+  if (event.user_id === myUserId) {
+    console.log('[AAA-EVENT] ⏭️ Ignorando meu próprio evento');
+    return;
+  }
+  
+  // Adicionar à fila
+  eventQueue.push(event);
+  
+  // Processar fila
+  processEventQueue();
 }
 
 // Aplicar movimento do oponente (placeholder - implementar lógica real)
@@ -4241,6 +4393,10 @@ function startBattleFromSelection() {
   debug.pvp('[PVP] ✓ isP1:', isP1);
   debug.pvp('[PVP] ✓ myShips:', myShips);
   debug.pvp('[PVP] ✓ oppShips (enemyShips):', enemyShips);
+  
+  // 🔥 AAA: Detectar se sou P1 (host) para authoritative collision
+  isPlayer1Host = isP1;
+  console.log('[AAA-HOST] 🎯 Sou P1 (HOST):', isPlayer1Host);
   
   // Fix E: Validação arrays vazios/null
   if (!myShips || myShips.length !== 3) {
@@ -6192,77 +6348,87 @@ function updateProjectiles() {
     p.y += p.dy;
     let hit = false;
 
-    // Checa colisão com naves usando swept collision (raycast)
+    // 🔥 AAA: AUTHORITATIVE COLLISION DETECTION
+    // APENAS P1 (HOST) calcula colisões e envia eventos
+    // P2 (CLIENT) recebe eventos de hit via Realtime
     const targets = p.target === "cpu" ? cpuNaves : playerNaves;
-    for (let t of targets) {
-      if (t.hp <= 0) continue;
-      if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
-        console.log(`[HP-SYNC] 🎯 HIT! Nave tipo=${t.tipo}, HP ANTES=${t.hp}, DANO=33`);
-        t.hp -= 33;
-        // Garantir que HP não fique negativo
-        if (t.hp < 0) t.hp = 0;
-        console.log(`[HP-SYNC] 💔 HP DEPOIS=${t.hp}${t.hp <= 0 ? ' (DESTRUÍDA)' : ''}`);
-        
-        sfxHit.play();
-        explosions.push({ x: t.x, y: t.y, radius: 1 });
-
-        // ✅ AAA: Sincronizar HP imediatamente após aplicar dano
-        if (multiplayerMode && t.hp <= 0) {
-          // Nave destruída: sincronizar AGORA para garantir consistência
-          syncShipsHP();
-        }
-
-        if (t.hp <= 0) {
-          sfxExplode.play();
-          wrecks.push({ x: t.x, y: t.y });
-          spawnExplosionParticles(
-            t.x, t.y,
-            (targets === cpuNaves) ? "#ff6600" : "#0ff"
-          );
-          screenShake = 10;
-
-          // Atualiza o placar e SCORE
-          if (targets === cpuNaves) {
-            cpuDestroyed++;        // Incrementa kills do oponente (naves do CPU destruídas)
-            playerScore += 100;     // +100 por abater nave do CPU
+    
+    // 🎯 P1: Calcular colisões e enviar eventos
+    if (!multiplayerMode || isPlayer1Host) {
+      for (let t of targets) {
+        if (t.hp <= 0) continue;
+        if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
+          const targetIndex = targets.indexOf(t);
+          console.log(`[AAA-HIT] 🎯 P1 detectou HIT! target=${p.target} idx=${targetIndex} HP antes=${t.hp}`);
+          
+          // Aplicar dano localmente no P1
+          t.hp -= 33;
+          if (t.hp < 0) t.hp = 0;
+          
+          console.log(`[AAA-HIT] 💔 HP depois=${t.hp}${t.hp <= 0 ? ' (DESTRUÍDA)' : ''}`);
+          
+          // Efeitos visuais no P1
+          sfxHit.play();
+          explosions.push({ x: t.x, y: t.y, radius: 1 });
+          
+          if (t.hp <= 0) {
+            sfxExplode.play();
+            wrecks.push({ x: t.x, y: t.y });
+            const teamColor = (targets === cpuNaves) ? "#ff6600" : "#0ff";
+            spawnExplosionParticles(t.x, t.y, teamColor);
+            screenShake = 10;
             
-            // ✅ XP: Nave inimiga destruída
-            roundKills++;
-            registerXPEvent('DESTROY_ENEMY_SHIP');
-            
-            // ✅ XP: Clutch Kill (última nave do jogador destruindo inimigo)
-            const aliveFriendly = playerNaves.filter(n => n.hp > 0).length;
-            if (aliveFriendly === 1) {
-              registerXPEvent('CLUTCH_KILL');
+            // Atualizar placar no P1
+            if (targets === cpuNaves) {
+              cpuDestroyed++;
+              playerScore += 100;
+              roundKills++;
+              registerXPEvent('DESTROY_ENEMY_SHIP');
+              
+              const aliveFriendly = playerNaves.filter(n => n.hp > 0).length;
+              if (aliveFriendly === 1) {
+                registerXPEvent('CLUTCH_KILL');
+              }
+            } else {
+              playerDestroyed++;
+              navesPerdidas++;
+              playerScore -= 50;
+              roundLosses++;
             }
           } else {
-            playerDestroyed++;      // Incrementa minhas perdas (naves do player destruídas)
-            navesPerdidas++;        // Contador específico para cálculo de score
-            playerScore -= 50;      // -50 por perder nave para o CPU
-            
-            // ✅ XP: Apenas contar perdas (processar no final do round)
-            roundLosses++;
-          }
-        } else {
-          // ✅ XP: Tracking de streak de acertos (3 hits consecutivos na mesma nave)
-          if (targets === cpuNaves) {
-            const targetIndex = cpuNaves.indexOf(t);
-            if (targetIndex >= 0) {
+            // Tracking de streak de acertos
+            if (targets === cpuNaves) {
               roundHitStreaks[targetIndex] = (roundHitStreaks[targetIndex] || 0) + 1;
               
-              // Precisão absoluta: 3 acertos consecutivos sem errar
               if (roundHitStreaks[targetIndex] === 3) {
                 registerXPEvent('PRECISION_HIT_STREAK');
-                roundHitStreaks[targetIndex] = 0; // Reset para evitar duplicatas
+                roundHitStreaks[targetIndex] = 0;
               }
             }
           }
+          
+          // 📡 MULTIPLAYER: Enviar evento de hit para P2
+          if (multiplayerMode) {
+            sendHitEvent({
+              projectileId: i,
+              targetTeam: p.target,
+              targetIndex: targetIndex,
+              damage: 33,
+              position: { x: t.x, y: t.y },
+              hpAfter: t.hp,
+              destroyed: t.hp <= 0
+            });
+          }
+          
+          projectiles.splice(i, 1);
+          hit = true;
+          break;
         }
-
-        projectiles.splice(i, 1);
-        hit = true;
-        break;
       }
+    } else {
+      // 🔇 P2: NÃO calcular colisões, apenas atualizar posição de projéteis
+      // Os hits serão aplicados quando eventos chegarem via Realtime
+      // Ainda precisa verificar se projétil saiu da tela
     }
     // Remove só se realmente saiu da tela (borda do canvas!)
     if (!hit && (p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height)) {
@@ -7686,6 +7852,12 @@ let selectPulseTime = 0;
 function gameLoop() {
   if (!gameActive) return;
   selectPulseTime += 0.07; // quanto menor, mais lento o pulso
+  
+  // 🔥 AAA: Processar fila de eventos no P2
+  if (multiplayerMode && !isPlayer1Host) {
+    processEventQueue();
+  }
+  
   updateGame();
   drawGame();
   requestAnimationFrame(gameLoop);
