@@ -1763,6 +1763,13 @@ let isPlayer1Host = false; // Se sou P1 (authoritative host)
 let projectileIdCounter = 0; // ID único para cada projétil
 let projectileHitRegistry = new Set(); // Registrar hits já processados
 
+// ========================================
+// AAA COMBAT PHASE SYSTEM
+// ========================================
+let combatPhase = 'idle'; // idle | movement | shooting | cleanup
+let movementComplete = false; // Todas as naves completaram movimento?
+let shootingComplete = false; // Todos os projéteis terminaram?
+
 // PVP State Object (evita duplicações de variáveis)
 const PVP = {
   hasInitialized: false,
@@ -2325,7 +2332,14 @@ function applyResolvedTurn(actions) {
   projectileHitRegistry.clear();
   console.log('[AAA-HIT] 🧹 Registro de hits limpo para novo turno');
   
-  fireProjectiles();
+  // 🔥 AAA: Iniciar sistema de fases de combate
+  combatPhase = 'movement';
+  movementComplete = false;
+  shootingComplete = false;
+  console.log('[AAA-COMBAT] 🚀 Fase MOVEMENT iniciada');
+  
+  // NÃO disparar projéteis ainda - esperar movimento completar
+  // fireProjectiles() será chamado quando movimento terminar
   
   // Atualizar UI
   const legendArea = document.getElementById('legendArea');
@@ -5945,6 +5959,13 @@ function isSelectionLocked() {
 }
 
 
+// 🔥 AAA: Verificar se todas as naves completaram movimento
+function allShipsFinishedMoving() {
+  const playerMoving = playerNaves.some(n => n.target !== null && n.hp > 0);
+  const cpuMoving = cpuNaves.some(n => n.target !== null && n.hp > 0);
+  return !playerMoving && !cpuMoving;
+}
+
 function moveTowards(nave) {
   if (!nave.target || nave.hp <= 0) return;
   
@@ -5956,6 +5977,7 @@ function moveTowards(nave) {
     nave.x = nave.target.x;
     nave.y = nave.target.y;
     nave.target = null;
+    console.log('[AAA-MOVEMENT] ✅ Nave chegou ao destino');
   } else {
     nave.x += SPEED * dx / dist;
     nave.y += SPEED * dy / dist;
@@ -6568,17 +6590,40 @@ function updateGame() {
       return;
     }
     
-    playerNaves.forEach(moveTowards);
-    cpuNaves.forEach(moveTowards);
+    // 🔥 AAA: SISTEMA DE FASES DE COMBATE ROBUSTO
+    // Fase 1: MOVEMENT - Todas as naves se movem até destino
+    if (combatPhase === 'movement') {
+      playerNaves.forEach(moveTowards);
+      cpuNaves.forEach(moveTowards);
+      checkNaveCollisions();
+      
+      // Verificar se todas as naves terminaram de se mover
+      if (allShipsFinishedMoving() && !movementComplete) {
+        movementComplete = true;
+        combatPhase = 'shooting';
+        console.log('[AAA-COMBAT] ✅ MOVEMENT completo, iniciando SHOOTING');
+        
+        // AGORA SIM disparar projéteis
+        fireProjectiles();
+      }
+    }
     
-    checkNaveCollisions();
-    updateProjectiles();
-    updateExplosions();
+    // Fase 2: SHOOTING - Todos os projéteis seguem trajetória
+    if (combatPhase === 'shooting') {
+      updateProjectiles();
+      updateExplosions();
+      
+      // Verificar se todos os projéteis terminaram
+      if (projectiles.length === 0 && explosions.length === 0 && !shootingComplete) {
+        shootingComplete = true;
+        combatPhase = 'cleanup';
+        console.log('[AAA-COMBAT] ✅ SHOOTING completo, iniciando CLEANUP');
+      }
+    }
     
-    // IMPORTANTE: Aguardar TODAS as animações terminarem antes de verificar fim de round
-    // - projectiles.length === 0: todos os tiros chegaram ao destino
-    // - explosions.length === 0: todas as explosões terminaram
-    if (projectiles.length === 0 && explosions.length === 0) {
+    // Fase 3: CLEANUP - Finalizar turno
+    if (combatPhase === 'cleanup' && movementComplete && shootingComplete) {
+      console.log('[AAA-COMBAT] 🏁 Todas as fases completadas!');
       // ✅ XP: Processar eventos de round
       processRoundXPEvents();
       
@@ -6592,6 +6637,12 @@ function updateGame() {
         // Jogo terminou, não avançar para próximo round
         return;
       }
+      
+      // 🔥 AAA: Resetar sistema de fases
+      combatPhase = 'idle';
+      movementComplete = false;
+      shootingComplete = false;
+      console.log('[AAA-COMBAT] 🔄 Fases resetadas para novo turno');
       
       // Resetar targets e shots para próximo turno
       playerNaves.forEach(n => {
@@ -6658,7 +6709,13 @@ function updateGame() {
     selectedNave = null;
     document.getElementById("legendArea").textContent = t('attentionCommander');
     generateCpuOrders();
-    fireProjectiles();
+    
+    // 🔥 AAA: Usar sistema de fases também no modo solo
+    combatPhase = 'movement';
+    movementComplete = false;
+    shootingComplete = false;
+    projectileHitRegistry.clear();
+    console.log('[AAA-COMBAT] 🚀 Modo SOLO: Fase MOVEMENT iniciada');
   }
 }
 
