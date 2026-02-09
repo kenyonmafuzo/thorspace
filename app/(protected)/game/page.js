@@ -285,6 +285,13 @@ export default function GamePage() {
     if (msg.type === "THOR:BACK_TO_MODE") {
       // Usuário clicou no botão "Voltar ao início" na tela de resultado
       console.log("THOR:BACK_TO_MODE received, navigating to /mode");
+      
+      // Limpar dados do jogo anterior
+      localStorage.removeItem("thor_match_id");
+      localStorage.removeItem("thor_match_source");
+      localStorage.removeItem("thor_match_opponent_name");
+      localStorage.removeItem("thor_selected_mode");
+      
       router.replace("/mode");
       return;
     }

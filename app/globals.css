@@ -210,6 +210,15 @@ button, .mode-btn, .end-btn {
 #practiceBtn.mode-btn {
   background: linear-gradient(90deg, #07d8ff, #005ea8);
   color: #0ff;
+  cursor: pointer;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#practiceBtn.mode-btn:hover:not(:disabled) {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 0 30px rgba(7, 216, 255, 0.6), 0 8px 24px rgba(0, 94, 168, 0.4);
+  background: linear-gradient(90deg, #18e3ff, #0069bd);
 }
 
 #practiceBtn.mode-btn:disabled {

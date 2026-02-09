@@ -281,7 +281,15 @@ Boas batalhas!`}
             gap: 20,
           }}
         >
-          <button id="practiceBtn" className="mode-btn" disabled>
+          <button 
+            id="practiceBtn" 
+            className="mode-btn"
+            onClick={() => {
+              localStorage.setItem("thor_selected_mode", "practice");
+              localStorage.removeItem("thor_match_id");
+              router.push("/game");
+            }}
+          >
             {t('mode.practice')}
           </button>
 

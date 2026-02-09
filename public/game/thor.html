@@ -2336,6 +2336,10 @@ async function syncShipsHP() {
     debug.sync('[SYNC] Meu HP:', myShipsHP);
     debug.sync('[SYNC] Meu time:', myTeam);
     
+    // ✅ AAA: Calcular checksum para validação de integridade
+    const checksum = myShipsHP.reduce((a, b) => a + b, 0);
+    debug.sync('[SYNC] Checksum HP:', checksum);
+    
     // Atualizar no banco baseado no meu time
     const updateData = {};
     if (myTeam === 'blue') {
@@ -2354,7 +2358,29 @@ async function syncShipsHP() {
       return;
     }
     
-    debug.sync('[SYNC] ✅ HP sincronizado');
+    debug.sync('[SYNC] ✅ HP sincronizado com sucesso');
+    
+    // ✅ AAA: Verificar se há divergência com o oponente
+    const { data: freshMatch } = await supabaseClient
+      .from('matches')
+      .select('player1_hp, player2_hp')
+      .eq('id', matchData.id)
+      .single();
+    
+    if (freshMatch) {
+      const oppHP = (myTeam === 'blue') ? freshMatch.player2_hp : freshMatch.player1_hp;
+      if (oppHP && oppHP.length === 3) {
+        debug.sync('[SYNC] HP do oponente no banco:', oppHP);
+        // Aplicar HP do oponente em cpuNaves para garantir consistência
+        cpuNaves.forEach((nave, idx) => {
+          if (nave.initialized && oppHP[idx] !== undefined && nave.hp !== oppHP[idx]) {
+            const oldHp = nave.hp;
+            nave.hp = oppHP[idx];
+            console.warn(`[SYNC] ⚠️ CORREÇÃO: cpuNaves[${idx}].hp divergente! ${oldHp} → ${nave.hp}`);
+          }
+        });
+      }
+    }
   } catch (err) {
     console.error('[SYNC] Exceção ao sincronizar HP:', err);
   }
@@ -3498,6 +3524,21 @@ async function handleMatchUpdate(payload) {
   if (phaseChanged) {
     console.log('🟣 [PHASE] mudou:', { from: lastPhase, to: phase });
     
+    // ✅ AAA: Sincronizar HP do oponente quando houver mudança de phase ou HP atualizado
+    if (multiplayerMode && (row.player1_hp || row.player2_hp)) {
+      const oppHP = (myTeam === 'blue') ? row.player2_hp : row.player1_hp;
+      if (oppHP && oppHP.length === 3) {
+        debug.sync('[HP-SYNC] Atualizando HP do oponente do banco:', oppHP);
+        cpuNaves.forEach((nave, idx) => {
+          if (idx < oppHP.length && nave.hp !== oppHP[idx]) {
+            const oldHp = nave.hp;
+            nave.hp = oppHP[idx];
+            console.log(`[HP-SYNC] ✅ cpuNaves[${idx}].hp: ${oldHp} → ${nave.hp}`);
+          }
+        });
+      }
+    }
+    
     // Se phase mudou para 'finished', mostrar tela de resultado
     if (phase === 'finished') {
       debug.win('[WIN] 🏁 Match finalizado via Realtime!');
@@ -3664,11 +3705,11 @@ async function handleMatchUpdate(payload) {
       cpuNaves.forEach((nave, idx) => {
         if (oppHP[idx] !== undefined && nave.initialized) {
           const oldHP = nave.hp;
-          // CORREÇÃO: Sempre sincronizar HP do banco (fonte da verdade)
+          // ✅ AAA: Sempre sincronizar HP do banco (fonte da verdade)
           // No início do round, o banco tem HP cheio. Durante batalha, HP reduzido.
           nave.hp = oppHP[idx];
           if (oldHP !== nave.hp) {
-            debug.sync('[SYNC]   - cpuNave #' + idx + ': ' + oldHP + ' → ' + nave.hp);
+            console.log(`[HP-SYNC] ✅ cpuNaves[${idx}]: ${oldHP} → ${nave.hp} (banco é autoridade)`);
           }
         }
       });
@@ -5068,9 +5109,15 @@ function backToStartMenu() {
         }, window.location.origin);
       } else {
         // Modo solo: voltar para seleção de modo
-        console.log('[GAME] Enviando THOR:GAME_OVER (modo solo)');
+        console.log('[GAME] Enviando THOR:BACK_TO_MODE (modo solo)');
+        
+        // Esconder canvas e UI do jogo antes de navegar (evita piscada)
+        document.getElementById('gameCanvas').style.display = 'none';
+        document.getElementById('hudTop').style.display = 'none';
+        document.getElementById('legendArea').style.display = 'none';
+        
         window.parent.postMessage(
-          { type: "THOR:GAME_OVER", payload: { score: clampScore() } },
+          { type: "THOR:BACK_TO_MODE", payload: { score: clampScore(), xpGained: finalXpForChat } },
           window.location.origin
         );
       }
@@ -5296,6 +5343,10 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
         { x: 100, y: 80 }
       ];
 
+      // Centro do campo adversário (CPU)
+      const opponentCenterX = 620;
+      const opponentCenterY = 460;
+
       playerNaves = selecao.map((tipo, index) => {
         let hp = 99;
         let alcance = 300;
@@ -5315,7 +5366,7 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
           sprite.src = "images/spaceschip.png";
         }
 
-        return {
+        const nave = {
           x: posicoes[index].x,
           y: posicoes[index].y,
           target: null,
@@ -5326,6 +5377,13 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
           sprite,
           alcance
         };
+        
+        // Calcular ângulo apontando para o centro do campo adversário
+        const dx = opponentCenterX - nave.x;
+        const dy = opponentCenterY - nave.y;
+        nave.angle = Math.atan2(dy, dx) + Math.PI / 2;
+        
+        return nave;
       });
     } catch (err) {
       console.error('[SOLO] Erro ao aplicar naves do jogador:', err);
@@ -5363,6 +5421,11 @@ function initCpuNaves() {
   }
   
   console.log('[SOLO] Inicializando CPU para modo solo');
+  
+  // Centro do campo do jogador
+  const playerCenterX = 180;
+  const playerCenterY = 150;
+  
   cpuNaves.forEach((n, i) => {
     const tipo = Math.floor(Math.random() * 3) + 1;
     let sprite = new Image();
@@ -5376,6 +5439,12 @@ function initCpuNaves() {
     n.sprite = sprite;
     n.hp = hp;
     n.initialized = true;
+    n.tint = 'red'; // CPU é sempre vermelha no modo solo
+    
+    // Calcular ângulo apontando para o centro do campo do jogador
+    const dx = playerCenterX - n.x;
+    const dy = playerCenterY - n.y;
+    n.angle = Math.atan2(dy, dx) + Math.PI / 2;
   });
 }
 
@@ -6093,6 +6162,12 @@ function updateProjectiles() {
         sfxHit.play();
         explosions.push({ x: t.x, y: t.y, radius: 1 });
 
+        // ✅ AAA: Sincronizar HP imediatamente após aplicar dano
+        if (multiplayerMode && t.hp <= 0) {
+          // Nave destruída: sincronizar AGORA para garantir consistência
+          syncShipsHP();
+        }
+
         if (t.hp <= 0) {
           sfxExplode.play();
           wrecks.push({ x: t.x, y: t.y });
@@ -6201,7 +6276,11 @@ function updateGame() {
   phase = "selectMove";
   isInteracting = false; // Resetar interaction lock
   document.getElementById("legendArea").textContent = t('clickShipToMove');
-  document.getElementById("hudTop").style.display = "block"; // <-- Adicione aqui!
+  const hudTop = document.getElementById("hudTop");
+  if (hudTop) {
+    hudTop.style.visibility = 'visible';
+    hudTop.style.opacity = '1';
+  }
   
   // Aplicar estado pendente se houver
   if (pendingRemoteState) {
@@ -6219,7 +6298,11 @@ function updateGame() {
   if (winner) return;
 
   if (phase === "roundText") {
-     document.getElementById("hudTop").style.display = "none";
+     const hudTop = document.getElementById("hudTop");
+     if (hudTop) {
+       hudTop.style.visibility = 'hidden';
+       hudTop.style.opacity = '0';
+     }
     // Fade in/out do texto "Round X"
     if (roundTextFadeIn) {
       roundTextAlpha += 0.05;
@@ -6381,7 +6464,11 @@ const timerSpan = document.getElementById("timerText");
 timerSpan.textContent = planningTimer.toString().padStart(2, "0");
 timerSpan.style.color = "#14ffff";
 timerSpan.style.textShadow = "0 0 14px #0ff8";
-  document.getElementById("hudTop").style.display = "none"; // <-- Adicione aqui!
+  const hudTop = document.getElementById("hudTop");
+  if (hudTop) {
+    hudTop.style.visibility = 'hidden';
+    hudTop.style.opacity = '0';
+  }
 
 
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Reset Shot Preferences</title></head>
+<body>
+<h1>Reset Shot Preferences</h1>
+<button onclick="reset()">Reset to Default</button>
+<pre id="output"></pre>
+<script>
+function reset() {
+  const defaults = {"1": "plasma", "2": "plasma", "3": "plasma"};
+  localStorage.setItem('thor_shot_preferences', JSON.stringify(defaults));
+  document.getElementById('output').textContent = 'Reset! Preferences: ' + JSON.stringify(defaults, null, 2);
+}
+document.getElementById('output').textContent = 'Current: ' + (localStorage.getItem('thor_shot_preferences') || 'none');
+</script>
+</body>
+</html>
