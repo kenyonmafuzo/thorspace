@@ -3076,6 +3076,7 @@ async function initMultiplayerMode(matchId) {
     // STEP 6.5: Buscar shot preferences do oponente
     console.log('[PVP STEP 6.5] Buscando shot preferences do oponente...');
     opponentShotPreferences = await getOpponentShotPreferences(opponentUserId);
+    console.log('[PVP STEP 6.5] ✅ Shot preferences recebidas:', JSON.stringify(opponentShotPreferences));
     debug.pvp('[PVP] ✓ Shot preferences do oponente:', opponentShotPreferences);
     
     // STEP 7: Ativar modo multiplayer
@@ -6379,11 +6380,14 @@ function fireProjectiles() {
       
       // Obter shot type do oponente (multiplayer) ou usar plasma (CPU solo)
       let shotType = 'plasma';
+      
+      console.log('[COMBAT] 🔍 opponentShotPreferences:', opponentShotPreferences);
+      
       if (multiplayerMode && opponentShotPreferences) {
         // IMPORTANTE: usar idx+1 (SLOT da nave) ao invés de n.tipo
         const shipSlot = idx + 1; // Slots: 1, 2, 3
         shotType = opponentShotPreferences[String(shipSlot)] || 'plasma';
-        console.log('[COMBAT] Oponente nave #' + idx + ' (slot ' + shipSlot + ', tipo nave ' + n.tipo + ') shot type:', shotType);
+        console.log('[COMBAT] Oponente nave #' + idx + ' (slot ' + shipSlot + ', tipo nave ' + n.tipo + ') shot type:', shotType, '- prefs[' + shipSlot + ']:', opponentShotPreferences[String(shipSlot)]);
       }
       
       projectiles.push({
@@ -7577,11 +7581,18 @@ if (phase === "selectShot" || (phase === "select" && nave.target)) {
 projectiles.forEach(p => {
   ctx.save();
   
-  // Team colors baseado em QUEM ATIROU (não no alvo)
-  // p.target = "cpu" significa que PLAYER atirou (então projétil azul)
-  // p.target = "player" significa que CPU/OPONENTE atirou (então projétil vermelho)
-  const isPlayerShot = p.target === "cpu";
-  const teamColor = isPlayerShot ? "#0ff" : "#ff3a34"; // Azul se player atirou, vermelho se oponente atirou
+  // Team colors baseado em myTeam
+  // IMPORTANTE: target indica PARA ONDE o tiro vai, não de quem veio
+  // - target: "cpu" = tiros de playerNaves (MEUS tiros)
+  // - target: "player" = tiros de cpuNaves (tiros do OPONENTE)
+  let teamColor;
+  if (myTeam === 'blue') {
+    // P1 (azul): meus tiros (target: "cpu") = azul, tiros do P2 (target: "player") = vermelho
+    teamColor = p.target === "cpu" ? "#0ff" : "#ff3a34";
+  } else {
+    // P2 (vermelho): meus tiros (target: "cpu") = vermelho, tiros do P1 (target: "player") = azul
+    teamColor = p.target === "cpu" ? "#ff3a34" : "#0ff";
+  }
   
   // Shot type config
   const shotType = p.shotType || 'plasma';
@@ -7589,7 +7600,8 @@ projectiles.forEach(p => {
   const accentColor = shotConfig.accentColor || teamColor;
   
   // Parse RGB do team color e accent color para mixing
-  const teamRGB = isPlayerShot ? [0, 255, 255] : [255, 58, 52];
+  const isBlueShot = (myTeam === 'blue' && p.target === "cpu") || (myTeam === 'red' && p.target === "player");
+  const teamRGB = isBlueShot ? [0, 255, 255] : [255, 58, 52];
   
   let accentRGB;
   if (accentColor === teamColor || !accentColor) {
