@@ -3074,10 +3074,7 @@ async function initMultiplayerMode(matchId) {
     debug.pvp('[PVP] ✓ Oponente:', opponentUsername);
     
     // STEP 6.5: Buscar shot preferences do oponente
-    console.log('[PVP STEP 6.5] Buscando shot preferences do oponente...');
     opponentShotPreferences = await getOpponentShotPreferences(opponentUserId);
-    console.log('[PVP STEP 6.5] ✅ Shot preferences recebidas:', JSON.stringify(opponentShotPreferences));
-    debug.pvp('[PVP] ✓ Shot preferences do oponente:', opponentShotPreferences);
     
     // STEP 7: Ativar modo multiplayer
     multiplayerMode = true;
@@ -6334,29 +6331,20 @@ function fireProjectiles() {
       
       // Obter shot type usando ShotTypeManager (AAA quality)
       // IMPORTANTE: buscar pelo TIPO DA NAVE (n.tipo), não pelo slot (idx)
-      const shipType = n.tipo; // Tipo da nave (1, 2, 3, etc)
-      const shipSlot = idx + 1; // Slot/posição (1, 2, 3)
+      const shipType = n.tipo;
       let shotType = 'plasma';
       
-      console.log('[COMBAT] 🔍 playerNave #' + idx + ' - shipType:', shipType, 'shipSlot:', shipSlot, 'ShotTypeManager exists:', typeof ShotTypeManager !== 'undefined');
-      
       if (typeof ShotTypeManager !== 'undefined') {
-        shotType = ShotTypeManager.getShotType(shipType); // Buscar pelo TIPO, não pelo SLOT
-        console.log('[COMBAT] 🎯 ShotTypeManager.getShotType(' + shipType + '):', shotType);
+        shotType = ShotTypeManager.getShotType(shipType);
       } else {
         // Fallback: ler do localStorage diretamente usando tipo da nave
         try {
           const prefs = JSON.parse(localStorage.getItem('thor_shot_preferences') || '{}');
-          console.log('[COMBAT] 📦 localStorage thor_shot_preferences:', prefs);
-          shotType = prefs[String(shipType)] || 'plasma'; // Usar shipType, não shipSlot
-          console.log('[COMBAT] 📦 ShipType', shipType, 'shotType from localStorage:', shotType);
+          shotType = prefs[String(shipType)] || 'plasma';
         } catch (e) {
-          console.error('[COMBAT] ❌ Erro ao ler localStorage:', e);
           shotType = 'plasma';
         }
       }
-      
-      console.log('[COMBAT] ✅ Nave #' + idx + ' (slot ' + shipSlot + ', TIPO ' + shipType + ') FINAL shot type:', shotType);
       
       projectiles.push({
         id: projectileIdCounter++, // ID único
@@ -6379,7 +6367,6 @@ function fireProjectiles() {
 
   cpuNaves.forEach((n, idx) => {
     if (n.shot && n.hp > 0) {
-      console.log('[COMBAT] ' + (multiplayerMode ? 'Oponente' : 'CPU') + ' nave #' + idx + ' disparando!');
       sfxShot.play();
       const end = getEdgePoint({ x: n.x, y: n.y }, n.shot);
       const dist = Math.sqrt((end.x - n.x) ** 2 + (end.y - n.y) ** 2);
@@ -6389,14 +6376,10 @@ function fireProjectiles() {
       // Obter shot type do oponente (multiplayer) ou usar plasma (CPU solo)
       let shotType = 'plasma';
       
-      console.log('[COMBAT] 🔍 opponentShotPreferences:', opponentShotPreferences);
-      
       if (multiplayerMode && opponentShotPreferences) {
         // IMPORTANTE: usar n.tipo (TIPO DA NAVE) ao invés de idx (SLOT)
-        const shipType = n.tipo; // Tipo da nave (1, 2, 3, etc)
-        const shipSlot = idx + 1; // Slot/posição (1, 2, 3)
-        shotType = opponentShotPreferences[String(shipType)] || 'plasma'; // Buscar pelo TIPO
-        console.log('[COMBAT] Oponente nave #' + idx + ' (slot ' + shipSlot + ', TIPO ' + shipType + ') shot type:', shotType, '- prefs[' + shipType + ']:', opponentShotPreferences[String(shipType)]);
+        const shipType = n.tipo;
+        shotType = opponentShotPreferences[String(shipType)] || 'plasma';
       }
       
       projectiles.push({
@@ -6412,8 +6395,6 @@ function fireProjectiles() {
       });
     }
   });
-  
-  console.log('[COMBAT] Total projéteis criados:', projectiles.length);
 }
 
 
