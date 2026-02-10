@@ -3098,7 +3098,10 @@ async function initMultiplayerMode(matchId) {
     localStorage.setItem('thor_match_opponent_name', opponentUsername);
     
     // Configurar realtime para sincronização de estado e eventos
+    console.log('[AAA-EVENTS] 🔧 Chamando setupMatchStateSync para matchId:', matchId);
     setupMatchStateSync(matchId);
+    
+    console.log('[AAA-EVENTS] 🔧 Chamando setupMatchEventsSync para matchId:', matchId);
     setupMatchEventsSync(matchId);
     
     // Iniciar sistema de heartbeat para detectar desconexão
@@ -3367,9 +3370,18 @@ async function applyWalkover() {
 
 // Configurar sincronização de eventos do match (tiros/movimentos) via Realtime
 function setupMatchEventsSync(matchId) {
-  if (!supabaseClient || matchEventsChannel) return;
+  console.log('[AAA-EVENTS] 🔧 setupMatchEventsSync CHAMADA com matchId:', matchId);
+  console.log('[AAA-EVENTS] 🔍 supabaseClient existe?', !!supabaseClient);
+  console.log('[AAA-EVENTS] 🔍 matchEventsChannel já existe?', !!matchEventsChannel);
+  
+  if (!supabaseClient || matchEventsChannel) {
+    console.warn('[AAA-EVENTS] ⚠️ Saindo early - supabaseClient:', !!supabaseClient, 'matchEventsChannel:', !!matchEventsChannel);
+    return;
+  }
   
   try {
+    console.log('[AAA-EVENTS] 🔌 Configurando canal para match:', matchId);
+    
     matchEventsChannel = supabaseClient.channel(`match-events:${matchId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -3378,8 +3390,14 @@ function setupMatchEventsSync(matchId) {
         filter: `match_id=eq.${matchId}`
       }, handleMatchEventAAA) // 🔥 AAA: Usar handler com event queue
       .subscribe((status) => {
+        console.log('[AAA-EVENTS] 📡 Status da inscrição:', status);
+        
         if (status === 'SUBSCRIBED') {
           console.log('[AAA-EVENTS] ✅ Canal de eventos AAA conectado');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[AAA-EVENTS] ❌ Erro no canal');
+        } else if (status === 'TIMED_OUT') {
+          console.error('[AAA-EVENTS] ⏱️ Timeout na conexão');
         }
       });
   } catch (err) {
@@ -3492,16 +3510,25 @@ async function sendHitEvent(hitData) {
       timestamp: new Date().toISOString()
     };
     
-    console.log('[AAA-HIT] 🎯 P1 enviando evento de hit:', event);
+    console.log('[AAA-HIT] 📡 P1 enviando hit event:', {
+      proj: hitData.projectileId,
+      target: `${hitData.targetTeam}[${hitData.targetIndex}]`,
+      hp_after: hitData.hpAfter,
+      destroyed: hitData.destroyed,
+      seq: eventSequence - 1
+    });
     
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('match_events')
-      .insert([event]);
+      .insert([event])
+      .select();
     
     if (error) {
       console.error('[AAA-HIT] ❌ Erro ao enviar hit:', error);
       return false;
     }
+    
+    console.log('[AAA-HIT] ✅ Insert SUCCESS, data:', data);
     
     console.log('[AAA-HIT] ✅ Hit event enviado');
     return true;
@@ -3524,8 +3551,15 @@ function processHitEvent(event) {
   }
   projectileHitRegistry.add(payload.hit_id);
   
-  const targets = payload.target_team === 'player' ? playerNaves : cpuNaves;
+  // 🔥 IMPORTANTE: Inverter perspectiva!
+  // P1 envia "cpu" quando atira nas naves vermelhas (do P2)
+  // Mas do ponto de vista do P2, essas são suas naves "player"
+  // Então invertemos: cpu ↔ player
+  const targetTeamInverted = payload.target_team === 'player' ? 'cpu' : 'player';
+  const targets = targetTeamInverted === 'player' ? playerNaves : cpuNaves;
   const target = targets[payload.target_index];
+  
+  console.log('[AAA-HIT] 🔄 Team invertida:', payload.target_team, '→', targetTeamInverted);
   
   if (!target) {
     console.error('[AAA-HIT] ❌ Target não encontrado:', payload.target_index);
@@ -3536,7 +3570,7 @@ function processHitEvent(event) {
   const oldHp = target.hp;
   target.hp = payload.hp_after; // HP do P1 é a verdade absoluta
   
-  console.log(`[AAA-HIT] 💔 Dano aplicado em ${payload.target_team}[${payload.target_index}]: HP ${oldHp} → ${target.hp} (authoritative)`);
+  console.log(`[AAA-HIT] 💔 Dano aplicado em ${targetTeamInverted}[${payload.target_index}]: HP ${oldHp} → ${target.hp} (authoritative)`);
   
   // Remover projétil correspondente se existir
   const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
@@ -3568,8 +3602,8 @@ function processHitEvent(event) {
     
     screenShake = 10;
     
-    // Atualizar placar
-    if (payload.target_team === 'cpu') {
+    // Atualizar placar (usar team INVERTIDA)
+    if (targetTeamInverted === 'cpu') {
       cpuDestroyed++;
       playerScore += 100;
     } else {
@@ -3619,7 +3653,12 @@ function processEventQueue() {
 function handleMatchEventAAA(payload) {
   const event = payload.new;
   
-  console.log('[AAA-EVENT] 📨 Evento recebido:', event.type, '#' + event.sequence_number);
+  console.log('[AAA-EVENT] 📨 Evento recebido:', {
+    type: event.type,
+    seq: event.sequence_number,
+    from_user: event.user_id,
+    my_user: myUserId
+  });
   
   // Ignorar meus próprios eventos (já executei localmente)
   if (event.user_id === myUserId) {
@@ -3629,6 +3668,7 @@ function handleMatchEventAAA(payload) {
   
   // Adicionar à fila
   eventQueue.push(event);
+  console.log('[AAA-EVENT] ➕ Adicionado à fila, tamanho:', eventQueue.length);
   
   // Processar fila
   processEventQueue();
@@ -4496,16 +4536,27 @@ function startBattleFromSelection() {
   
   if (matchupBanner && playerNameDisplay && opponentNameDisplay) {
     const currentPlayerName = playerName || localStorage.getItem("thor_username") || "Player";
-    playerNameDisplay.textContent = currentPlayerName;
     
-    const displayOpponentName = opponentUsername || localStorage.getItem("thor_match_opponent_name") || "Opponent";
-    opponentNameDisplay.textContent = displayOpponentName;
-    opponentNameDisplay.style.color = "#FF4444"; // Vermelho para jogador real
+    // Determinar ordem correta: P1 (azul) x P2 (vermelho)
+    let player1Name, player2Name;
+    if (myTeam === 'blue') {
+      player1Name = currentPlayerName;
+      player2Name = opponentUsername || localStorage.getItem("thor_match_opponent_name") || "Opponent";
+    } else {
+      player1Name = opponentUsername || localStorage.getItem("thor_match_opponent_name") || "Opponent";
+      player2Name = currentPlayerName;
+    }
+    
+    playerNameDisplay.textContent = player1Name;
+    playerNameDisplay.style.color = "#00E5FF"; // P1 sempre azul
+    
+    opponentNameDisplay.textContent = player2Name;
+    opponentNameDisplay.style.color = "#FF4444"; // P2 sempre vermelho
     
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
     
-    debug.pvp('[PVP] ✓ Banner de matchup exibido:', currentPlayerName, 'vs', displayOpponentName);
+    debug.pvp('[PVP] ✓ Banner de matchup exibido:', player1Name, '(P1) vs', player2Name, '(P2)');
   }
   
   // Iniciar game loop se necessário
@@ -6427,17 +6478,13 @@ function updateProjectiles() {
         if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
           const targetIndex = targets.indexOf(t);
           const oldHp = t.hp;
-          console.log(`[AAA-HIT] 🎯 P1 detectou HIT! proj=${p.id} target=${p.target}[${targetIndex}] HP ANTES=${oldHp}`);
+          console.log(`[AAA-HIT] 🎯 P1 detectou HIT! proj=${p.id} target=${p.target}[${targetIndex}] pos=(${t.x.toFixed(0)},${t.y.toFixed(0)}) HP ANTES=${oldHp}`);
           
           // Aplicar dano localmente no P1
           t.hp -= 33;
           if (t.hp < 0) t.hp = 0;
           
-          console.log(`[AAA-HIT] 💔 HP DEPOIS=${t.hp} (delta=-33)${t.hp <= 0 ? ' ☠️ DESTRUÍDA' : ''}`);
-          console.log(`[AAA-HIT] 📡 Enviando evento: hpAfter=${t.hp}`);
-          
-          console.log(`[AAA-HIT] 💔 HP DEPOIS=${t.hp} (delta=-33)${t.hp <= 0 ? ' ☠️ DESTRUÍDA' : ''}`);
-          console.log(`[AAA-HIT] 📡 Enviando evento: hpAfter=${t.hp}`);
+          console.log(`[AAA-HIT] 💔 P1 HP DEPOIS=${t.hp} (delta=-33)${t.hp <= 0 ? ' ☠️ DESTRUÍDA' : ''}`);
           
           // Efeitos visuais no P1
           explosions.push({ x: t.x, y: t.y, radius: 1 });
@@ -6510,7 +6557,8 @@ function updateProjectiles() {
       for (let t of targets) {
         if (t.hp <= 0) continue;
         if (segmentIntersectsCircle(p.prevX, p.prevY, p.x, p.y, t.x, t.y, (NAVY_SIZE * 0.6))) {
-          console.log(`[AAA-HIT] 👁️ P2 detectou colisão VISUAL projétil ${p.id}`);
+          const targetIndex = targets.indexOf(t);
+          console.log(`[AAA-HIT] 👁️ P2 detectou colisão VISUAL proj=${p.id} target=${p.target}[${targetIndex}] pos=(${t.x.toFixed(0)},${t.y.toFixed(0)}) HP=${t.hp} (NÃO aplicando dano, aguardando evento P1)`);
           
           // 🔥 AAA: Efeitos visuais IMEDIATOS (client-side prediction)
           // Explosão visual SEMPRE (mesmo se som falhar)
@@ -7529,9 +7577,11 @@ if (phase === "selectShot" || (phase === "select" && nave.target)) {
 projectiles.forEach(p => {
   ctx.save();
   
-  // Team colors (sempre visível para identificação)
-  const isCpu = p.target === "player";
-  const teamColor = isCpu ? "#ff3a34" : "#0ff"; // Vermelho CPU, Ciano Player
+  // Team colors baseado em QUEM ATIROU (não no alvo)
+  // p.target = "cpu" significa que PLAYER atirou (então projétil azul)
+  // p.target = "player" significa que CPU/OPONENTE atirou (então projétil vermelho)
+  const isPlayerShot = p.target === "cpu";
+  const teamColor = isPlayerShot ? "#0ff" : "#ff3a34"; // Azul se player atirou, vermelho se oponente atirou
   
   // Shot type config
   const shotType = p.shotType || 'plasma';
@@ -7539,7 +7589,7 @@ projectiles.forEach(p => {
   const accentColor = shotConfig.accentColor || teamColor;
   
   // Parse RGB do team color e accent color para mixing
-  const teamRGB = isCpu ? [255, 58, 52] : [0, 255, 255];
+  const teamRGB = isPlayerShot ? [0, 255, 255] : [255, 58, 52];
   
   let accentRGB;
   if (accentColor === teamColor || !accentColor) {
@@ -8412,29 +8462,32 @@ function startGameAfterSelection() {
   
   if (matchupBanner && playerNameDisplay && opponentNameDisplay) {
     const currentPlayerName = playerName || localStorage.getItem("thor_username") || "Player";
-    playerNameDisplay.textContent = currentPlayerName;
     
-    // Usar variável global opponentUsername (multiplayer) ou buscar do localStorage, ou "CPU"
-    let displayOpponentName = "CPU";
-    
-    if (multiplayerMode && opponentUsername) {
-      // Modo multiplayer com nome do oponente carregado
-      displayOpponentName = opponentUsername;
-      opponentNameDisplay.style.color = "#FF4444"; // Vermelho para jogador real
-      console.log('[MATCHUP] Multiplayer - Oponente:', displayOpponentName);
+    // Determinar quem é P1 (azul) e quem é P2 (vermelho)
+    let player1Name, player2Name;
+    if (multiplayerMode && myTeam === 'blue') {
+      // Eu sou azul (P1) → Eu na esquerda, oponente na direita
+      player1Name = currentPlayerName;
+      player2Name = opponentUsername || localStorage.getItem("thor_match_opponent_name") || "Opponent";
+    } else if (multiplayerMode && myTeam === 'red') {
+      // Eu sou vermelho (P2) → Oponente na esquerda, eu na direita
+      player1Name = opponentUsername || localStorage.getItem("thor_match_opponent_name") || "Opponent";
+      player2Name = currentPlayerName;
     } else {
-      const storedOpponentName = localStorage.getItem("thor_match_opponent_name");
-      if (storedOpponentName) {
-        displayOpponentName = storedOpponentName;
-        opponentNameDisplay.style.color = "#FF4444"; // Vermelho para jogador real
-        console.log('[MATCHUP] Multiplayer (localStorage) - Oponente:', displayOpponentName);
-      } else {
-        opponentNameDisplay.style.color = "#FFA500"; // Laranja para CPU
-        console.log('[MATCHUP] Practice mode - Oponente: CPU');
-      }
+      // Solo mode
+      player1Name = currentPlayerName;
+      player2Name = "CPU";
     }
     
-    opponentNameDisplay.textContent = displayOpponentName;
+    // Exibir sempre P1 (azul) x P2 (vermelho)
+    playerNameDisplay.textContent = player1Name;
+    playerNameDisplay.style.color = "#00E5FF"; // Sempre azul (P1)
+    
+    opponentNameDisplay.textContent = player2Name;
+    opponentNameDisplay.style.color = "#FF4444"; // Sempre vermelho (P2)
+    
+    console.log('[MATCHUP] Banner:', player1Name, '(P1/azul) vs', player2Name, '(P2/vermelho)');
+    
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
     matchupBanner.style.opacity = "1";
