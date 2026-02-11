@@ -1828,8 +1828,8 @@ function startTurnWindow(deadlineISO) {
     return;
   }
 
-  // Exibir banner de round sempre que iniciar um novo turno (exceto o primeiro)
-  if (typeof showRoundBanner === 'function' && currentTurnNumber > 1) {
+  // Exibir banner de round sempre que iniciar um novo turno (incluindo Round 1)
+  if (typeof showRoundBanner === 'function') {
     showRoundBanner(currentTurnNumber);
   }
   
@@ -6182,30 +6182,25 @@ function moveTowards(nave) {
 // 🎯 PHASE 3: Predição de movimento entre snapshots (Dead Reckoning)
 // P2 usa velocidade estimada para interpolar posição de naves inimigas
 function applyDeadReckoning() {
-  if (!multiplayerMode || isPlayer1Host) return;
+  // DESABILITADO: Dead reckoning causava jitter em produção com latência real
+  // Snapshots a cada 3s + lerp adaptativo já fornecem sincronização suficiente
+  return;
   
-  // Aplicar apenas para naves inimigas (cpuNaves no P2)
-  cpuNaves.forEach((nave, i) => {
-    const shipId = `cpu_${i}`;
-    const velocity = shipVelocities.get(shipId);
-    
-    if (velocity && velocity.vx !== undefined && nave.hp > 0) {
-      // Extrapolar posição baseado na velocidade anterior
-      const speed = Math.sqrt(velocity.vx * velocity.vx + velocity.vy * velocity.vy);
-      
-      // Só aplicar dead reckoning se velocidade for significativa e baixa
-      // Desabilitar durante movimento rápido (evita overshooting)
-      if (speed > 0.5 && speed < 3) {
-        // Aplicar extrapolação MUITO suave (2% da velocidade)
-        nave.x += velocity.vx * 0.02;
-        nave.y += velocity.vy * 0.02;
-        
-        // Manter dentro dos limites
-        nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
-        nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
-      }
-    }
-  });
+  // CÓDIGO ORIGINAL (mantido para referência):
+  // if (!multiplayerMode || isPlayer1Host) return;
+  // cpuNaves.forEach((nave, i) => {
+  //   const shipId = `cpu_${i}`;
+  //   const velocity = shipVelocities.get(shipId);
+  //   if (velocity && velocity.vx !== undefined && nave.hp > 0) {
+  //     const speed = Math.sqrt(velocity.vx * velocity.vx + velocity.vy * velocity.vy);
+  //     if (speed > 0.5 && speed < 3) {
+  //       nave.x += velocity.vx * 0.02;
+  //       nave.y += velocity.vy * 0.02;
+  //       nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
+  //       nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
+  //     }
+  //   }
+  // });
 }
 
 function generateCpuOrders() {
