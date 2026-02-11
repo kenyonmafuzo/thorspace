@@ -7641,6 +7641,10 @@ ctx.translate(shakeX, shakeY);
   if (selectedNave !== null && selectedNave.hp > 0) {
     const nave = selectedNave; // selectedNave já é o objeto da nave
     
+    // Verificar se o mouse está dentro do alcance da nave
+    const distanceToMouse = Math.hypot(mouseX - nave.x, mouseY - nave.y);
+    const withinRange = distanceToMouse <= nave.alcance;
+    
       if (!nave.target) {
         ctx.beginPath();
         ctx.arc(nave.x, nave.y, nave.alcance, 0, Math.PI * 2);
@@ -7655,7 +7659,8 @@ ctx.translate(shakeX, shakeY);
       ctx.beginPath();
       ctx.moveTo(nave.x, nave.y);
       ctx.lineTo(mouseX, mouseY);
-      ctx.strokeStyle = nave.target ? "#f00" : "#0ff";
+      // Linha vermelha se fora de alcance, ciano se dentro
+      ctx.strokeStyle = nave.target ? "#f00" : (withinRange ? "#0ff" : "#f00");
       ctx.setLineDash([4, 4]);
       ctx.stroke();
       ctx.setLineDash([]);
@@ -7663,21 +7668,42 @@ ctx.translate(shakeX, shakeY);
 // Se for fase de movimento: dois círculos concêntricos (solo ou multiplayer)
 if (phase === "selectMove" || (phase === "select" && !nave.target)) {
     ctx.save();
+    
+    // Mudar cor do alvo baseado se está dentro do alcance
+    const targetColor = withinRange ? "#0ff" : "#f00";
+    const targetFillOpacity = withinRange ? 0.13 : 0.08;
+    
     // Círculo externo
     ctx.beginPath();
     ctx.arc(mouseX, mouseY, 14, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,255,255,0.13)";
+    ctx.fillStyle = withinRange ? "rgba(0,255,255,0.13)" : "rgba(255,0,0,0.08)";
     ctx.fill();
-    ctx.strokeStyle = "#0ff";
+    ctx.strokeStyle = targetColor;
     ctx.lineWidth = 2;
     ctx.stroke();
 
     // Círculo interno
     ctx.beginPath();
     ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
-    ctx.strokeStyle = "#0ff";
+    ctx.strokeStyle = targetColor;
     ctx.lineWidth = 2;
     ctx.stroke();
+    
+    // Se fora de alcance, adicionar X vermelho no alvo
+    if (!withinRange) {
+      ctx.strokeStyle = "#f00";
+      ctx.lineWidth = 2;
+      // Diagonal 1
+      ctx.beginPath();
+      ctx.moveTo(mouseX - 5, mouseY - 5);
+      ctx.lineTo(mouseX + 5, mouseY + 5);
+      ctx.stroke();
+      // Diagonal 2
+      ctx.beginPath();
+      ctx.moveTo(mouseX + 5, mouseY - 5);
+      ctx.lineTo(mouseX - 5, mouseY + 5);
+      ctx.stroke();
+    }
     ctx.restore();
 }
 
