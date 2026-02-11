@@ -3485,24 +3485,76 @@ async function sendMatchEvent(type, payload) {
 // ========================================
 
 // P1 (HOST): Enviar evento de hit (authoritative)
+// 📸 AAA PHASE 2: Snapshots periódicos (self-healing)
+let snapshotInterval = null;
+let lastSnapshotTime = 0;
+const SNAPSHOT_INTERVAL_MS = 3000; // 3 segundos
+
+// Enviar snapshot completo do estado do jogo
+async function sendSnapshot() {
+  if (!isPlayer1Host || !multiplayerMode) return;
+  
+  try {
+    const snapshot = {
+      match_id: matchData.id,
+      sequence_number: eventSequence++,
+      type: 'STATE_SNAPSHOT',
+      user_id: myUserId,
+      payload: {
+        player_naves: playerNaves.map(n => ({
+          x: n.x,
+          y: n.y,
+          hp: n.hp,
+          tipo: n.tipo
+        })),
+        cpu_naves: cpuNaves.map(n => ({
+          x: n.x,
+          y: n.y,
+          hp: n.hp,
+          tipo: n.tipo
+        })),
+        player_destroyed: playerDestroyed,
+        cpu_destroyed: cpuDestroyed,
+        timestamp: Date.now()
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    const { error } = await supabaseClient
+      .from('match_events')
+      .insert([snapshot]);
+    
+    if (error) {
+      console.error('[AAA-SNAPSHOT] ❌ Erro ao enviar:', error);
+      return false;
+    }
+    
+    lastSnapshotTime = Date.now();
+    return true;
+  } catch (err) {
+    console.error('[AAA-SNAPSHOT] ❌ Exceção:', err);
+    return false;
+  }
+}
+
 async function sendHitEvent(hitData) {
   if (!isPlayer1Host || !multiplayerMode) return;
   
   try {
+    // 🔥 PHASE 2: Enviar HP_UPDATE ao invés de PROJECTILE_HIT
     const event = {
       match_id: matchData.id,
       sequence_number: eventSequence++,
-      type: 'PROJECTILE_HIT',
+      type: 'HP_UPDATE',
       user_id: myUserId,
       payload: {
-        hit_id: hitData.hitId, // ID único do hit
+        hit_id: hitData.hitId,
         projectile_id: hitData.projectileId,
-        target_team: hitData.targetTeam, // 'player' ou 'cpu'
+        target_team: hitData.targetTeam,
         target_index: hitData.targetIndex,
-        damage: hitData.damage,
-        position: hitData.position,
-        hp_after: hitData.hpAfter,
+        hp_final: hitData.hpAfter, // HP FINAL (não delta)
         destroyed: hitData.destroyed,
+        position: hitData.position,
         timestamp: Date.now()
       },
       timestamp: new Date().toISOString()
@@ -3536,15 +3588,70 @@ async function sendHitEvent(hitData) {
   }
 }
 
-// P2 (CLIENT): Processar evento de hit recebido
-function processHitEvent(event) {
-  console.log('[AAA-HIT] 📨 P2 processando hit event:', event);
+// 🔥 PHASE 2: Processar snapshot de estado completo
+function processSnapshot(event) {
+  const payload = event.payload;
   
+  // P1 perspective: playerNaves = blue, cpuNaves = red
+  // P2 perspective: playerNaves = red, cpuNaves = blue
+  // Inverter arrays ao aplicar snapshot
+  const p1PlayerNaves = payload.player_naves; // blue (P1)
+  const p1CpuNaves = payload.cpu_naves; // red (P2)
+  
+  // Do ponto de vista do P2:
+  // - p1PlayerNaves (blue) = minhas cpuNaves
+  // - p1CpuNaves (red) = minhas playerNaves
+  
+  // Aplicar HP autoritativo (com reconciliação suave para posições)
+  for (let i = 0; i < p1PlayerNaves.length && i < cpuNaves.length; i++) {
+    const serverState = p1PlayerNaves[i];
+    const localShip = cpuNaves[i];
+    
+    // HP: aplicar imediatamente (sem lerp)
+    if (localShip.hp !== serverState.hp) {
+      localShip.hp = serverState.hp;
+    }
+    
+    // Posição: lerp suave apenas se desync > 5px
+    const dx = serverState.x - localShip.x;
+    const dy = serverState.y - localShip.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 5) {
+      localShip.x += dx * 0.3; // Lerp 30%
+      localShip.y += dy * 0.3;
+    }
+  }
+  
+  for (let i = 0; i < p1CpuNaves.length && i < playerNaves.length; i++) {
+    const serverState = p1CpuNaves[i];
+    const localShip = playerNaves[i];
+    
+    if (localShip.hp !== serverState.hp) {
+      localShip.hp = serverState.hp;
+    }
+    
+    const dx = serverState.x - localShip.x;
+    const dy = serverState.y - localShip.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 5) {
+      localShip.x += dx * 0.3;
+      localShip.y += dy * 0.3;
+    }
+  }
+  
+  // Atualizar placar
+  cpuDestroyed = payload.player_destroyed;
+  playerDestroyed = payload.cpu_destroyed;
+}
+
+// P2 (CLIENT): Processar evento de HP update
+function processHitEvent(event) {
   const payload = event.payload;
   
   // Verificar se já processamos este hit (evitar duplicatas)
   if (projectileHitRegistry.has(payload.hit_id)) {
-    console.log('[AAA-HIT] ⏭️ Hit já processado, ignorando:', payload.hit_id);
     return;
   }
   projectileHitRegistry.add(payload.hit_id);
@@ -3557,16 +3664,13 @@ function processHitEvent(event) {
   const targets = targetTeamInverted === 'player' ? playerNaves : cpuNaves;
   const target = targets[payload.target_index];
   
-  console.log('[AAA-HIT] 🔄 Team invertida:', payload.target_team, '→', targetTeamInverted);
-  
   if (!target) {
-    console.error('[AAA-HIT] ❌ Target não encontrado:', payload.target_index);
     return;
   }
   
-  // Aplicar dano exato do servidor (SOBRESCREVER HP com valor authoritative)
+  // 🔥 PHASE 2: Aplicar HP FINAL (não delta)
   const oldHp = target.hp;
-  target.hp = payload.hp_after; // HP do P1 é a verdade absoluta
+  target.hp = payload.hp_final; // HP autoritativo do P1
   
   console.log(`[AAA-HIT] 💔 Dano aplicado em ${targetTeamInverted}[${payload.target_index}]: HP ${oldHp} → ${target.hp} (authoritative)`);
   
@@ -3636,10 +3740,11 @@ function processEventQueue() {
     }
     
     // Processar evento
-    console.log('[AAA-QUEUE] ⚙️ Processando evento #' + event.sequence_number);
     
-    if (event.type === 'PROJECTILE_HIT') {
+    if (event.type === 'HP_UPDATE' || event.type === 'PROJECTILE_HIT') {
       processHitEvent(event);
+    } else if (event.type === 'STATE_SNAPSHOT') {
+      processSnapshot(event);
     }
     
     lastProcessedSequence = event.sequence_number;
@@ -8015,6 +8120,14 @@ function gameLoop() {
   // 🔥 AAA: Processar fila de eventos no P2
   if (multiplayerMode && !isPlayer1Host) {
     processEventQueue();
+  }
+  
+  // 📸 AAA PHASE 2: P1 envia snapshots periódicos
+  if (multiplayerMode && isPlayer1Host) {
+    const now = Date.now();
+    if (now - lastSnapshotTime >= SNAPSHOT_INTERVAL_MS) {
+      sendSnapshot();
+    }
   }
   
   updateGame();
