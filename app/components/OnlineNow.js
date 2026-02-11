@@ -54,7 +54,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
       console.log("Current User:", currentUserId, currentUsername);
       console.log("========================");
 
-      // Remover canal anterior se existir
+      // Remover apenas o canal anterior deste componente
       if (presenceChannelRef.current) {
         console.log("⚠️ Removing existing presence channel");
         supabase.removeChannel(presenceChannelRef.current);
@@ -69,6 +69,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
           presence: {
             key: currentUserId,
           },
+          broadcast: { self: false }, // Reduzir tráfego
         },
       });
 
@@ -147,13 +148,22 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
         rebuildOnlineUsers();
       });
 
-      // Subscribe e track
+      // Subscribe e track com timeout aumentado
+      const subscribeTimeout = setTimeout(() => {
+        console.log('⏱️ Subscription timeout - forçando cleanup');
+        if (presenceChannelRef.current) {
+          supabase.removeChannel(presenceChannelRef.current);
+          presenceChannelRef.current = null;
+        }
+      }, 10000); // 10 segundos timeout
+      
       presenceChannel.subscribe(async (status) => {
         console.log("=== PRESENCE SUBSCRIPTION STATUS ===");
         console.log("Status:", status);
         console.log("===================================");
         
         if (status === "SUBSCRIBED") {
+          clearTimeout(subscribeTimeout);
           console.log("✅ Presence subscribed successfully");
           // Reset contador de tentativas após sucesso
           reconnectAttemptsRef.current = 0;
@@ -179,9 +189,10 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
             }, 500);
           }
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+          clearTimeout(subscribeTimeout);
           console.error("❌ PRESENCE FAIL - Status:", status);
           
-          // Remover canal com erro
+          // Remover apenas este canal com erro
           if (presenceChannelRef.current) {
             supabase.removeChannel(presenceChannelRef.current);
             presenceChannelRef.current = null;
@@ -226,7 +237,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
         reconnectTimeoutRef.current = null;
       }
       
-      // Remover canal
+      // Remover apenas o canal deste componente
       if (presenceChannelRef.current) {
         supabase.removeChannel(presenceChannelRef.current);
         presenceChannelRef.current = null;

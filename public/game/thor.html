@@ -2808,7 +2808,6 @@ async function getOpponentShotPreferences(opponentId) {
     }
     
     const prefs = data?.shot_preferences || {};
-    console.log('[SHOT-PREFS] ✅ Preferences carregadas:', prefs);
     debug.pvp('[PVP] ✓ Shot preferences do oponente carregadas:', prefs);
     return prefs;
   } catch (err) {
@@ -3588,6 +3587,10 @@ async function sendHitEvent(hitData) {
   }
 }
 
+// 🔥 PHASE 3: Client-Side Prediction + Dead Reckoning
+// Armazenar velocidades para predição de movimento
+const shipVelocities = new Map(); // shipId -> {vx, vy}
+
 // 🔥 PHASE 2: Processar snapshot de estado completo
 function processSnapshot(event) {
   const payload = event.payload;
@@ -3612,14 +3615,23 @@ function processSnapshot(event) {
       localShip.hp = serverState.hp;
     }
     
-    // Posição: lerp suave apenas se desync > 5px
+    // 🎯 PHASE 3: Dead Reckoning - Calcular velocidade para predição
+    const shipId = `cpu_${i}`;
+    const oldPos = shipVelocities.get(shipId) || { x: localShip.x, y: localShip.y };
+    const vx = serverState.x - oldPos.x;
+    const vy = serverState.y - oldPos.y;
+    shipVelocities.set(shipId, { x: serverState.x, y: serverState.y, vx, vy });
+    
+    // Posição: lerp suave apenas se desync > 15px (aumentado de 5px)
     const dx = serverState.x - localShip.x;
     const dy = serverState.y - localShip.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance > 5) {
-      localShip.x += dx * 0.3; // Lerp 30%
-      localShip.y += dy * 0.3;
+    if (distance > 15) {
+      // Interpolação mais suave (20% ao invés de 50%)
+      const lerpFactor = Math.min(0.2, distance / 100);
+      localShip.x += dx * lerpFactor;
+      localShip.y += dy * lerpFactor;
     }
   }
   
@@ -3631,13 +3643,21 @@ function processSnapshot(event) {
       localShip.hp = serverState.hp;
     }
     
+    // 🎯 PHASE 3: Predição de movimento para naves inimigas
+    const shipId = `player_${i}`;
+    const oldPos = shipVelocities.get(shipId) || { x: localShip.x, y: localShip.y };
+    const vx = serverState.x - oldPos.x;
+    const vy = serverState.y - oldPos.y;
+    shipVelocities.set(shipId, { x: serverState.x, y: serverState.y, vx, vy });
+    
     const dx = serverState.x - localShip.x;
     const dy = serverState.y - localShip.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    if (distance > 5) {
-      localShip.x += dx * 0.3;
-      localShip.y += dy * 0.3;
+    if (distance > 15) {
+      const lerpFactor = Math.min(0.2, distance / 100);
+      localShip.x += dx * lerpFactor;
+      localShip.y += dy * lerpFactor;
     }
   }
   
@@ -6151,13 +6171,41 @@ function moveTowards(nave) {
     nave.x = nave.target.x;
     nave.y = nave.target.y;
     nave.target = null;
-    console.log('[AAA-MOVEMENT] ✅ Nave chegou ao destino');
   } else {
     nave.x += SPEED * dx / dist;
     nave.y += SPEED * dy / dist;
   }
   nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
   nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
+}
+
+// 🎯 PHASE 3: Predição de movimento entre snapshots (Dead Reckoning)
+// P2 usa velocidade estimada para interpolar posição de naves inimigas
+function applyDeadReckoning() {
+  if (!multiplayerMode || isPlayer1Host) return;
+  
+  // Aplicar apenas para naves inimigas (cpuNaves no P2)
+  cpuNaves.forEach((nave, i) => {
+    const shipId = `cpu_${i}`;
+    const velocity = shipVelocities.get(shipId);
+    
+    if (velocity && velocity.vx !== undefined && nave.hp > 0) {
+      // Extrapolar posição baseado na velocidade anterior
+      const speed = Math.sqrt(velocity.vx * velocity.vx + velocity.vy * velocity.vy);
+      
+      // Só aplicar dead reckoning se velocidade for significativa e baixa
+      // Desabilitar durante movimento rápido (evita overshooting)
+      if (speed > 0.5 && speed < 3) {
+        // Aplicar extrapolação MUITO suave (2% da velocidade)
+        nave.x += velocity.vx * 0.02;
+        nave.y += velocity.vy * 0.02;
+        
+        // Manter dentro dos limites
+        nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
+        nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
+      }
+    }
+  });
 }
 
 function generateCpuOrders() {
@@ -8120,6 +8168,8 @@ function gameLoop() {
   // 🔥 AAA: Processar fila de eventos no P2
   if (multiplayerMode && !isPlayer1Host) {
     processEventQueue();
+    // 🎯 PHASE 3: Dead Reckoning para movimento suave
+    applyDeadReckoning();
   }
   
   // 📸 AAA PHASE 2: P1 envia snapshots periódicos
