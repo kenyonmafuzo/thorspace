@@ -7654,6 +7654,31 @@ ctx.translate(shakeX, shakeY);
         ctx.setLineDash([4, 4]);
         ctx.stroke();
         ctx.setLineDash([]);
+        
+        // Texto curvado ao redor do círculo: "Para onde a nave vai se mover"
+        const text = "Para onde a nave vai se mover";
+        ctx.save();
+        ctx.font = "14px 'Orbitron', sans-serif";
+        ctx.fillStyle = "#0ff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        const radius = nave.alcance + 15; // Um pouco além da borda
+        const angleStep = Math.PI * 1.5 / text.length; // Espalhar pela parte superior do círculo
+        const startAngle = -Math.PI / 2 - (text.length * angleStep) / 2; // Começar no topo
+        
+        for (let i = 0; i < text.length; i++) {
+          const angle = startAngle + i * angleStep;
+          const x = nave.x + radius * Math.cos(angle);
+          const y = nave.y + radius * Math.sin(angle);
+          
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle + Math.PI / 2);
+          ctx.fillText(text[i], 0, 0);
+          ctx.restore();
+        }
+        ctx.restore();
       }
 
       ctx.beginPath();
@@ -7709,6 +7734,31 @@ if (phase === "selectMove" || (phase === "select" && !nave.target)) {
 
 // Se for fase de tiro: alvo de mira estilizado (solo ou multiplayer com target já definido)
 if (phase === "selectShot" || (phase === "select" && nave.target)) {
+    // Desenhar texto curvado: "Onde vai atirar"
+    const text = "Onde vai atirar";
+    ctx.save();
+    ctx.font = "14px 'Orbitron', sans-serif";
+    ctx.fillStyle = "#f00";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    
+    const radius = nave.alcance + 15; // Um pouco além da borda
+    const angleStep = Math.PI * 1.2 / text.length; // Espalhar pela parte superior do círculo
+    const startAngle = -Math.PI / 2 - (text.length * angleStep) / 2; // Começar no topo
+    
+    for (let i = 0; i < text.length; i++) {
+      const angle = startAngle + i * angleStep;
+      const x = nave.x + radius * Math.cos(angle);
+      const y = nave.y + radius * Math.sin(angle);
+      
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + Math.PI / 2);
+      ctx.fillText(text[i], 0, 0);
+      ctx.restore();
+    }
+    ctx.restore();
+    
     ctx.save();
     // Círculo externo
     ctx.beginPath();
