@@ -7664,7 +7664,7 @@ ctx.translate(shakeX, shakeY);
         ctx.textBaseline = "middle";
         
         const radius = nave.alcance + 15; // Um pouco além da borda
-        const angleStep = Math.PI * 1.5 / text.length; // Espalhar pela parte superior do círculo
+        const angleStep = Math.PI * 0.65 / text.length; // Espaçamento normal entre letras
         const startAngle = -Math.PI / 2 - (text.length * angleStep) / 2; // Começar no topo
         
         for (let i = 0; i < text.length; i++) {
@@ -7743,7 +7743,7 @@ if (phase === "selectShot" || (phase === "select" && nave.target)) {
     ctx.textBaseline = "middle";
     
     const radius = nave.alcance + 15; // Um pouco além da borda
-    const angleStep = Math.PI * 1.2 / text.length; // Espalhar pela parte superior do círculo
+    const angleStep = Math.PI * 0.5 / text.length; // Espaçamento normal entre letras
     const startAngle = -Math.PI / 2 - (text.length * angleStep) / 2; // Começar no topo
     
     for (let i = 0; i < text.length; i++) {
