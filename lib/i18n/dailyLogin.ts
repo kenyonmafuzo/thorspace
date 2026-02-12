@@ -14,6 +14,7 @@ export const dailyLoginI18n = {
     streak6_body: "Você ganhou 80 XP por manter sua sequência ativa.",
     streak7_title: "Dia 7! Sequência perfeita!",
     streak7_body: "Você ganhou 100 XP por completar 7 dias consecutivos de login.",
+    badge_incentive: "Chegue no 7º dia consecutivo para atingir a máxima sequência e ganhe um badge exclusivo (Daily Soldier)!",
   },
   en: {
     streak1_title: "Day 1! Daily bonus received!",
@@ -30,6 +31,7 @@ export const dailyLoginI18n = {
     streak6_body: "You earned 80 XP for keeping your streak active.",
     streak7_title: "Day 7! Perfect streak!",
     streak7_body: "You earned 100 XP for completing 7 consecutive days of login.",
+    badge_incentive: "Reach day 7 in a row to achieve max streak and earn an exclusive badge (Daily Soldier)!",
   },
   es: {
     streak1_title: "¡Día 1! ¡Bono diario recibido!",
@@ -46,6 +48,7 @@ export const dailyLoginI18n = {
     streak6_body: "Ganaste 80 XP por mantener tu racha activa.",
     streak7_title: "¡Día 7! ¡Racha perfecta!",
     streak7_body: "Ganaste 100 XP por completar 7 días consecutivos de inicio de sesión.",
+    badge_incentive: "¡Llega al día 7 consecutivo para alcanzar la racha máxima y gana un badge exclusivo (Daily Soldier)!",
   },
 };
 

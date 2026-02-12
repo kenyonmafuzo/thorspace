@@ -67,6 +67,7 @@ export default function DailyLoginModal({ open, onClose, awardedXp, streakDay })
   if (!open) return null;
   const titleKey = `streak${streakDay}_title`;
   const bodyKey = `streak${streakDay}_body`;
+  const badgeIncentive = streakDay < 7 ? getDailyLoginText('badge_incentive', lang) : '';
   return (
     <div style={overlayStyle}>
       <div style={popupStyle}>
@@ -74,9 +75,14 @@ export default function DailyLoginModal({ open, onClose, awardedXp, streakDay })
           <h3 style={{ margin: 0, fontSize: 20, color: "#00E5FF" }}>{getDailyLoginText(titleKey, lang)}</h3>
         </div>
         <div style={bodyStyle}>
-          <p style={{ margin: 0, fontSize: 16 }}>
+          <p style={{ margin: 0, fontSize: 16, marginBottom: badgeIncentive ? 16 : 0 }}>
             {getDailyLoginText(bodyKey, lang)}
           </p>
+          {badgeIncentive && (
+            <p style={{ margin: 0, fontSize: 14, color: "#FFD700", fontStyle: "italic" }}>
+              {badgeIncentive}
+            </p>
+          )}
         </div>
         <div style={actionsStyle}>
           <button onClick={onClose} style={{ ...buttonStyle, background: "rgba(255,255,255,0.1)", color: "#FFF" }}>OK</button>

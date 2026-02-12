@@ -329,10 +329,16 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       // Notificação normal de XP ganho
       const pluralDia = streakDay === 1 ? 'dia' : 'dias';
       const pluralSeguido = streakDay === 1 ? 'seguido' : 'seguidos';
-      const content = `Você ganhou ${awardedXp} XP por logar ${streakDay} ${pluralDia} ${pluralSeguido}.`;
+      const titleKey = `streak${streakDay}_title`;
+      const bodyKey = `streak${streakDay}_body`;
+      const title = getDailyLoginText(titleKey, lang);
+      const body = getDailyLoginText(bodyKey, lang);
+      const badgeIncentive = streakDay < 7 ? `\n\n${getDailyLoginText('badge_incentive', lang)}` : '';
+      const content = `${body}${badgeIncentive}`;
       const inboxNotif = {
         user_id: userId,
         type: "daily_login",
+        title,
         content,
         cta: "Ver detalhes",
         cta_url: "/inbox",
