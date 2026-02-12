@@ -16,8 +16,8 @@ SELECT
   COALESCE(ps.wins, 0) as multiplayer_wins,
   COALESCE(ps.losses, 0) as multiplayer_losses,
   COALESCE(ps.draws, 0) as multiplayer_draws,
-  COALESCE(ps.total_xp, 0) as total_xp,
-  COALESCE(ps.level, 1) as level,
+  COALESCE(pp.total_xp, 0) as total_xp,
+  COALESCE(pp.level, 1) as level,
   -- Calculate win rate
   CASE 
     WHEN (COALESCE(ps.wins, 0) + COALESCE(ps.losses, 0) + COALESCE(ps.draws, 0)) > 0 
@@ -26,6 +26,7 @@ SELECT
   END as win_rate
 FROM public.profiles p
 LEFT JOIN public.player_stats ps ON p.id = ps.user_id
+LEFT JOIN public.player_progress pp ON p.id = pp.user_id
 WHERE 
   -- Only show players with at least 1 multiplayer match
   (COALESCE(ps.wins, 0) + COALESCE(ps.losses, 0) + COALESCE(ps.draws, 0)) > 0
