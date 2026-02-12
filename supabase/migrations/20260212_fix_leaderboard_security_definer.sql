@@ -13,25 +13,26 @@ SELECT
   p.id,
   p.username,
   p.avatar_preset,
-  p.multiplayer_wins,
-  p.multiplayer_losses,
-  p.multiplayer_draws,
-  p.total_xp,
-  p.level,
+  COALESCE(ps.multiplayer_wins, 0) as multiplayer_wins,
+  COALESCE(ps.multiplayer_losses, 0) as multiplayer_losses,
+  COALESCE(ps.multiplayer_draws, 0) as multiplayer_draws,
+  COALESCE(ps.total_xp, 0) as total_xp,
+  COALESCE(ps.level, 1) as level,
   -- Calculate win rate
   CASE 
-    WHEN (p.multiplayer_wins + p.multiplayer_losses + p.multiplayer_draws) > 0 
-    THEN ROUND((p.multiplayer_wins::numeric / (p.multiplayer_wins + p.multiplayer_losses + p.multiplayer_draws)::numeric * 100), 2)
+    WHEN (COALESCE(ps.multiplayer_wins, 0) + COALESCE(ps.multiplayer_losses, 0) + COALESCE(ps.multiplayer_draws, 0)) > 0 
+    THEN ROUND((COALESCE(ps.multiplayer_wins, 0)::numeric / (COALESCE(ps.multiplayer_wins, 0) + COALESCE(ps.multiplayer_losses, 0) + COALESCE(ps.multiplayer_draws, 0))::numeric * 100), 2)
     ELSE 0
   END as win_rate
 FROM public.profiles p
+LEFT JOIN public.player_stats ps ON p.id = ps.user_id
 WHERE 
   -- Only show players with at least 1 multiplayer match
-  (p.multiplayer_wins + p.multiplayer_losses + p.multiplayer_draws) > 0
+  (COALESCE(ps.multiplayer_wins, 0) + COALESCE(ps.multiplayer_losses, 0) + COALESCE(ps.multiplayer_draws, 0)) > 0
 ORDER BY 
-  p.multiplayer_wins DESC,
+  multiplayer_wins DESC,
   win_rate DESC,
-  p.total_xp DESC
+  total_xp DESC
 LIMIT 100;
 
 -- Grant SELECT permission to authenticated users
