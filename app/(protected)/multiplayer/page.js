@@ -24,6 +24,7 @@ export default function MultiplayerPage() {
   const [matchResult, setMatchResult] = useState(null);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [declinedBy, setDeclinedBy] = useState(null); // username que recusou o convite
   const handleCloseProfile = () => {
   setIsProfileOpen(false);
   setSelectedPlayer(null);
@@ -259,10 +260,32 @@ export default function MultiplayerPage() {
               
               // ✅ VALIDAÇÃO ROBUSTA: Prevenir race conditions e estados inválidos
               const isAccepted = payload.new?.state === "accepted";
+              const isCancelled = payload.new?.state === "cancelled";
               const isFinished = payload.new?.phase === "finished";
               const isPending = payload.new?.phase === "pending" || !payload.new?.phase;
               const isMultiplayer = payload.new?.mode === "multiplayer";
-              
+
+              // ✅ DECLINE: Oponente recusou o convite
+              if (isCancelled && isMultiplayer) {
+                console.log("[MATCH SYNC] ❌ Match recusado pelo oponente");
+                // Fechar o popup de "aguardando" se estiver aberto
+                if (typeof window !== "undefined" && window.__invitePopup) {
+                  window.__invitePopup.clearInvite?.();
+                }
+                // Buscar username de quem recusou
+                try {
+                  const { data: declinerProfile } = await supabase
+                    .from("profiles")
+                    .select("username")
+                    .eq("id", payload.new.invite_to)
+                    .single();
+                  setDeclinedBy(declinerProfile?.username || "Oponente");
+                } catch {
+                  setDeclinedBy("Oponente");
+                }
+                return;
+              }
+
               // ⛔ GUARDS: Não redirecionar se match já terminou
               if (isFinished) {
                 console.log("[MATCH SYNC] ⏭️ Match já finalizado, ignorando redirecionamento");
@@ -657,6 +680,67 @@ export default function MultiplayerPage() {
         currentUserId={currentUser.id}
         currentUsername={profile?.username ?? "Player"}
       />
+
+      {/* Modal de recusa de convite */}
+      {declinedBy && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 99999,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0d0d1f 0%, #050510 100%)',
+            border: '1.5px solid rgba(255,68,68,0.5)',
+            borderRadius: 16,
+            padding: '32px 36px',
+            maxWidth: 360,
+            width: '90%',
+            textAlign: 'center',
+            boxShadow: '0 0 40px rgba(255,68,68,0.2)',
+            animation: 'slideDown 0.25s ease-out',
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🚫</div>
+            <div style={{
+              fontSize: 14,
+              fontFamily: "'Orbitron', sans-serif",
+              color: '#ff6b6b',
+              fontWeight: 700,
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}>
+              Convite recusado
+            </div>
+            <div style={{
+              fontSize: 15,
+              color: '#ccc',
+              marginBottom: 24,
+              lineHeight: 1.5,
+            }}>
+              <span style={{ color: '#fff', fontWeight: 600 }}>{declinedBy}</span> recusou o convite para a batalha.
+            </div>
+            <button
+              onClick={() => setDeclinedBy(null)}
+              style={{
+                padding: '10px 32px',
+                background: 'linear-gradient(90deg, #00E5FF, #0072FF)',
+                border: 'none',
+                borderRadius: 8,
+                color: '#000',
+                fontWeight: 700,
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: 13,
+                letterSpacing: 1,
+                cursor: 'pointer',
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

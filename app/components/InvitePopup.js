@@ -412,6 +412,7 @@ export default function InvitePopup({ currentUserId, currentUsername }) {
         showInfo,
         showSent,
         showPendingInvite,
+        clearInvite: () => setInvite(null), // fecha o popup de "aguardando" quando oponente recusa
       };
     }
   }, []);
