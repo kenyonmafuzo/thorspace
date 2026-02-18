@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -25,6 +25,7 @@ export default function MultiplayerPage() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [declinedBy, setDeclinedBy] = useState(null); // username que recusou o convite
+  const pendingMatchChannelRef = useRef(null); // canal dedicado ao match pendente atual
   const handleCloseProfile = () => {
   setIsProfileOpen(false);
   setSelectedPlayer(null);
@@ -385,6 +386,45 @@ export default function MultiplayerPage() {
     };
   }, [router]);
 
+  // Inscreve em um match específico para detectar aceite ou recusa — canal dedicado por partida
+  const subscribeToPendingMatch = (matchId, opponentUsername) => {
+    // Limpar canal anterior se existir
+    if (pendingMatchChannelRef.current) {
+      supabase.removeChannel(pendingMatchChannelRef.current);
+      pendingMatchChannelRef.current = null;
+    }
+
+    const ch = supabase
+      .channel(`pending-match:${matchId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "matches", filter: `id=eq.${matchId}` },
+        async (payload) => {
+          const newState = payload.new?.state;
+
+          if (newState === "cancelled") {
+            console.log("[MATCH SYNC] ❌ Match recusado:", matchId);
+            // Fechar popup de 'aguardando'
+            if (typeof window !== "undefined" && window.__invitePopup) {
+              window.__invitePopup.clearInvite?.();
+            }
+            // Cleanup canal
+            supabase.removeChannel(ch);
+            pendingMatchChannelRef.current = null;
+            // Mostrar modal de recusa
+            setDeclinedBy(opponentUsername || "Oponente");
+          } else if (newState === "accepted") {
+            // Aceite é tratado pelo acceptedChannel principal; apenas limpamos o canal aqui
+            supabase.removeChannel(ch);
+            pendingMatchChannelRef.current = null;
+          }
+        }
+      )
+      .subscribe();
+
+    pendingMatchChannelRef.current = ch;
+  };
+
   const handleChallenge = async (targetUserId, targetUsername, options = {}) => {
     if (!currentUser) return;
 
@@ -486,6 +526,8 @@ export default function MultiplayerPage() {
       }
 
       console.log("Match created:", newMatch.id);
+      // Assinar ao match específico para detectar recusa em tempo real
+      subscribeToPendingMatch(newMatch.id, targetUsername);
       if (typeof window !== "undefined" && window.__invitePopup) {
         window.__invitePopup.showSent(`${t('multiplayer.challengeSentTo')} ${targetUsername}!`);
       }
@@ -681,63 +723,80 @@ export default function MultiplayerPage() {
         currentUsername={profile?.username ?? "Player"}
       />
 
-      {/* Modal de recusa de convite */}
+      {/* Modal de recusa de convite — mesmo estilo visual do InvitePopup */}
       {declinedBy && (
         <div style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.75)',
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.7)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 99999,
           backdropFilter: 'blur(4px)',
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #0d0d1f 0%, #050510 100%)',
-            border: '1.5px solid rgba(255,68,68,0.5)',
-            borderRadius: 16,
-            padding: '32px 36px',
-            maxWidth: 360,
             width: '90%',
-            textAlign: 'center',
-            boxShadow: '0 0 40px rgba(255,68,68,0.2)',
-            animation: 'slideDown 0.25s ease-out',
+            maxWidth: 400,
+            background: 'linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%)',
+            border: '2px solid #00E5FF',
+            borderRadius: 16,
+            boxShadow: '0 0 40px rgba(0, 229, 255, 0.3)',
+            overflow: 'hidden',
+            animation: 'slideDown 0.3s ease-out',
           }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>🚫</div>
+            {/* Header */}
             <div style={{
-              fontSize: 14,
-              fontFamily: "'Orbitron', sans-serif",
-              color: '#ff6b6b',
-              fontWeight: 700,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              marginBottom: 8,
+              padding: '20px 24px',
+              background: 'rgba(0, 229, 255, 0.1)',
+              borderBottom: '1px solid rgba(0, 229, 255, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
             }}>
-              Convite recusado
-            </div>
-            <div style={{
-              fontSize: 15,
-              color: '#ccc',
-              marginBottom: 24,
-              lineHeight: 1.5,
-            }}>
-              <span style={{ color: '#fff', fontWeight: 600 }}>{declinedBy}</span> recusou o convite para a batalha.
-            </div>
-            <button
-              onClick={() => setDeclinedBy(null)}
-              style={{
-                padding: '10px 32px',
-                background: 'linear-gradient(90deg, #00E5FF, #0072FF)',
-                border: 'none',
-                borderRadius: 8,
-                color: '#000',
+              <span style={{ fontSize: 20 }}>🚫</span>
+              <span style={{
+                fontSize: 16,
                 fontWeight: 700,
+                color: '#00E5FF',
                 fontFamily: "'Orbitron', sans-serif",
-                fontSize: 13,
                 letterSpacing: 1,
-                cursor: 'pointer',
-              }}
-            >
-              OK
-            </button>
+              }}>
+                Convite Recusado
+              </span>
+            </div>
+            {/* Body */}
+            <div style={{ padding: '24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 15, color: '#ccc', lineHeight: 1.6 }}>
+                <span style={{ color: '#fff', fontWeight: 700 }}>{declinedBy}</span>
+                {' '}recusou o convite para a batalha.
+              </div>
+            </div>
+            {/* Actions */}
+            <div style={{ padding: '0 24px 24px 24px' }}>
+              <button
+                onClick={() => {
+                  setDeclinedBy(null);
+                  // Garantir que canal foi limpo
+                  if (pendingMatchChannelRef.current) {
+                    supabase.removeChannel(pendingMatchChannelRef.current);
+                    pendingMatchChannelRef.current = null;
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 24px',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontFamily: "'Orbitron', sans-serif",
+                  background: 'linear-gradient(90deg, #00E5FF, #0072FF)',
+                  color: '#000',
+                  letterSpacing: 1,
+                }}
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}
