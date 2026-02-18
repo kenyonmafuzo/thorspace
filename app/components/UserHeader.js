@@ -218,6 +218,37 @@ export default function UserHeader() {
           </button>
           <span className={tooltipStyles.tooltip + (hoveredBtn === "friends" ? ` ${tooltipStyles.tooltipVisible}` : "")}>{t('inbox.cta_friends') || t('nav.friends') || 'Friends'}</span>
         </div>
+        {/* VIP Crown Icon Button */}
+        <div style={{ position: "relative", display: "inline-block" }}>
+          <button
+            onClick={() => handleNavigation("/vip")}
+            style={{
+              ...cleanLinkStyle,
+              position: "relative",
+              marginLeft: 4,
+              marginRight: 2,
+              padding: 0,
+              width: 36,
+              height: 36,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: "50%",
+              background: "rgba(255,215,0,0.08)",
+              border: "1px solid rgba(255,215,0,0.25)",
+              transition: "box-shadow 0.18s, background 0.18s, border 0.18s",
+              boxShadow: "0 0 0 0 #FFD70000",
+            }}
+            aria-label="VIP"
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 8px 2px #FFD70088"; e.currentTarget.style.background = "rgba(255,215,0,0.15)"; setHoveredBtn("vip"); }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 0 0 #FFD70000"; e.currentTarget.style.background = "rgba(255,215,0,0.08)"; setHoveredBtn(null); }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M2 19h20v2H2v-2zM3 8l5 5 4-7 4 7 5-5V17H3V8z" fill="#FFD700"/>
+            </svg>
+          </button>
+          <span className={tooltipStyles.tooltip + (hoveredBtn === "vip" ? ` ${tooltipStyles.tooltipVisible}` : "")}>VIP</span>
+        </div>
         {/* Notifications Bell Icon */}
         <div style={{ position: "relative", display: "inline-block" }}>
           <button
