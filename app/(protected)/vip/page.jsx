@@ -1,131 +1,44 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/src/hooks/useI18n";
 
-const PLANS_BRL = [
-  {
-    id: "1day",
-    label: "VIP 1 Dia",
-    sublabel: "Experimente agora",
-    price: "R$ 4,90",
-    priceNum: 4.9,
-    days: 1,
-    badge: null,
-    accent: "#00E5FF",
-  },
-  {
-    id: "7days",
-    label: "VIP 7 Dias",
-    sublabel: "Uma semana épica",
-    price: "R$ 14,90",
-    priceNum: 14.9,
-    days: 7,
-    badge: null,
-    accent: "#a855f7",
-  },
-  {
-    id: "15days",
-    label: "VIP 15 Dias",
-    sublabel: "Meio mês de domínio",
-    price: "R$ 24,90",
-    priceNum: 24.9,
-    days: 15,
-    badge: null,
-    accent: "#f59e0b",
-  },
-  {
-    id: "30days",
-    label: "VIP 30 Dias",
-    sublabel: "Melhor custo-benefício",
-    price: "R$ 39,90",
-    priceNum: 39.9,
-    days: 30,
-    badge: "MELHOR OFERTA",
-    accent: "#FFD700",
-  },
-];
-
-const PLANS_USD = [
-  {
-    id: "1day",
-    label: "VIP 1 Day",
-    sublabel: "Try it now",
-    price: "$0.99",
-    priceNum: 0.99,
-    days: 1,
-    badge: null,
-    accent: "#00E5FF",
-  },
-  {
-    id: "7days",
-    label: "VIP 7 Days",
-    sublabel: "One epic week",
-    price: "$2.99",
-    priceNum: 2.99,
-    days: 7,
-    badge: null,
-    accent: "#a855f7",
-  },
-  {
-    id: "15days",
-    label: "VIP 15 Days",
-    sublabel: "Half a month of dominance",
-    price: "$4.99",
-    priceNum: 4.99,
-    days: 15,
-    badge: null,
-    accent: "#f59e0b",
-  },
-  {
-    id: "30days",
-    label: "VIP 30 Days",
-    sublabel: "Best value",
-    price: "$7.99",
-    priceNum: 7.99,
-    days: 30,
-    badge: "BEST DEAL",
-    accent: "#FFD700",
-  },
-];
-
-const BENEFITS = [
-  { icon: "💬", title: "Cor VIP no Chat", desc: "Seu nome aparece em dourado para todos no chat global" },
-  { icon: "🖼️", title: "Moldura Exclusiva", desc: "Moldura especial animada no seu level e tier" },
-  { icon: "💎", title: "Ícone Diamante", desc: "Ícone de diamante brilhante ao lado do seu nome" },
-  { icon: "🏅", title: "Selo VIP", desc: "Selo VIP exibido em modais, perfil e lista de jogadores" },
-  { icon: "🛍️", title: "Loja VIP", desc: "Acesso à loja exclusiva com itens que ninguém mais tem" },
-  { icon: "🚀", title: "Naves Premium", desc: "Skins exclusivas de naves com visuais épicos" },
-  { icon: "🎨", title: "Ícones de Perfil", desc: "Avatares e ícones de perfil exclusivos VIP" },
-  { icon: "⚡", title: "Efeitos Visuais", desc: "Cores e efeitos especiais nos tiros, raios e explosões" },
-  { icon: "😎", title: "Emojis Especiais", desc: "Pack de emojis exclusivos para usar no chat" },
-];
+const PLAN_ACCENTS = {
+  "1day":   "#00E5FF",
+  "7days":  "#a855f7",
+  "15days": "#f59e0b",
+  "30days": "#FFD700",
+};
 
 export default function VIPPage() {
-  const router = useRouter();
-  const [currency, setCurrency] = useState("BRL"); // BRL ou USD
+  const { lang, t } = useI18n();
+
+  // All text / plans / benefits come from the active language dictionary
+  const vip      = (typeof t("vip") === "object" ? t("vip") : {});
+  const plans    = Array.isArray(vip.plans)    ? vip.plans    : [];
+  const benefits = Array.isArray(vip.benefits) ? vip.benefits : [];
+  const isPT     = lang === "pt";
+
   const [selectedPlan, setSelectedPlan] = useState("30days");
-  const [paymentMethod, setPaymentMethod] = useState("pix"); // pix | credit
+  const [paymentMethod, setPaymentMethod] = useState("pix");
   const [profile, setProfile] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [hoveredPlan, setHoveredPlan] = useState(null);
 
-  const plans = currency === "BRL" ? PLANS_BRL : PLANS_USD;
-  const currentPlan = plans.find((p) => p.id === selectedPlan) || plans[3];
+  // Reset to PIX when language is PT, credit card otherwise
+  useEffect(() => {
+    setPaymentMethod(lang === "pt" ? "pix" : "credit");
+  }, [lang]);
+
+  const currentPlan = plans.find((p) => p.id === selectedPlan) || plans[3] || plans[0];
 
   useEffect(() => {
-    // Detectar moeda pelo idioma/locale do browser
-    const locale = navigator.language || "pt-BR";
-    setCurrency(locale.startsWith("pt") ? "BRL" : "USD");
-
-    // Buscar perfil
     supabase.auth.getUser().then(async ({ data }) => {
       if (data?.user) {
         const { data: prof } = await supabase
           .from("profiles")
-          .select("username, avatar_preset, is_vip, vip_expires_at")
+          .select("username, is_vip, vip_expires_at")
           .eq("id", data.user.id)
           .maybeSingle();
         setProfile(prof);
@@ -140,10 +53,15 @@ export default function VIPPage() {
 
   const vipExpiresDate = profile?.vip_expires_at
     ? new Date(profile.vip_expires_at).toLocaleDateString(
-        currency === "BRL" ? "pt-BR" : "en-US",
+        lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US",
         { day: "2-digit", month: "short", year: "numeric" }
       )
     : null;
+
+  const paymentLabel =
+    paymentMethod === "pix"    ? (vip.pixLabel    || "PIX") :
+    paymentMethod === "credit" ? (vip.creditLabel || "Credit Card") :
+                                 (vip.debitLabel  || "Debit");
 
   return (
     <div style={pageStyle}>
@@ -197,12 +115,12 @@ export default function VIPPage() {
       {/* Back + Header */}
       <div style={topBarStyle}>
         <Link href="/mode" style={backBtnStyle}>
-          ← Voltar
+          ← {vip.back || "Back"}
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28, animation: "crownGlow 2s infinite" }}>👑</span>
+          <span style={{ fontSize: 26, animation: "crownGlow 2s infinite" }}>👑</span>
           <span style={{
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: 900,
             fontFamily: "'Orbitron', sans-serif",
             background: "linear-gradient(90deg, #FFD700, #FFF8A0, #FFD700)",
@@ -211,32 +129,23 @@ export default function VIPPage() {
             WebkitTextFillColor: "transparent",
             animation: "shimmer 3s linear infinite",
           }}>
-            THORSPACE VIP
+            {vip.pageTitle || "THORSPACE VIP"}
           </span>
         </div>
 
-        {/* Currency toggle */}
-        <div style={{ display: "flex", gap: 6, background: "rgba(255,255,255,0.07)", borderRadius: 8, padding: 4 }}>
-          {["BRL", "USD"].map((c) => (
-            <button
-              key={c}
-              onClick={() => setCurrency(c)}
-              style={{
-                padding: "4px 14px",
-                borderRadius: 6,
-                border: "none",
-                fontFamily: "'Orbitron', sans-serif",
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: "pointer",
-                background: currency === c ? "linear-gradient(90deg, #FFD700, #f59e0b)" : "transparent",
-                color: currency === c ? "#000" : "#888",
-                transition: "all 0.2s",
-              }}
-            >
-              {c === "BRL" ? "🇧🇷 BRL" : "🇺🇸 USD"}
-            </button>
-          ))}
+        {/* Language badge (read-only — changed in Settings) */}
+        <div style={{
+          padding: "5px 14px",
+          background: "rgba(255,215,0,0.10)",
+          border: "1px solid rgba(255,215,0,0.3)",
+          borderRadius: 8,
+          fontFamily: "'Orbitron',sans-serif",
+          fontSize: 11,
+          fontWeight: 700,
+          color: "#FFD700",
+          letterSpacing: 1,
+        }}>
+          {lang === "pt" ? "🇧🇷 PT" : lang === "es" ? "🇪🇸 ES" : "🇺🇸 EN"}
         </div>
       </div>
 
@@ -257,10 +166,10 @@ export default function VIPPage() {
           <span style={{ fontSize: 22 }}>✅</span>
           <div>
             <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>
-              VIP ATIVO
+              {vip.statusActive || "VIP ACTIVE"}
             </div>
             <div style={{ color: "#ccc", fontSize: 12, marginTop: 2 }}>
-              Expira em {vipExpiresDate}
+              {vip.statusExpires} {vipExpiresDate}
             </div>
           </div>
         </div>
@@ -270,10 +179,10 @@ export default function VIPPage() {
 
         {/* Hero section */}
         <div style={heroStyle}>
-          <span style={{ fontSize: 56, display: "block", animation: "starFloat 3s ease-in-out infinite" }}>👑</span>
+          <span style={{ fontSize: 52, display: "block", animation: "starFloat 3s ease-in-out infinite" }}>👑</span>
           <h1 style={{
             margin: "12px 0 8px 0",
-            fontSize: "clamp(22px, 4vw, 36px)",
+            fontSize: "clamp(22px, 4vw, 34px)",
             fontWeight: 900,
             fontFamily: "'Orbitron', sans-serif",
             background: "linear-gradient(90deg, #FFD700 0%, #FFF8A0 50%, #FFD700 100%)",
@@ -283,18 +192,18 @@ export default function VIPPage() {
             animation: "shimmer 3s linear infinite",
             textAlign: "center",
           }}>
-            Torne-se VIP
+            {vip.hero}
           </h1>
           <p style={{ color: "#aaa", fontSize: 15, margin: 0, textAlign: "center", maxWidth: 480 }}>
-            Benefícios exclusivos 100% estéticos. Domine o visual sem alterar o jogo.
+            {vip.heroSub}
           </p>
         </div>
 
         {/* Benefits grid */}
         <section style={{ marginBottom: 40 }}>
-          <h2 style={sectionTitleStyle}>✨ Benefícios VIP</h2>
+          <h2 style={sectionTitleStyle}>{vip.sectionBenefits}</h2>
           <div style={benefitsGridStyle}>
-            {BENEFITS.map((b) => (
+            {benefits.map((b) => (
               <div key={b.title} className="benefit-card" style={benefitCardStyle}>
                 <span style={{ fontSize: 26, display: "block", marginBottom: 8 }}>{b.icon}</span>
                 <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 12, marginBottom: 4 }}>
@@ -308,10 +217,15 @@ export default function VIPPage() {
 
         {/* Planos */}
         <section style={{ marginBottom: 40 }}>
-          <h2 style={sectionTitleStyle}>💎 Escolha seu Plano</h2>
+          <h2 style={sectionTitleStyle}>{vip.sectionPlans}</h2>
           <div style={plansGridStyle}>
             {plans.map((plan) => {
               const isSelected = selectedPlan === plan.id;
+              const accent = PLAN_ACCENTS[plan.id] || "#00E5FF";
+              const accentRgb =
+                accent === "#FFD700" ? "255,215,0" :
+                accent === "#00E5FF" ? "0,229,255" :
+                accent === "#a855f7" ? "168,85,247" : "245,158,11";
               return (
                 <div
                   key={plan.id}
@@ -320,22 +234,22 @@ export default function VIPPage() {
                   style={{
                     position: "relative",
                     borderRadius: 16,
-                    padding: "24px 20px",
+                    padding: "28px 20px 20px",
                     cursor: "pointer",
                     background: isSelected
-                      ? `linear-gradient(135deg, rgba(${plan.accent === '#FFD700' ? '255,215,0' : plan.accent === '#00E5FF' ? '0,229,255' : plan.accent === '#a855f7' ? '168,85,247' : '245,158,11'},0.15) 0%, rgba(10,14,39,0.95) 100%)`
+                      ? `linear-gradient(135deg, rgba(${accentRgb},0.15) 0%, rgba(10,14,39,0.95) 100%)`
                       : "linear-gradient(135deg, rgba(10,14,39,0.9) 0%, rgba(5,5,20,0.9) 100%)",
                     border: isSelected
-                      ? `2px solid ${plan.accent}`
+                      ? `2px solid ${accent}`
                       : "2px solid rgba(255,255,255,0.1)",
                     boxShadow: isSelected
-                      ? `0 0 24px ${plan.accent}44, 0 4px 20px rgba(0,0,0,0.4)`
+                      ? `0 0 24px ${accent}44, 0 4px 20px rgba(0,0,0,0.4)`
                       : "0 4px 20px rgba(0,0,0,0.3)",
                     textAlign: "center",
                     transition: "all 0.2s",
                   }}
                 >
-                  {plan.badge && (
+                  {plan.best && (
                     <div style={{
                       position: "absolute",
                       top: -12,
@@ -351,23 +265,25 @@ export default function VIPPage() {
                       whiteSpace: "nowrap",
                       letterSpacing: 1,
                     }}>
-                      ⭐ {plan.badge}
+                      ⭐ {vip.bestDeal}
                     </div>
                   )}
 
                   {isSelected && (
                     <div style={{
                       position: "absolute",
-                      top: 12,
-                      right: 12,
+                      top: 10,
+                      right: 10,
                       width: 20,
                       height: 20,
                       borderRadius: "50%",
-                      background: plan.accent,
+                      background: accent,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 12,
+                      fontSize: 11,
+                      color: "#000",
+                      fontWeight: 900,
                     }}>✓</div>
                   )}
 
@@ -375,25 +291,25 @@ export default function VIPPage() {
                     fontSize: 13,
                     fontWeight: 700,
                     fontFamily: "'Orbitron',sans-serif",
-                    color: isSelected ? plan.accent : "#ccc",
+                    color: isSelected ? accent : "#ccc",
                     marginBottom: 4,
                     letterSpacing: 1,
                   }}>
                     {plan.label}
                   </div>
-                  <div style={{ color: "#666", fontSize: 11, marginBottom: 16 }}>
+                  <div style={{ color: "#666", fontSize: 11, marginBottom: 14 }}>
                     {plan.sublabel}
                   </div>
                   <div style={{
                     fontSize: "clamp(20px, 3vw, 28px)",
                     fontWeight: 900,
                     fontFamily: "'Orbitron',sans-serif",
-                    color: isSelected ? plan.accent : "#fff",
+                    color: isSelected ? accent : "#fff",
                   }}>
                     {plan.price}
                   </div>
                   <div style={{ color: "#555", fontSize: 11, marginTop: 4 }}>
-                    {plan.days} {plan.days === 1 ? (currency === "BRL" ? "dia" : "day") : (currency === "BRL" ? "dias" : "days")}
+                    {plan.days} {plan.days === 1 ? vip.day : vip.days}
                   </div>
                 </div>
               );
@@ -409,33 +325,25 @@ export default function VIPPage() {
           padding: "32px 28px",
           marginBottom: 60,
         }}>
-          <h2 style={{ ...sectionTitleStyle, marginBottom: 20 }}>💳 Forma de Pagamento</h2>
+          <h2 style={{ ...sectionTitleStyle, marginBottom: 20 }}>{vip.sectionPayment}</h2>
 
           <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
-            {/* PIX - só BRL */}
-            {currency === "BRL" && (
+            {/* PIX - só PT */}
+            {isPT && (
               <button
                 onClick={() => setPaymentMethod("pix")}
                 style={{
-                  flex: 1,
-                  minWidth: 130,
-                  padding: "16px 20px",
-                  borderRadius: 12,
+                  flex: 1, minWidth: 130, padding: "16px 20px", borderRadius: 12,
                   border: paymentMethod === "pix" ? "2px solid #00D65A" : "2px solid rgba(255,255,255,0.1)",
                   background: paymentMethod === "pix" ? "rgba(0,214,90,0.12)" : "rgba(255,255,255,0.04)",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                  transition: "all 0.2s",
+                  cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all 0.2s",
                 }}
               >
                 <span style={{ fontSize: 28 }}>⚡</span>
                 <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: paymentMethod === "pix" ? "#00D65A" : "#aaa" }}>
-                  PIX
+                  {vip.pixLabel || "PIX"}
                 </span>
-                <span style={{ fontSize: 10, color: "#666" }}>Aprovação imediata</span>
+                <span style={{ fontSize: 10, color: "#666" }}>{vip.pixSub}</span>
               </button>
             )}
 
@@ -443,110 +351,83 @@ export default function VIPPage() {
             <button
               onClick={() => setPaymentMethod("credit")}
               style={{
-                flex: 1,
-                minWidth: 130,
-                padding: "16px 20px",
-                borderRadius: 12,
+                flex: 1, minWidth: 130, padding: "16px 20px", borderRadius: 12,
                 border: paymentMethod === "credit" ? "2px solid #00E5FF" : "2px solid rgba(255,255,255,0.1)",
                 background: paymentMethod === "credit" ? "rgba(0,229,255,0.10)" : "rgba(255,255,255,0.04)",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s",
+                cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all 0.2s",
               }}
             >
               <span style={{ fontSize: 28 }}>💳</span>
               <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: paymentMethod === "credit" ? "#00E5FF" : "#aaa" }}>
-                {currency === "BRL" ? "Cartão de Crédito" : "Credit Card"}
+                {vip.creditLabel}
               </span>
-              <span style={{ fontSize: 10, color: "#666" }}>Visa, Master, Elo</span>
+              <span style={{ fontSize: 10, color: "#666" }}>{vip.creditSub}</span>
             </button>
 
             {/* Débito */}
             <button
               onClick={() => setPaymentMethod("debit")}
               style={{
-                flex: 1,
-                minWidth: 130,
-                padding: "16px 20px",
-                borderRadius: 12,
+                flex: 1, minWidth: 130, padding: "16px 20px", borderRadius: 12,
                 border: paymentMethod === "debit" ? "2px solid #a855f7" : "2px solid rgba(255,255,255,0.1)",
                 background: paymentMethod === "debit" ? "rgba(168,85,247,0.10)" : "rgba(255,255,255,0.04)",
-                cursor: "pointer",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-                transition: "all 0.2s",
+                cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all 0.2s",
               }}
             >
               <span style={{ fontSize: 28 }}>🏧</span>
               <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: paymentMethod === "debit" ? "#a855f7" : "#aaa" }}>
-                {currency === "BRL" ? "Débito" : "Debit"}
+                {vip.debitLabel}
               </span>
-              <span style={{ fontSize: 10, color: "#666" }}>Visa, Master</span>
+              <span style={{ fontSize: 10, color: "#666" }}>{vip.debitSub}</span>
             </button>
           </div>
 
           {/* Resumo do pedido */}
-          <div style={{
-            background: "rgba(255,215,0,0.06)",
-            border: "1px solid rgba(255,215,0,0.2)",
-            borderRadius: 12,
-            padding: "16px 20px",
-            marginBottom: 20,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-          }}>
-            <div>
-              <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>
-                👑 {currentPlan.label}
+          {currentPlan && (
+            <div style={{
+              background: "rgba(255,215,0,0.06)", border: "1px solid rgba(255,215,0,0.2)",
+              borderRadius: 12, padding: "16px 20px", marginBottom: 20,
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              flexWrap: "wrap", gap: 12,
+            }}>
+              <div>
+                <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>
+                  👑 {currentPlan.label}
+                </div>
+                <div style={{ color: "#888", fontSize: 12, marginTop: 3 }}>
+                  {vip.viaPayment} {paymentLabel}
+                </div>
               </div>
-              <div style={{ color: "#888", fontSize: 12, marginTop: 3 }}>
-                {currency === "BRL" ? "via" : "via"} {paymentMethod === "pix" ? "PIX" : paymentMethod === "credit" ? (currency === "BRL" ? "Cartão de Crédito" : "Credit Card") : (currency === "BRL" ? "Débito" : "Debit")}
+              <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 22, fontWeight: 900, color: "#FFD700" }}>
+                {currentPlan.price}
               </div>
             </div>
-            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 22, fontWeight: 900, color: "#FFD700" }}>
-              {currentPlan.price}
-            </div>
-          </div>
+          )}
 
           {/* Botão pagar */}
           <button
             className="pay-btn"
             onClick={() => setShowPaymentModal(true)}
             style={{
-              width: "100%",
-              padding: "16px 24px",
+              width: "100%", padding: "16px 24px",
               background: "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
-              backgroundSize: "200% auto",
-              animation: "shimmer 3s linear infinite",
-              border: "none",
-              borderRadius: 12,
-              fontFamily: "'Orbitron',sans-serif",
-              fontSize: 15,
-              fontWeight: 900,
-              color: "#000",
-              cursor: "pointer",
-              letterSpacing: 1,
+              backgroundSize: "200% auto", animation: "shimmer 3s linear infinite",
+              border: "none", borderRadius: 12,
+              fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
+              color: "#000", cursor: "pointer", letterSpacing: 1,
               boxShadow: "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
             }}
           >
-            ⚡ ATIVAR VIP AGORA — {currentPlan.price}
+            ⚡ {vip.payNow} — {currentPlan?.price}
           </button>
 
           <p style={{ color: "#555", fontSize: 11, textAlign: "center", marginTop: 12 }}>
-            🔒 {currency === "BRL" ? "Pagamento seguro. Sem renovação automática." : "Secure payment. No auto-renewal."}
+            🔒 {vip.securePayment}
           </p>
         </section>
       </div>
 
-      {/* Modal de pagamento (placeholder — integrar gateway real) */}
+      {/* Modal de pagamento (placeholder) */}
       {showPaymentModal && (
         <div style={{
           position: "fixed", inset: 0,
@@ -556,12 +437,10 @@ export default function VIPPage() {
           zIndex: 99999,
         }}>
           <div style={{
-            width: "90%",
-            maxWidth: 440,
+            width: "90%", maxWidth: 440,
             background: "linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%)",
             border: "2px solid rgba(255,215,0,0.5)",
-            borderRadius: 20,
-            overflow: "hidden",
+            borderRadius: 20, overflow: "hidden",
             boxShadow: "0 0 60px rgba(255,215,0,0.2)",
             animation: "fadeIn 0.25s ease-out",
           }}>
@@ -577,7 +456,7 @@ export default function VIPPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <span style={{ fontSize: 20 }}>👑</span>
                 <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 15, fontWeight: 700, color: "#FFD700" }}>
-                  Confirmação VIP
+                  {vip.confirmTitle}
                 </span>
               </div>
               <button
@@ -591,30 +470,23 @@ export default function VIPPage() {
             <div style={{ padding: 28, textAlign: "center" }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>🚧</div>
               <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 14, marginBottom: 8 }}>
-                EM BREVE
+                {vip.comingSoon}
               </div>
               <div style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-                O sistema de pagamento está sendo integrado.<br />
-                Em breve você poderá ativar o VIP com {paymentMethod === "pix" ? "PIX" : paymentMethod === "credit" ? (currency === "BRL" ? "Cartão de Crédito" : "Credit Card") : (currency === "BRL" ? "Débito" : "Debit")}.<br /><br />
-                <span style={{ color: "#FFD700", fontWeight: 600 }}>Plano selecionado: {currentPlan.label} — {currentPlan.price}</span>
+                {vip.comingSoonMsg}<br /><br />
+                <span style={{ color: "#FFD700", fontWeight: 600 }}>{vip.selectedPlan}: {currentPlan?.label} — {currentPlan?.price}</span>
               </div>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 style={{
-                  width: "100%",
-                  padding: "12px 24px",
+                  width: "100%", padding: "12px 24px",
                   background: "linear-gradient(90deg, #FFD700, #f59e0b)",
-                  border: "none",
-                  borderRadius: 10,
-                  fontFamily: "'Orbitron',sans-serif",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: "#000",
-                  cursor: "pointer",
-                  letterSpacing: 1,
+                  border: "none", borderRadius: 10,
+                  fontFamily: "'Orbitron',sans-serif", fontSize: 13, fontWeight: 700,
+                  color: "#000", cursor: "pointer", letterSpacing: 1,
                 }}
               >
-                OK, ENTENDIDO
+                {vip.ok}
               </button>
             </div>
           </div>

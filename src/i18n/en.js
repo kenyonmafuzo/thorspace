@@ -199,4 +199,48 @@ export default {
       }
     }
   },
+  vip: {
+    pageTitle: "THORSPACE VIP",
+    hero: "Become VIP",
+    heroSub: "100% cosmetic exclusive benefits. Dominate the looks without changing the game.",
+    statusActive: "VIP ACTIVE",
+    statusExpires: "Expires on",
+    sectionBenefits: "✨ VIP Benefits",
+    sectionPlans: "💎 Choose Your Plan",
+    sectionPayment: "💳 Payment Method",
+    orderSummary: "Order Summary",
+    payNow: "ACTIVATE VIP NOW",
+    securePayment: "Secure payment. No auto-renewal.",
+    back: "Back",
+    day: "day",
+    days: "days",
+    creditLabel: "Credit Card",
+    creditSub: "Visa, Master, Amex",
+    debitLabel: "Debit",
+    debitSub: "Visa, Master",
+    viaPayment: "via",
+    comingSoon: "COMING SOON",
+    comingSoonMsg: "The payment system is being integrated. Soon you'll be able to activate VIP.",
+    selectedPlan: "Selected plan",
+    ok: "GOT IT",
+    confirmTitle: "VIP Confirmation",
+    bestDeal: "BEST DEAL",
+    plans: [
+      { id: "1day",  label: "VIP 1 Day",   sublabel: "Try it now",                    price: "$0.99", days: 1  },
+      { id: "7days", label: "VIP 7 Days",  sublabel: "One epic week",                 price: "$2.99", days: 7  },
+      { id: "15days",label: "VIP 15 Days", sublabel: "Half a month of dominance",     price: "$4.99", days: 15 },
+      { id: "30days",label: "VIP 30 Days", sublabel: "Best value",                    price: "$7.99", days: 30, best: true }
+    ],
+    benefits: [
+      { icon: "💬", title: "VIP Chat Color",   desc: "Your name appears in gold for everyone in the global chat" },
+      { icon: "🖼️", title: "Exclusive Frame",  desc: "Special animated frame on your level and tier" },
+      { icon: "💎", title: "Diamond Icon",     desc: "Shiny diamond icon next to your name" },
+      { icon: "🏅", title: "VIP Badge",        desc: "VIP badge shown in modals, profile and player list" },
+      { icon: "🛍️", title: "VIP Shop",        desc: "Access to the exclusive shop with items nobody else has" },
+      { icon: "🚀", title: "Premium Ships",    desc: "Exclusive ship skins with epic visuals" },
+      { icon: "🎨", title: "Profile Icons",    desc: "Exclusive VIP profile avatars and icons" },
+      { icon: "⚡", title: "Visual Effects",   desc: "Special colors and effects on shots, lightning and explosions" },
+      { icon: "😎", title: "Special Emojis",   desc: "Exclusive emoji pack for use in chat" }
+    ]
+  },
 };

@@ -199,4 +199,48 @@ export default {
       }
     }
   },
+  vip: {
+    pageTitle: "THORSPACE VIP",
+    hero: "Conviértete en VIP",
+    heroSub: "Beneficios exclusivos 100% estéticos. Domina el look sin alterar el juego.",
+    statusActive: "VIP ACTIVO",
+    statusExpires: "Expira el",
+    sectionBenefits: "✨ Beneficios VIP",
+    sectionPlans: "💎 Elige tu Plan",
+    sectionPayment: "💳 Método de Pago",
+    orderSummary: "Resumen del Pedido",
+    payNow: "ACTIVAR VIP AHORA",
+    securePayment: "Pago seguro. Sin renovación automática.",
+    back: "Volver",
+    day: "día",
+    days: "días",
+    creditLabel: "Tarjeta de Crédito",
+    creditSub: "Visa, Master, Amex",
+    debitLabel: "Débito",
+    debitSub: "Visa, Master",
+    viaPayment: "vía",
+    comingSoon: "PRÓXIMAMENTE",
+    comingSoonMsg: "El sistema de pago está siendo integrado. Pronto podrás activar el VIP.",
+    selectedPlan: "Plan seleccionado",
+    ok: "ENTENDIDO",
+    confirmTitle: "Confirmación VIP",
+    bestDeal: "MEJOR OFERTA",
+    plans: [
+      { id: "1day",  label: "VIP 1 Día",   sublabel: "Pruébalo ahora",                    price: "$0.99", days: 1  },
+      { id: "7days", label: "VIP 7 Días",  sublabel: "Una semana épica",                  price: "$2.99", days: 7  },
+      { id: "15days",label: "VIP 15 Días", sublabel: "Medio mes de dominio",              price: "$4.99", days: 15 },
+      { id: "30days",label: "VIP 30 Días", sublabel: "Mejor relación calidad-precio",     price: "$7.99", days: 30, best: true }
+    ],
+    benefits: [
+      { icon: "💬", title: "Color VIP en Chat",   desc: "Tu nombre aparece en dorado para todos en el chat global" },
+      { icon: "🖼️", title: "Marco Exclusivo",     desc: "Marco especial animado en tu level y tier" },
+      { icon: "💎", title: "Ícono Diamante",       desc: "Ícono de diamante brillante junto a tu nombre" },
+      { icon: "🏅", title: "Sello VIP",            desc: "Sello VIP mostrado en modales, perfil y lista de jugadores" },
+      { icon: "🛍️", title: "Tienda VIP",          desc: "Acceso a la tienda exclusiva con artículos únicos" },
+      { icon: "🚀", title: "Naves Premium",        desc: "Skins exclusivos de naves con visuales épicos" },
+      { icon: "🎨", title: "Íconos de Perfil",     desc: "Avatares e íconos de perfil exclusivos VIP" },
+      { icon: "⚡", title: "Efectos Visuales",     desc: "Colores y efectos especiales en disparos, rayos y explosiones" },
+      { icon: "😎", title: "Emojis Especiales",    desc: "Pack de emojis exclusivos para usar en el chat" }
+    ]
+  },
 };
