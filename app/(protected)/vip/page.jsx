@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
+import { AVATAR_OPTIONS } from "@/app/lib/avatarOptions";
 
 const PLAN_ACCENTS = {
   "1day":   "#00E5FF",
@@ -24,7 +25,15 @@ export default function VIPPage() {
   const [selectedPlan, setSelectedPlan] = useState("30days");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [profile, setProfile] = useState(null);
+  const [profileUserId, setProfileUserId] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // VIP customization
+  const [vipNameColor, setVipNameColor] = useState("#FFD700");
+  const [vipFrameColor, setVipFrameColor] = useState("#FFD700");
+  const [vipAvatar, setVipAvatar] = useState(null);
+  const [vipSaving, setVipSaving] = useState(false);
+  const [vipSaveMessage, setVipSaveMessage] = useState("");
 
   // Reset to PIX when language is PT, credit card otherwise
   useEffect(() => {
@@ -36,12 +45,33 @@ export default function VIPPage() {
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }) => {
       if (data?.user) {
-        const { data: prof } = await supabase
+        setProfileUserId(data.user.id);
+        // Try to fetch VIP color columns — may not exist yet if migration hasn't run
+        let prof = null;
+        const { data: fullProf, error: fullErr } = await supabase
           .from("profiles")
-          .select("username, is_vip, vip_expires_at")
+          .select("username, is_vip, vip_expires_at, vip_name_color, vip_frame_color")
           .eq("id", data.user.id)
           .maybeSingle();
+        if (fullErr) {
+          // Columns might not exist — fallback select
+          const { data: basicProf } = await supabase
+            .from("profiles")
+            .select("username, is_vip, vip_expires_at")
+            .eq("id", data.user.id)
+            .maybeSingle();
+          prof = basicProf;
+        } else {
+          prof = fullProf;
+        }
         setProfile(prof);
+        if (prof?.vip_name_color) setVipNameColor(prof.vip_name_color);
+        if (prof?.vip_frame_color) setVipFrameColor(prof.vip_frame_color);
+        // Load avatar from localStorage (saved client-side)
+        if (typeof window !== "undefined") {
+          const savedAvatar = localStorage.getItem("thor_vip_avatar");
+          if (savedAvatar) setVipAvatar(savedAvatar);
+        }
       }
     });
   }, []);
@@ -58,6 +88,33 @@ export default function VIPPage() {
       )
     : null;
 
+  const handleSaveVipCustomization = async () => {
+    if (!profileUserId || vipSaving) return;
+    setVipSaving(true);
+    setVipSaveMessage("");
+    const updatePayload = { vip_name_color: vipNameColor, vip_frame_color: vipFrameColor };
+    if (vipAvatar) updatePayload.avatar_preset = vipAvatar;
+    const { error } = await supabase
+      .from("profiles")
+      .update(updatePayload)
+      .eq("id", profileUserId);
+    setVipSaving(false);
+    if (error) {
+      setVipSaveMessage(vip.saveError || "Erro ao salvar");
+    } else {
+      setVipSaveMessage(vip.saveSuccess || "Salvo!");
+      // Persist in localStorage for game
+      if (typeof window !== "undefined") {
+        localStorage.setItem("thor_vip_name_color", vipNameColor);
+        localStorage.setItem("thor_vip_frame_color", vipFrameColor);
+        if (vipAvatar) localStorage.setItem("thor_vip_avatar", vipAvatar);
+        // Notify other components
+        window.dispatchEvent(new Event("thor_vip_avatar_changed"));
+      }
+      setTimeout(() => setVipSaveMessage(""), 3000);
+    }
+  };
+
   const paymentLabel =
     paymentMethod === "pix"    ? (vip.pixLabel    || "PIX") :
     paymentMethod === "credit" ? (vip.creditLabel || "Credit Card") :
@@ -65,6 +122,8 @@ export default function VIPPage() {
 
   return (
     <div style={pageStyle}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
+      <div style={{ position: "relative", zIndex: 1 }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
         @keyframes crownGlow {
@@ -112,41 +171,23 @@ export default function VIPPage() {
         }
       `}</style>
 
-      {/* Back + Header */}
-      <div style={topBarStyle}>
+      {/* Back + Title */}
+      <div style={{ ...topBarStyle, justifyContent: "flex-start", gap: 20 }}>
         <Link href="/mode" style={backBtnStyle}>
           ← {vip.back || "Back"}
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 26, animation: "crownGlow 2s infinite" }}>👑</span>
-          <span style={{
-            fontSize: 20,
-            fontWeight: 900,
-            fontFamily: "'Orbitron', sans-serif",
-            background: "linear-gradient(90deg, #FFD700, #FFF8A0, #FFD700)",
-            backgroundSize: "200% auto",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            animation: "shimmer 3s linear infinite",
-          }}>
-            {vip.pageTitle || "THORSPACE VIP"}
-          </span>
-        </div>
-
-        {/* Language badge (read-only — changed in Settings) */}
-        <div style={{
-          padding: "5px 14px",
-          background: "rgba(255,215,0,0.10)",
-          border: "1px solid rgba(255,215,0,0.3)",
-          borderRadius: 8,
-          fontFamily: "'Orbitron',sans-serif",
-          fontSize: 11,
-          fontWeight: 700,
-          color: "#FFD700",
-          letterSpacing: 1,
+        <span style={{
+          fontSize: 16,
+          fontWeight: 900,
+          fontFamily: "'Orbitron', sans-serif",
+          backgroundImage: "linear-gradient(90deg, #FFD700, #FFF8A0, #FFD700)",
+          backgroundSize: "200% auto",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          animation: "shimmer 3s linear infinite",
         }}>
-          {lang === "pt" ? "🇧🇷 PT" : lang === "es" ? "🇪🇸 ES" : "🇺🇸 EN"}
-        </div>
+          THORSPACE VIP
+        </span>
       </div>
 
       {/* VIP status ativo */}
@@ -179,23 +220,22 @@ export default function VIPPage() {
 
         {/* Hero section */}
         <div style={heroStyle}>
-          <span style={{ fontSize: 52, display: "block", animation: "starFloat 3s ease-in-out infinite" }}>👑</span>
           <h1 style={{
             margin: "12px 0 8px 0",
             fontSize: "clamp(22px, 4vw, 34px)",
             fontWeight: 900,
             fontFamily: "'Orbitron', sans-serif",
-            background: "linear-gradient(90deg, #FFD700 0%, #FFF8A0 50%, #FFD700 100%)",
+            backgroundImage: "linear-gradient(90deg, #FFD700 0%, #FFF8A0 50%, #FFD700 100%)",
             backgroundSize: "200% auto",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             animation: "shimmer 3s linear infinite",
             textAlign: "center",
           }}>
-            {vip.hero}
+            THORSPACE VIP
           </h1>
           <p style={{ color: "#aaa", fontSize: 15, margin: 0, textAlign: "center", maxWidth: 480 }}>
-            {vip.heroSub}
+            Eleve sua presença na galáxia.
           </p>
         </div>
 
@@ -205,7 +245,6 @@ export default function VIPPage() {
           <div style={benefitsGridStyle}>
             {benefits.map((b) => (
               <div key={b.title} className="benefit-card" style={benefitCardStyle}>
-                <span style={{ fontSize: 26, display: "block", marginBottom: 8 }}>{b.icon}</span>
                 <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 12, marginBottom: 4 }}>
                   {b.title}
                 </div>
@@ -214,6 +253,9 @@ export default function VIPPage() {
             ))}
           </div>
         </section>
+
+        {/* Planos + Payment (non-VIP only) */}
+        {!isVipActive && (<>
 
         {/* Planos */}
         <section style={{ marginBottom: 40 }}>
@@ -410,7 +452,7 @@ export default function VIPPage() {
             onClick={() => setShowPaymentModal(true)}
             style={{
               width: "100%", padding: "16px 24px",
-              background: "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
+              backgroundImage: "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
               backgroundSize: "200% auto", animation: "shimmer 3s linear infinite",
               border: "none", borderRadius: 12,
               fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
@@ -425,6 +467,207 @@ export default function VIPPage() {
             🔒 {vip.securePayment}
           </p>
         </section>
+
+        </>)}
+
+        {/* VIP Customization Panel */}
+        {isVipActive && (
+          <section style={{ marginBottom: 60 }}>
+            <h2 style={sectionTitleStyle}>💎 {vip.customizationTitle || "Personalização VIP"}</h2>
+
+            {/* Live preview */}
+            <div style={{
+              background: "linear-gradient(135deg, rgba(255,215,0,0.08) 0%, rgba(10,14,39,0.95) 100%)",
+              border: `2px solid ${vipFrameColor}99`,
+              borderRadius: 20,
+              padding: "28px 24px",
+              marginBottom: 28,
+              textAlign: "center",
+              boxShadow: `0 0 24px ${vipFrameColor}44`,
+            }}>
+              <div style={{ color: "#aaa", fontSize: 11, fontFamily: "'Orbitron',sans-serif", marginBottom: 14, letterSpacing: 1 }}>
+                {vip.previewLabel || "PRÉVIA AO VIVO"}
+              </div>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "12px 24px", background: "rgba(0,0,0,0.4)", borderRadius: 50, border: `2px solid ${vipFrameColor}` }}>
+                <span style={{ fontSize: 18 }}>💎</span>
+                <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 16, fontWeight: 700, color: vipNameColor }}>
+                  {profile?.username || "username"}
+                </span>
+              </div>
+            </div>
+
+            {/* Name color picker */}
+            <div style={{ marginBottom: 24, background: "rgba(255,215,0,0.04)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: 14, padding: "20px 20px" }}>
+              <div style={{ color: "#FFD700", fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+                {vip.nameColorLabel || "COR DO NOME"}
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4"].map(c => (
+                  <button key={c} onClick={() => setVipNameColor(c)} style={{
+                    width: 34, height: 34, borderRadius: "50%", background: c,
+                    border: vipNameColor === c ? "3px solid #FFF" : "3px solid rgba(255,255,255,0.2)",
+                    cursor: "pointer", boxShadow: vipNameColor === c ? `0 0 14px ${c}` : "none", flexShrink: 0, transition: "all 0.15s"
+                  }} title={c} />
+                ))}
+                <input type="color" value={vipNameColor} onChange={e => setVipNameColor(e.target.value)}
+                  style={{ width: 34, height: 34, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", padding: 2, cursor: "pointer", background: "rgba(0,0,0,0.4)", flexShrink: 0 }}
+                  title="Cor personalizada" />
+              </div>
+            </div>
+
+            {/* Profile picture picker */}
+            <div style={{ marginBottom: 24, background: "rgba(255,215,0,0.04)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: 14, padding: "20px 20px" }}>
+              <div style={{ color: "#FFD700", fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+                {vip.avatarLabel || "IMAGEM DO PERFIL"}
+              </div>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                {/* Naves padrão do jogo */}
+                {AVATAR_OPTIONS.map((opt) => {
+                  const isSelected = vipAvatar === opt.src;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setVipAvatar(opt.src)}
+                      style={{
+                        width: 64, height: 64, borderRadius: 12,
+                        border: isSelected ? `3px solid ${vipFrameColor}` : "3px solid rgba(255,255,255,0.15)",
+                        boxShadow: isSelected ? `0 0 14px ${vipFrameColor}99` : "none",
+                        cursor: "pointer", padding: 8, overflow: "hidden",
+                        background: "rgba(0,229,255,0.06)", position: "relative",
+                        transition: "all 0.15s", flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                      title={opt.name}
+                    >
+                      <img
+                        src={opt.src}
+                        alt={opt.name}
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                      />
+                      {isSelected && (
+                        <div style={{
+                          position: "absolute", bottom: 2, right: 2,
+                          width: 16, height: 16, borderRadius: "50%",
+                          background: vipFrameColor,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 9, fontWeight: 900, color: "#000",
+                        }}>✓</div>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* Naves VIP exclusivas */}
+                {[
+                  { src: "/game/images/nave_alcance_vip.png",         name: "Maya VIP (Azul)" },
+                  { src: "/game/images/nave_alcance_red_vip.png",     name: "Phoenix VIP (Vermelho)" },
+                  { src: "/game/images/nave_protecao_vip.png",        name: "Vanguard VIP (Azul)" },
+                  { src: "/game/images/nave_protecao_red_vip.png",    name: "Vanguard VIP (Vermelho)" },
+                  { src: "/game/images/nave_normal_vip.png",          name: "Titan VIP (Azul)" },
+                  { src: "/game/images/nave_normal_red_vip.png",      name: "Titan VIP (Vermelho)" },
+                ].map((opt) => {
+                  const isSelected = vipAvatar === opt.src;
+                  return (
+                    <button
+                      key={opt.src}
+                      onClick={() => setVipAvatar(opt.src)}
+                      style={{
+                        width: 64, height: 64, borderRadius: 12,
+                        border: isSelected ? `3px solid ${vipFrameColor}` : "3px solid rgba(255,215,0,0.4)",
+                        boxShadow: isSelected ? `0 0 14px ${vipFrameColor}99` : "0 0 6px rgba(255,215,0,0.15)",
+                        cursor: "pointer", padding: 8,
+                        background: "rgba(255,215,0,0.06)", position: "relative",
+                        transition: "all 0.15s", flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                      title={opt.name}
+                    >
+                      <img
+                        src={opt.src}
+                        alt={opt.name}
+                        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+                        onError={e => { e.currentTarget.style.opacity = "0.3"; }}
+                      />
+                      <span style={{ position: "absolute", top: 2, right: 3, fontSize: 8, color: "#FFD700" }}>💎</span>
+                      {isSelected && (
+                        <div style={{
+                          position: "absolute", bottom: 2, right: 2,
+                          width: 16, height: 16, borderRadius: "50%",
+                          background: vipFrameColor,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 9, fontWeight: 900, color: "#000",
+                        }}>✓</div>
+                      )}
+                    </button>
+                  );
+                })}
+
+                {/* Slots futuros */}
+                {[1, 2].map((n) => (
+                  <div
+                    key={`soon-${n}`}
+                    style={{
+                      width: 64, height: 64, borderRadius: 12,
+                      border: "2px dashed rgba(255,215,0,0.2)",
+                      background: "rgba(255,215,0,0.03)",
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center",
+                      gap: 2, flexShrink: 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>💎</span>
+                    <span style={{ fontSize: 8, color: "#FFD70066", fontFamily: "'Orbitron',sans-serif" }}>SOON</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ color: "#555", fontSize: 11, marginTop: 10 }}>
+                {vip.avatarHint || "Avatares VIP exclusivos chegando em breve. Salve para aplicar."}
+              </div>
+            </div>
+
+            {/* Frame color picker */}
+            <div style={{ marginBottom: 32, background: "rgba(255,215,0,0.04)", border: "1px solid rgba(255,215,0,0.15)", borderRadius: 14, padding: "20px 20px" }}>
+              <div style={{ color: "#FFD700", fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
+                {vip.frameColorLabel || "COR DO FRAME / BORDA"}
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4"].map(c => (
+                  <button key={c} onClick={() => setVipFrameColor(c)} style={{
+                    width: 34, height: 34, borderRadius: "50%", background: c,
+                    border: vipFrameColor === c ? "3px solid #FFF" : "3px solid rgba(255,255,255,0.2)",
+                    cursor: "pointer", boxShadow: vipFrameColor === c ? `0 0 14px ${c}` : "none", flexShrink: 0, transition: "all 0.15s"
+                  }} title={c} />
+                ))}
+                <input type="color" value={vipFrameColor} onChange={e => setVipFrameColor(e.target.value)}
+                  style={{ width: 34, height: 34, borderRadius: "50%", border: "2px solid rgba(255,255,255,0.3)", padding: 2, cursor: "pointer", background: "rgba(0,0,0,0.4)", flexShrink: 0 }}
+                  title="Cor personalizada" />
+              </div>
+            </div>
+
+            {/* Save button */}
+            <button
+              className="pay-btn"
+              onClick={handleSaveVipCustomization}
+              disabled={vipSaving}
+              style={{
+                width: "100%", padding: "16px 24px",
+                backgroundImage: vipSaving ? "none" : "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
+                backgroundColor: vipSaving ? "rgba(255,215,0,0.2)" : "transparent",
+                backgroundSize: "200% auto",
+                animation: vipSaving ? "none" : "shimmer 3s linear infinite",
+                border: "none", borderRadius: 12,
+                fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
+                color: vipSaving ? "#888" : "#000",
+                cursor: vipSaving ? "not-allowed" : "pointer", letterSpacing: 1,
+                boxShadow: "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
+              }}
+            >
+              {vipSaving ? "Salvando..."
+                : vipSaveMessage ? `✅ ${vipSaveMessage}`
+                : `${vip.saveCustomization || "SALVAR PERSONALIZAÇÃO"}`}
+            </button>
+          </section>
+        )}
       </div>
 
       {/* Modal de pagamento (placeholder) */}
@@ -492,6 +735,7 @@ export default function VIPPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -500,12 +744,12 @@ export default function VIPPage() {
 
 const pageStyle = {
   minHeight: "100dvh",
-  background: "radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)",
   paddingTop: 90,
   paddingBottom: 40,
   overflowY: "auto",
   paddingLeft: 20,
   paddingRight: 20,
+  position: "relative",
 };
 
 const topBarStyle = {

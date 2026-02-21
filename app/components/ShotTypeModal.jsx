@@ -10,8 +10,10 @@ import { useState, useEffect } from "react";
  * @param {number} shipIndex - Índice da nave (1, 2 ou 3)
  * @param {string} currentShotType - Tipo atual selecionado
  * @param {function} onConfirm - Callback ao confirmar (shotType) => void
+ * @param {boolean} isVip - Se o usuário tem VIP ativo
+ * @param {number} userLevel - Nível atual do usuário
  */
-export default function ShotTypeModal({ open, onClose, shipIndex, currentShotType, onConfirm }) {
+export default function ShotTypeModal({ open, onClose, shipIndex, currentShotType, onConfirm, isVip, userLevel }) {
   const [selectedType, setSelectedType] = useState(currentShotType || "plasma");
 
   useEffect(() => {
@@ -36,16 +38,20 @@ export default function ShotTypeModal({ open, onClose, shipIndex, currentShotTyp
       name: "Pulse Energy",
       description: "Projétil energético pulsante roxo.",
       thumbnail: "/game/images/shots/pulse.png",
-      unlocked: false,
-      unlockHint: "Desbloqueie com VIP"
+      unlocked: isVip === true,
+      unlockHint: isVip ? null : "💎 Exclusivo VIP",
+      isVipLocked: !isVip,
+      isVipExclusive: true,
     },
     {
       id: "energy",
       name: "Ion Spark",
       description: "Projétil de íons elétricos amarelo.",
       thumbnail: "/game/images/shots/energy.png",
-      unlocked: false,
-      unlockHint: "Desbloqueie no Rank 10"
+      unlocked: isVip === true,
+      unlockHint: isVip ? null : "💎 Exclusivo VIP",
+      isVipLocked: !isVip,
+      isVipExclusive: true,
     }
   ];
 
@@ -187,9 +193,11 @@ export default function ShotTypeModal({ open, onClose, shipIndex, currentShotTyp
                     : 'rgba(0,20,40,0.6)',
                   border: isSelected 
                     ? '2px solid rgba(0,229,255,0.8)' 
-                    : canSelect 
-                      ? '2px solid rgba(0,229,255,0.3)'
-                      : '2px solid rgba(100,100,100,0.3)',
+                    : type.isVipLocked
+                      ? '2px solid rgba(255,215,0,0.4)'
+                      : canSelect 
+                        ? '2px solid rgba(0,229,255,0.3)'
+                        : '2px solid rgba(100,100,100,0.3)',
                   borderRadius: 16,
                   padding: 20,
                   cursor: canSelect ? 'pointer' : 'not-allowed',
@@ -227,21 +235,30 @@ export default function ShotTypeModal({ open, onClose, shipIndex, currentShotTyp
                   borderRadius: '50%',
                   background: isSelected 
                     ? 'rgba(0,229,255,0.2)' 
-                    : !canSelect 
-                      ? 'rgba(100,100,100,0.2)'
-                      : 'transparent',
+                    : type.isVipLocked
+                      ? 'rgba(255,215,0,0.1)'
+                      : !canSelect 
+                        ? 'rgba(100,100,100,0.2)'
+                        : 'transparent',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   border: isSelected 
                     ? '2px solid #00E5FF' 
-                    : !canSelect 
-                      ? '2px solid #666'
-                      : 'none'
+                    : type.isVipLocked
+                      ? '2px solid rgba(255,215,0,0.6)'
+                      : !canSelect 
+                        ? '2px solid #666'
+                        : 'none'
                 }}>
                   {isSelected ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                       <path d="M5 13l4 4L19 7" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  ) : type.isVipLocked ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" strokeWidth="2"/>
+                      <path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   ) : !canSelect ? (
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -282,9 +299,24 @@ export default function ShotTypeModal({ open, onClose, shipIndex, currentShotTyp
                   fontWeight: 700,
                   color: isSelected ? '#00E5FF' : canSelect ? '#FFF' : '#888',
                   marginBottom: 8,
-                  fontFamily: "'Orbitron', sans-serif"
+                  fontFamily: "'Orbitron', sans-serif",
+                  display: 'flex', alignItems: 'center', gap: 10,
                 }}>
                   {type.name}
+                  {type.isVipExclusive && (
+                    <span style={{
+                      fontSize: 10, fontWeight: 900,
+                      padding: '3px 8px', borderRadius: 20,
+                      background: canSelect ? 'rgba(255,215,0,0.2)' : 'rgba(255,215,0,0.1)',
+                      border: '1px solid rgba(255,215,0,0.5)',
+                      color: '#FFD700',
+                      fontFamily: "'Orbitron', sans-serif",
+                      letterSpacing: 1,
+                      flexShrink: 0,
+                    }}>
+                      💎 VIP
+                    </span>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -322,8 +354,9 @@ export default function ShotTypeModal({ open, onClose, shipIndex, currentShotTyp
                 {!canSelect && type.unlockHint && (
                   <div style={{
                     fontSize: 11,
-                    color: '#888',
-                    fontStyle: 'italic'
+                    color: type.isVipLocked ? '#FFD700' : '#888',
+                    fontStyle: 'italic',
+                    fontWeight: type.isVipLocked ? 600 : 400
                   }}>
                     {type.unlockHint}
                   </div>

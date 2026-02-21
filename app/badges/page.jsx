@@ -162,17 +162,18 @@ export default function BadgesPage() {
   }, [router]);
 
   if (loading) {
-    return <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh" }}>{t('badges.loading')}</div>;
+    return <div style={{ color: "#FFF", minHeight: "100vh", background: "#000010" }}><div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />{t('badges.loading')}</div>;
   }
 
   return (
-    <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
+    <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
         <UserHeader />
       </div>
 
-      <main style={{ maxWidth: 1200, margin: "80px auto 0" }}>
+      <main style={{ maxWidth: 1200, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <div style={{
           display: "flex",
           alignItems: "center",

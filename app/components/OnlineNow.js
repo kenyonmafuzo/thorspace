@@ -13,7 +13,6 @@ import { useI18n } from "@/src/hooks/useI18n";
  */
 export default function OnlineNow({ currentUserId, currentUsername, currentAvatar, onChallenge, onUserClick }) {
   if (typeof window !== "undefined") {
-    console.log("[OnlineNow] MOUNTED", { currentUserId, currentUsername, currentAvatar });
   }
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -49,20 +48,14 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
     if (!currentUserId || !currentUsername) return;
 
     const startPresence = () => {
-      console.log("=== STARTING PRESENCE ===");
-      console.log("Attempt:", reconnectAttemptsRef.current + 1, "/", maxReconnectAttempts);
-      console.log("Current User:", currentUserId, currentUsername);
-      console.log("========================");
 
       // Remover apenas o canal anterior deste componente
       if (presenceChannelRef.current) {
-        console.log("⚠️ Removing existing presence channel");
         supabase.removeChannel(presenceChannelRef.current);
         presenceChannelRef.current = null;
         isTrackedRef.current = false;
       }
 
-      console.log("Creating new presence channel...");
       
       const presenceChannel = supabase.channel("presence:online-users", {
         config: {
@@ -75,35 +68,32 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
 
       // Função para reconstruir lista de usuários online
       const rebuildOnlineUsers = () => {
-        console.log("=== REBUILDING ONLINE USERS ===");
         const state = presenceChannel.presenceState();
-        console.log("Presence state:", state);
-        console.log("State keys:", Object.keys(state));
         
         const users = [];
 
         // Construir lista de usuários únicos a partir do presence state
         Object.keys(state).forEach((key) => {
           const presences = state[key];
-          console.log(`Key: ${key}, Presences:`, presences);
           
           if (presences && presences.length > 0) {
             const presence = presences[0];
-            console.log("Adding user:", presence.user_id, presence.username);
             users.push({
               userId: presence.user_id,
               username: presence.username || "Unknown",
               avatar: presence.avatar || "normal",
               status: "online",
+              isVip: presence.is_vip || false,
+              vipNameColor: presence.vip_name_color || "#FFD700",
+              vipFrameColor: presence.vip_frame_color || "#FFD700",
+              vipAvatar: presence.vip_avatar || null,
             });
           }
         });
 
-        console.log("Users before fake players:", users.length);
 
         // Adicionar fake players se a flag estiver ativada
         if (process.env.NEXT_PUBLIC_FAKE_PLAYERS === "1") {
-          console.log("Adding fake players");
           users.push(
             {
               userId: "fake-1",
@@ -122,35 +112,27 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
           );
         }
 
-        console.log("Total users after fake players:", users.length);
-        console.log("Users list:", users);
         setOnlineUsers(users);
         if (typeof window !== "undefined") {
           window.__onlineUserIds = users.map(u => u.userId);
-          console.log("[OnlineNow] window.__onlineUserIds:", window.__onlineUserIds);
         }
-        console.log("===============================");
       };
 
       // Registrar handlers de presence
       presenceChannel.on("presence", { event: "sync" }, () => {
-        console.log("🔄 Presence event: SYNC");
         rebuildOnlineUsers();
       });
 
       presenceChannel.on("presence", { event: "join" }, ({ key, newPresences }) => {
-        console.log("👋 Presence event: JOIN", key, newPresences);
         rebuildOnlineUsers();
       });
 
       presenceChannel.on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-        console.log("👋 Presence event: LEAVE", key, leftPresences);
         rebuildOnlineUsers();
       });
 
       // Subscribe e track com timeout aumentado
       const subscribeTimeout = setTimeout(() => {
-        console.log('⏱️ Subscription timeout - forçando cleanup');
         if (presenceChannelRef.current) {
           supabase.removeChannel(presenceChannelRef.current);
           presenceChannelRef.current = null;
@@ -158,18 +140,13 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
       }, 10000); // 10 segundos timeout
       
       presenceChannel.subscribe(async (status) => {
-        console.log("=== PRESENCE SUBSCRIPTION STATUS ===");
-        console.log("Status:", status);
-        console.log("===================================");
         
         if (status === "SUBSCRIBED") {
           clearTimeout(subscribeTimeout);
-          console.log("✅ Presence subscribed successfully");
           // Reset contador de tentativas após sucesso
           reconnectAttemptsRef.current = 0;
           
           if (!isTrackedRef.current) {
-            console.log("Tracking user...");
             isTrackedRef.current = true;
             
             await presenceChannel.track({
@@ -177,14 +154,17 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
               username: currentUsername,
               avatar: currentAvatar || "normal",
               online_at: new Date().toISOString(),
+              // VIP data from localStorage (set by UserHeader on load)
+              is_vip: localStorage.getItem("thor_is_vip") === "true",
+              vip_name_color: localStorage.getItem("thor_vip_name_color") || "#FFD700",
+              vip_frame_color: localStorage.getItem("thor_vip_frame_color") || "#FFD700",
+              vip_avatar: localStorage.getItem("thor_vip_avatar") || null,
             });
             
-            console.log("✅ User tracked successfully");
             setLoading(false);
             
             // Rebuild inicial após subscribe e track
             setTimeout(() => {
-              console.log("Calling initial rebuildOnlineUsers...");
               rebuildOnlineUsers();
             }, 500);
           }
@@ -205,9 +185,6 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
           if (reconnectAttemptsRef.current <= maxReconnectAttempts) {
             // Backoff: 1.2s, 2s, 3s, 4.2s, 5.8s
             const backoffDelay = Math.min(1200 * reconnectAttemptsRef.current, 6000);
-            console.log(
-              `⏳ Agendando reconexão Presence em ${backoffDelay}ms (tentativa ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
-            );
             
             reconnectTimeoutRef.current = setTimeout(() => {
               startPresence();
@@ -221,7 +198,6 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
       });
 
       presenceChannelRef.current = presenceChannel;
-      console.log("✅ Presence channel created and stored in ref");
     };
 
     // Iniciar presence
@@ -229,7 +205,6 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
 
     // Cleanup no unmount
     return () => {
-      console.log("=== PRESENCE CLEANUP (unmount) ===");
       
       // Limpar timeout de reconexão
       if (reconnectTimeoutRef.current) {
@@ -242,13 +217,11 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
         supabase.removeChannel(presenceChannelRef.current);
         presenceChannelRef.current = null;
         isTrackedRef.current = false;
-        console.log("Presence channel removed");
       }
       
       // Reset contador
       reconnectAttemptsRef.current = 0;
       
-      console.log("==================================");
     };
   }, [currentUserId, currentUsername, currentAvatar]);
 
@@ -323,7 +296,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
                 onClick={() => onUserClick?.(user)}
               >
                 <img
-                  src={getAvatarSrc(user.avatar)}
+                  src={user.isVip && user.vipAvatar ? user.vipAvatar : getAvatarSrc(user.avatar)}
                   alt="avatar"
                   style={{ width: 24, height: 24, objectFit: "contain" }}
                 />
@@ -383,12 +356,22 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
                 />
                 {/* Avatar */}
                 <img
-                  src={getAvatarSrc(user.avatar)}
+                  src={user.isVip && user.vipAvatar ? user.vipAvatar : getAvatarSrc(user.avatar)}
                   alt="avatar"
-                  style={{ width: 24, height: 24, objectFit: "contain" }}
+                  style={{
+                    width: 24, height: 24, objectFit: "contain",
+                    borderRadius: "50%",
+                    border: "none",
+                    boxShadow: "none",
+                  }}
                 />
                 {/* Username */}
-                <span style={usernameStyle}>
+                <span style={{
+                  ...usernameStyle,
+                  color: user.isVip ? user.vipNameColor : undefined,
+                  display: "inline-flex", alignItems: "center", gap: 3,
+                }}>
+                  {user.isVip && <span style={{ fontSize: 9, lineHeight: 1 }}>💎</span>}
                   {user.username || "Player"}
                   {isCurrentUser && <span style={{ color: "#FFD700" }}> ({t('multiplayer.you')})</span>}
                 </span>

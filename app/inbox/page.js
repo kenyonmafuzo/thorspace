@@ -37,7 +37,7 @@ export default function InboxPage() {
         // Busca notificações da tabela inbox
         const { data: notifs, error: notifErr } = await supabase
           .from("inbox")
-          .select("id, type, content, cta, cta_url, created_at, lang, meta")
+          .select("id, type, title, content, cta, cta_url, created_at, lang, meta")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         if (notifErr) throw notifErr;
@@ -79,7 +79,8 @@ export default function InboxPage() {
 
   // --- UI ---
   return (
-    <div style={{ minHeight: "100vh", background: "radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", position: "relative" }}>
+    <div style={{ minHeight: "100vh", background: "#000010", position: "relative" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <UserHeader />
       <div style={{
@@ -91,6 +92,7 @@ export default function InboxPage() {
         gap: 32,
         marginTop: 0,
         position: "relative",
+        zIndex: 1,
         paddingTop: 90
       }}>
         {/* Sombra no topo ao rolar */}
@@ -240,7 +242,7 @@ export default function InboxPage() {
                           : t(`inbox.${notif.type}`, { username }) || `Notificação: ${notif.type}`;
                       }
                       // Definir CTA padrão apenas para notificações de amizade (não badge_unlocked, daily_login, streak_broken)
-                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.cta && t(`inbox.cta_friends`)) {
+                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "system" && notif.cta && t(`inbox.cta_friends`)) {
                         cta = t(`inbox.cta_friends`);
                       }
                       return (

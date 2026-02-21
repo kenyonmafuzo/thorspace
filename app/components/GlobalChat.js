@@ -39,6 +39,11 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     const [badgeModalOpen, setBadgeModalOpen] = useState(false);
     const [badgeModalData, setBadgeModalData] = useState(null);
 
+    // VIP state
+    const [currentUserIsVip, setCurrentUserIsVip] = useState(false);
+    const [currentVipNameColor, setCurrentVipNameColor] = useState("#FFD700");
+    const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+
     // Permitir abrir stats modal com TAB (deve vir DEPOIS dos states E hooks)
     useEffect(() => {
       const handleTabDown = (e) => {
@@ -76,7 +81,10 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       
       try {
         const [profileRes, statsRes, progressRes] = await Promise.all([
-          supabase.from("profiles").select("badges").eq("id", currentUserId).single(),
+          supabase.from("profiles").select("badges, is_vip, vip_name_color, vip_expires_at").eq("id", currentUserId).single().then(r => r.error
+            ? supabase.from("profiles").select("badges, is_vip").eq("id", currentUserId).single()
+            : r
+          ),
           supabase.from("player_stats").select("*").eq("user_id", currentUserId).single(),
           supabase.from("player_progress").select("total_xp").eq("user_id", currentUserId).single()
         ]);
@@ -112,6 +120,13 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         });
 
         setUserBadges(allBadges);
+
+        // VIP status
+        const vipActive = profile.is_vip === true &&
+          (!profile.vip_expires_at || new Date(profile.vip_expires_at) > new Date());
+        setCurrentUserIsVip(vipActive);
+        const storedColor = typeof window !== "undefined" ? localStorage.getItem("thor_vip_name_color") : null;
+        setCurrentVipNameColor(storedColor || profile.vip_name_color || "#FFD700");
       } catch (error) {
         console.error("Error loading badges:", error);
       }
@@ -301,13 +316,16 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     lastMessageTimeRef.current = now;
 
     try {
+      const vipAvatarUrl = currentUserIsVip
+        ? (typeof window !== "undefined" ? localStorage.getItem("thor_vip_avatar") : null)
+        : null;
       const payload = {
         user_id: currentUserId,
         username: currentUsername ?? localStorage.getItem("thor_username") ?? "Unknown",
-        avatar: currentAvatar ?? null,
+        avatar: vipAvatarUrl || currentAvatar || null,
         type: "user",
         message: sanitizedMessage,
-        meta: selectedBadge ? { badge: selectedBadge } : {},
+        meta: { ...(selectedBadge ? { badge: selectedBadge } : {}), ...(currentUserIsVip ? { is_vip: true, vip_name_color: currentVipNameColor } : {}) },
       };
 
       const { data, error } = await supabase
@@ -372,6 +390,10 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
   };
 
   const getAvatarImage = (avatar) => {
+    // If already a URL (VIP custom avatar or absolute path), use directly
+    if (avatar && (avatar.startsWith("/") || avatar.startsWith("http"))) {
+      return avatar;
+    }
     const avatarMap = {
       normal: "/game/images/nave_normal.png",
       protecao: "/game/images/nave_protecao.png",
@@ -437,7 +459,16 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
               }
 
               return (
-                <div key={msg.id} style={messageItemStyle}>
+                <div key={msg.id} style={{
+                  ...messageItemStyle,
+                  ...(msg.meta?.is_vip ? {
+                    background: `linear-gradient(90deg, rgba(255,215,0,0.06) 0%, transparent 40%)`,
+                    borderLeft: `2px solid ${msg.meta.vip_name_color || '#FFD700'}55`,
+                    borderRadius: 8,
+                    paddingLeft: 8,
+                    marginLeft: -8,
+                  } : {})
+                }}>
                   {/* Avatar */}
                   <img
                     src={getAvatarImage(msg.avatar)}
@@ -452,9 +483,14 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
                         style={{
                           fontSize: 13,
                           fontWeight: 600,
-                          color: isCurrentUser ? "#FFD700" : "#00E5FF",
+                          color: msg.meta?.is_vip
+                            ? (msg.meta.vip_name_color || "#FFD700")
+                            : isCurrentUser ? "#FFD700" : "#00E5FF",
                           cursor: "pointer",
                           textDecoration: "underline dotted",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
                         }}
                         title={t("multiplayer.viewStats")}
                         onClick={() => {
@@ -466,6 +502,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
                           }
                         }}
                       >
+                        {msg.meta?.is_vip && <span style={{ fontSize: 11 }}>💎</span>}
                         {msg.username || "Unknown"}
                       </span>
                       <span style={{ fontSize: 10, color: "#999" }}>
@@ -652,6 +689,95 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
                       style={{ width: '70%', height: '70%', objectFit: 'contain' }}
                     />
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* VIP Emoji Picker Button - only for VIP users */}
+          {currentUserIsVip && (
+            <button
+              type="button"
+              onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
+              style={{
+                background: emojiPickerOpen ? 'rgba(255,215,0,0.2)' : 'rgba(255,215,0,0.08)',
+                border: `1px solid ${emojiPickerOpen ? 'rgba(255,215,0,0.7)' : 'rgba(255,215,0,0.3)'}`,
+                borderRadius: 8,
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+                fontSize: 18,
+                position: 'relative',
+              }}
+              title="Emojis VIP"
+            >
+              💎
+            </button>
+          )}
+
+          {/* VIP Emoji Panel */}
+          {emojiPickerOpen && currentUserIsVip && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: 50,
+              marginBottom: 8,
+              background: 'rgba(10,10,25,0.98)',
+              border: '1px solid rgba(255,215,0,0.4)',
+              borderRadius: 12,
+              padding: 12,
+              minWidth: 250,
+              boxShadow: '0 -4px 20px rgba(255,215,0,0.15)',
+              zIndex: 100
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 10,
+                paddingBottom: 8,
+                borderBottom: '1px solid rgba(255,215,0,0.2)'
+              }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#FFD700', fontFamily: "'Orbitron',sans-serif" }}>
+                  💎 VIP Emojis
+                </span>
+                <button type="button" onClick={() => setEmojiPickerOpen(false)}
+                  style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 16, padding: 0 }}>
+                  ×
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {['🔥','⚡','🌟','👾','💥','🌀','☄️','🎯','💫','🛸','🏆','💣','🎮','🌈','🦄','👑','🔮','⚔️','🛡️','🎆'].map(emoji => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => {
+                      setNewMessage(prev => prev + emoji);
+                      setEmojiPickerOpen(false);
+                    }}
+                    style={{
+                      background: 'rgba(255,215,0,0.08)',
+                      border: '1px solid rgba(255,215,0,0.2)',
+                      borderRadius: 8,
+                      width: 38,
+                      height: 38,
+                      fontSize: 20,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,215,0,0.2)'; e.currentTarget.style.transform = 'scale(1.15)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,215,0,0.08)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                  >
+                    {emoji}
+                  </button>
                 ))}
               </div>
             </div>

@@ -33,6 +33,8 @@ export const AVATAR_OPTIONS = [
 
 // Helper: get avatar src by value
 export function getAvatarSrc(value) {
+  // If value is already a full path (VIP custom avatar), use it directly
+  if (value && value.startsWith('/')) return value;
   const found = AVATAR_OPTIONS.find(a => a.value === value);
   return found ? found.src : AVATAR_OPTIONS[0].src;
 }

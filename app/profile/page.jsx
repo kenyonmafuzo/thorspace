@@ -406,11 +406,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
+      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
         </div>
-        <main style={{ maxWidth: 700, margin: "80px auto 0" }}>
+        <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
           <p>Carregando perfil...</p>
         </main>
       </div>
@@ -419,11 +420,12 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
+      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
         </div>
-        <main style={{ maxWidth: 700, margin: "80px auto 0" }}>
+        <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
           <p>Erro ao carregar perfil. Tente novamente.</p>
         </main>
       </div>
@@ -433,13 +435,14 @@ export default function ProfilePage() {
 
 
   return (
-    <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
+    <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
         <UserHeader />
       </div>
 
-      <main style={{ maxWidth: 700, margin: "80px auto 0" }}>
+      <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 40, fontFamily: "'Orbitron', sans-serif" }}>Perfil</h1>
 
         {/* SEÇÃO 1: USERNAME */}
@@ -523,9 +526,8 @@ export default function ProfilePage() {
                 <img
                   src={ship.src}
                   alt={ship.name}
-                  style={{ width: 50, height: "auto", marginBottom: 8, opacity: 0.8 }}
+                  style={{ width: 50, height: "auto", opacity: 0.8 }}
                 />
-                <p style={{ fontSize: 11, fontWeight: 500 }}>{ship.name}</p>
               </div>
             ))}
           </div>

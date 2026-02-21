@@ -24,29 +24,33 @@ import { getAvatarSrc } from "@/app/lib/avatarOptions";
 import { createInboxMessage } from "@/lib/inbox";
 import { useI18n } from "@/src/hooks/useI18n";
 
+const galaxyBg = (
+  <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
+);
 const pageContainerStyle = {
   width: "100%",
   minHeight: "100vh",
-  background:
-    "radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)",
-  backgroundSize: "cover",
-  backgroundPosition: "center",
+  background: "#000010",
   display: "flex",
   flexDirection: "column",
   paddingTop: 100,
   paddingLeft: 0,
   paddingRight: 0,
-  alignItems: "center"
+  alignItems: "center",
+  position: "relative",
+  zIndex: 1,
 };
 const topRowStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-start",
-  gap: 16,
-  padding: "24px 0 0 24px",
+  flexWrap: "wrap",
+  gap: 12,
+  padding: "24px 24px 0 24px",
   width: "100%",
   maxWidth: 1100,
   margin: 0,
+  boxSizing: "border-box",
   position: "relative",
   zIndex: 1,
 };
@@ -57,27 +61,31 @@ const titleStyle = {
   color: "#00E5FF",
   fontFamily: "'Orbitron',sans-serif",
   letterSpacing: 1,
-  marginLeft: -23
+  flexShrink: 0,
 };
 const searchInputStyle = {
-  width: 260,
+  width: "100%",
+  maxWidth: 280,
+  minWidth: 160,
   padding: '10px 16px',
   borderRadius: 8,
   border: '1px solid #222',
   background: '#181c24',
   color: '#fff',
   fontSize: 16,
-  marginLeft: 0,
-  marginBottom: 0
+  boxSizing: "border-box",
+  flexShrink: 1,
 };
 const tabsRowStyle = {
   display: "flex",
-  gap: 0,
+  flexWrap: "wrap",
+  gap: 8,
   margin: "18px 0 0 0",
   width: "100%",
   maxWidth: 1100,
-  paddingLeft: 0,
-  paddingRight: 0,
+  paddingLeft: 24,
+  paddingRight: 24,
+  boxSizing: "border-box",
 };
 const gridStyle = {
   display: "grid",
@@ -95,8 +103,6 @@ const gridContainerStyle = {
   width: "100%",
   maxWidth: 1100,
   minWidth: 0,
-  marginLeft: 0,
-  marginRight: "auto",
   paddingLeft: 24,
   paddingRight: 24,
   boxSizing: "border-box",
@@ -725,7 +731,7 @@ export default function FriendsPage() {
             }}
             title="Cancelar pedido de amizade"
           >
-            Pending
+            {t("friends.pending")}
           </span>
         )}
         {tabType === "Friends" && (
@@ -738,7 +744,7 @@ export default function FriendsPage() {
             }}
             title="Cancelar amizade"
           >
-            Friend
+            {t("friends.friend_tag")}
           </span>
         )}
       </div>
@@ -854,7 +860,7 @@ if (typeof window !== "undefined") {
           </div>
         </div>
         {isPending ? (
-          <span style={{ background: 'rgba(0,229,255,0.10)', color: '#00E5FF', border: '1px solid #00E5FF44', borderRadius: 8, padding: '6px 18px', fontWeight: 700, fontSize: 14, opacity: 0.7 }}>Pending</span>
+          <span style={{ background: 'rgba(0,229,255,0.10)', color: '#00E5FF', border: '1px solid #00E5FF44', borderRadius: 8, padding: '6px 18px', fontWeight: 700, fontSize: 14, opacity: 0.7 }}>{t("friends.pending")}</span>
         ) : (
           <button
             onClick={async (e) => {
@@ -892,26 +898,28 @@ if (typeof window !== "undefined") {
 
   return (
     <div style={pageContainerStyle}>
+      {galaxyBg}
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet" />
       <div style={topRowStyle}>
-        <h2 style={titleStyle}>Friends</h2>
+        <h2 style={titleStyle}>{t("friends.title")}</h2>
         <div style={{ flex: 1 }} />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search players..."
+          placeholder={t("friends.search_placeholder")}
           style={searchInputStyle}
         />
       </div>
       <div style={tabsRowStyle}>
-        {TABS.map(t => {
-          const selected = !search || search.length < 2 ? tab === t : false;
+        {TABS.map(tabKey => {
+          const selected = !search || search.length < 2 ? tab === tabKey : false;
+          const TAB_LABEL = { Friends: t("friends.tab_friends"), Requests: t("friends.tab_requests"), Sent: t("friends.tab_sent") };
           return (
             <button
-              key={t}
+              key={tabKey}
               onClick={() => {
-                setTab(t);
+                setTab(tabKey);
                 setSearch("");
               }}
               style={{
@@ -925,25 +933,24 @@ if (typeof window !== "undefined") {
                 fontSize: 16,
                 cursor: 'pointer',
                 opacity: selected ? 1 : 0.8,
-                marginRight: 8
               }}
             >
-              {t}
+              {TAB_LABEL[tabKey]}
             </button>
           );
         })}
       </div>
       {search && search.length >= 2 && (
-        <div style={{ margin: '24px 0' }}>
-          {searchLoading ? <div style={{ color: '#aaa' }}>Searching...</div> :
+        <div style={{ width: "100%", maxWidth: 1100, margin: '24px 0', paddingLeft: 24, paddingRight: 24, boxSizing: 'border-box' }}>
+          {searchLoading ? <div style={{ color: '#aaa' }}>{t("friends.searching")}</div> :
             (!Array.isArray(searchResults) || searchResults.length === 0)
-              ? <div style={{ color: '#aaa' }}>No results</div>
+              ? <div style={{ color: '#aaa' }}>{t("friends.no_results")}</div>
               : <div style={gridContainerStyle}><div style={gridStyle}>{searchResults.map(renderSearchResult)}</div></div>}
         </div>
       )}
       {!search && (
-        <div style={{ minHeight: 220, marginTop: 24 }}>
-          {loading ? <div style={{ color: '#aaa' }}>Loading...</div> :
+        <div style={{ width: "100%", maxWidth: 1100, minHeight: 220, marginTop: 24, boxSizing: 'border-box' }}>
+          {loading ? <div style={{ color: '#aaa' }}>{t("friends.loading")}</div> :
             list.length === 0 ? (
               <div style={{ color: '#aaa', textAlign: 'center', maxWidth: 400, margin: '0 auto' }}>
                 {tab === "Friends" && (

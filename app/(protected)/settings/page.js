@@ -114,6 +114,15 @@ export default function SettingsPage() {
     setSettings(newSettings);
     localStorage.setItem("thor_settings_v1", JSON.stringify(newSettings));
     
+    // Broadcast audio settings change to any active game iframe
+    if (path.startsWith("audio.")) {
+      try {
+        document.querySelectorAll('iframe').forEach(f => {
+          f.contentWindow?.postMessage({ type: 'THOR:AUDIO_SETTINGS' }, '*');
+        });
+      } catch(e) {}
+    }
+    
     // Dispatch language change event if language setting changed
     if (path === "ui.language") {
       window.dispatchEvent(new CustomEvent("THOR:LANG_CHANGED"));
@@ -126,8 +135,9 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
-        <main style={{ maxWidth: 700, margin: "80px auto 0" }}>
+      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+        <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
+        <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
           <p>{t("common.loading")}</p>
         </main>
       </div>
@@ -137,9 +147,10 @@ export default function SettingsPage() {
   const masterOn = settings.audio.master;
 
   return (
-    <div style={{ background: "#0f0f1e", color: "#FFF", minHeight: "100vh", padding: "40px 20px" }}>
+    <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet" />
-      <main style={{ maxWidth: 680, margin: "80px auto 0" }}>
+      <main style={{ maxWidth: 680, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 40, fontFamily: "'Orbitron', sans-serif" }}>{t("settings.title")}</h1>
 
         {/* ÁUDIO */}
@@ -176,36 +187,6 @@ export default function SettingsPage() {
               checked={settings.audio.sfx}
               onChange={(checked) => updateSetting("audio.sfx", checked)}
               disabled={!masterOn}
-            />
-          </SettingRow>
-        </div>
-
-        {/* JOGO */}
-        <div style={cardStyle}>
-          <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 20, fontFamily: "'Orbitron', sans-serif" }}>{t("settings.game")}</h2>
-
-          <SettingRow label={t("settings.tutorial")} description={t("settings.tutorialDesc")} hasBorder={true}>
-            <Toggle
-              checked={settings.game.tutorial}
-              onChange={(checked) => updateSetting("game.tutorial", checked)}
-            />
-          </SettingRow>
-
-          <SettingRow label={t("settings.animations")} description={t("settings.animationsDesc")} hasBorder={true}>
-            <Toggle
-              checked={settings.game.animations}
-              onChange={(checked) => updateSetting("game.animations", checked)}
-            />
-          </SettingRow>
-
-          <SettingRow
-            label={t("settings.confirmActions")}
-            description={t("settings.confirmActionsDesc")}
-            hasBorder={false}
-          >
-            <Toggle
-              checked={settings.game.confirmActions}
-              onChange={(checked) => updateSetting("game.confirmActions", checked)}
             />
           </SettingRow>
         </div>

@@ -23,6 +23,13 @@ export default function UserHeader() {
   const hasUnreadInvites = useUnreadInvites(userId);
   const hasUnreadInbox = useUnreadInboxNotifications(userId);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [isVipActive, setIsVipActive] = useState(false);
+  const [vipNameColor, setVipNameColor] = useState('#FFD700');
+  const [vipFrameColor, setVipFrameColor] = useState('#FFD700');
+  const [vipAvatarUrl, setVipAvatarUrl] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('thor_vip_avatar') || '';
+    return '';
+  });
     // Tooltip state for each button
     const [hoveredBtn, setHoveredBtn] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -37,10 +44,52 @@ export default function UserHeader() {
     });
   }, []);
 
+  // Fetch VIP status when userId is ready
+  useEffect(() => {
+    if (!userId) return;
+    supabase.from("profiles").select("is_vip, vip_expires_at, vip_name_color, vip_frame_color").eq("id", userId).single().then(({ data, error }) => {
+      // If color columns don't exist, fall back to basic VIP check
+      const profile = error ? null : data;
+      let basicFallback = false;
+      if (error) {
+        supabase.from("profiles").select("is_vip, vip_expires_at").eq("id", userId).single().then(({ data: bd }) => {
+          if (!bd) return;
+          const active = bd.is_vip === true && (!bd.vip_expires_at || new Date(bd.vip_expires_at) > new Date());
+          setIsVipActive(active);
+          try { localStorage.setItem('thor_is_vip', active ? 'true' : 'false'); } catch(e) {}
+        });
+        return;
+      }
+      if (!profile) return;
+      const active = profile.is_vip === true && (!profile.vip_expires_at || new Date(profile.vip_expires_at) > new Date());
+      setIsVipActive(active);
+      if (active) {
+        if (profile.vip_name_color) setVipNameColor(profile.vip_name_color);
+        if (profile.vip_frame_color) setVipFrameColor(profile.vip_frame_color);
+        try {
+          localStorage.setItem('thor_is_vip', 'true');
+          if (profile.vip_name_color) localStorage.setItem('thor_vip_name_color', profile.vip_name_color);
+          if (profile.vip_frame_color) localStorage.setItem('thor_vip_frame_color', profile.vip_frame_color);
+        } catch(e) {}
+      } else {
+        try { localStorage.setItem('thor_is_vip', 'false'); } catch(e) {}
+      }
+    });
+  }, [userId]);
+
 
   // Logs removidos para evitar rebuilds constantes
 
   // Atualiza header imediatamente após stats/XP serem atualizados pelo jogo
+  useEffect(() => {
+    function handleVipAvatarChanged() {
+      const url = localStorage.getItem('thor_vip_avatar') || '';
+      setVipAvatarUrl(url);
+    }
+    window.addEventListener('thor_vip_avatar_changed', handleVipAvatarChanged);
+    return () => window.removeEventListener('thor_vip_avatar_changed', handleVipAvatarChanged);
+  }, []);
+
   useEffect(() => {
     function handleStatsUpdated() {
       refreshUserStats && refreshUserStats("thor_stats_updated");
@@ -130,7 +179,24 @@ export default function UserHeader() {
   return (
     <>
       <div id="userHeader" style={headerStyle}>
-        {/* Navigation Links */}
+        {/* Logo — upper left */}
+        <img
+          src="/game/images/thorspace.png"
+          alt="ThorSpace"
+          onClick={() => handleNavigation("/mode")}
+          style={{
+            position: "absolute",
+            left: -14,
+            top: "50%",
+            transform: "translateY(-50%)",
+            height: 178,
+            width: "auto",
+            cursor: "pointer",
+            objectFit: "contain",
+            filter: "drop-shadow(0 0 6px rgba(0,229,255,0.35))",
+            userSelect: "none",
+          }}
+        />
         {/* Jogar SVG Icon Button */}
         <div style={{ position: "relative", display: "inline-block" }}>
           <button
@@ -243,7 +309,7 @@ export default function UserHeader() {
             onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 8px 2px #FFD70088"; e.currentTarget.style.background = "rgba(255,215,0,0.15)"; setHoveredBtn("vip"); }}
             onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 0 0 0 #FFD70000"; e.currentTarget.style.background = "rgba(255,215,0,0.08)"; setHoveredBtn(null); }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ position: 'relative', top: '-3px' }}>
               <path d="M2 19h20v2H2v-2zM3 8l5 5 4-7 4 7 5-5V17H3V8z" fill="#FFD700"/>
             </svg>
           </button>
@@ -308,8 +374,9 @@ export default function UserHeader() {
                     display: "flex",
                     alignItems: "center",
                     gap: 12,
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.15)",
+                    background: isVipActive ? "rgba(255,215,0,0.07)" : "rgba(255,255,255,0.06)",
+                    border: isVipActive ? `1px solid ${vipFrameColor}66` : "1px solid rgba(255,255,255,0.15)",
+                    boxShadow: isVipActive ? `0 0 12px ${vipFrameColor}33` : "none",
                     borderRadius: 50,
                     padding: "12px 18px",
                     backdropFilter: "blur(6px)",
@@ -318,25 +385,30 @@ export default function UserHeader() {
                     cursor: "pointer",
                     transition: "background 0.2s",
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.09)"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.06)"}
+                  onMouseEnter={(e) => e.currentTarget.style.background = isVipActive ? "rgba(255,215,0,0.12)" : "rgba(255,255,255,0.09)"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = isVipActive ? "rgba(255,215,0,0.07)" : "rgba(255,255,255,0.06)"}
                 >
                   {/* Ship Image */}
                   <img
-                    src={getAvatarSrc(userStats.avatar_preset || "normal")}
+                    src={isVipActive && vipAvatarUrl ? vipAvatarUrl : getAvatarSrc(userStats.avatar_preset || "normal")}
                     alt="Nave"
                     style={{ width: 24, height: "auto" }}
+                    onError={e => { e.currentTarget.src = getAvatarSrc(userStats.avatar_preset || "normal"); }}
                   />
                   {/* Username Text */}
                   <span
                     style={{
-                      color: "#FFF",
+                      color: isVipActive ? vipNameColor : "#FFF",
                       fontSize: 12,
                       fontWeight: 700,
                       userSelect: "none",
                       fontFamily: "'Orbitron',sans-serif",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
                     }}
                   >
+                    {isVipActive && <span style={{ fontSize: 11 }}>💎</span>}
                     {(() => {
                       let displayUsername = userStats?.username;
                       if (typeof window !== "undefined") {

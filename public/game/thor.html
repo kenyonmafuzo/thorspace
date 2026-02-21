@@ -175,10 +175,26 @@ background: rgba(0, 165, 242, 0.04);
 #timerText {
   font-size:38px;
 }
+#bgm-mute-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  display: none;
+  align-items: center;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+#bgm-mute-btn:hover { opacity: 1; }
 #legendArea {
   flex: 1 1 0%;
   width: auto;
-  min-width: 680px;
+  min-width: 580px;
   max-width: 900px;
   min-height: 64px;
   margin: 0;
@@ -343,8 +359,9 @@ background: rgba(0, 165, 242, 0.04);
   border-radius: 20px;
   padding: 24px;
   width: 200px;
+  box-sizing: border-box;
   text-align: center;
-  box-shadow: 0 0 20px #0ff5;
+  box-shadow: none;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   cursor: pointer;
@@ -353,12 +370,29 @@ background: rgba(0, 165, 242, 0.04);
   overflow: visible; /* antes estava hidden */
   z-index: 1;
 }
+/* glow only when the card is actually visible in the carousel window */
+.carousel-in-view .nave-card {
+  box-shadow: 0 0 20px #0ff5;
+}
+.carousel-in-view .vip-nave-card {
+  box-shadow: 0 0 20px rgba(255,215,0,0.3);
+}
+.nave-card {
+  transform-origin: bottom center;
+}
 .nave-card:hover {
   transform: scale(1.06);
 }
 .nave-card:hover {
   z-index: 10;
   position: relative;
+}
+/* Lock carousel cards once all 3 preview slots are filled */
+#naveCarouselTrack.carousel-all-selected .nave-card-slot {
+  pointer-events: none;
+  opacity: 0.45;
+  filter: grayscale(30%);
+  transition: opacity 0.2s, filter 0.2s;
 }
 
 
@@ -397,6 +431,84 @@ background: rgba(0, 165, 242, 0.04);
   background: linear-gradient(to right, #0ff, #14ffff);
 }
 
+/* ── Ship Selection Carousel ── */
+#naveCarouselViewport {
+  overflow-x: clip;
+  overflow-y: visible;
+  width: 730px;
+  max-width: calc(100vw - 120px);
+  padding: 0 18px;       /* breathing room for edge-card hover scale */
+  box-sizing: content-box;
+}
+#naveCarouselTrack {
+  display: flex;
+  gap: 20px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  padding-top: 80px;  /* room for nave-img negative margin */
+  margin-top: -80px;  /* keep layout height the same */
+}
+.nave-card-slot {
+  flex-shrink: 0;
+  width: 230px;
+}
+.nave-card-slot .nave-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+.carousel-arrow-btn {
+  background: rgba(0,229,255,0.08);
+  border: 2px solid rgba(0,229,255,0.4);
+  color: #00E5FF;
+  font-size: 26px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, opacity 0.2s;
+  font-family: sans-serif;
+  line-height: 1;
+  position: relative;
+  z-index: 20;       /* always above cards */
+}
+.carousel-arrow-btn:hover {
+  background: rgba(0,229,255,0.22);
+}
+
+@keyframes vipNaveShake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+.vip-nave-shake {
+  animation: vipNaveShake 0.4s ease;
+}
+.vip-locked-tip {
+  position: absolute;
+  bottom: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  border: 1px solid #FFD700;
+  color: #FFD700;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 30;
+}
+
 .remove-icon {
   position: absolute;
   top: -10px;
@@ -414,11 +526,7 @@ background: rgba(0, 165, 242, 0.04);
   display: none;
   box-shadow: 0 0 8px #0ff8;
 }
-#previewArea div:hover .remove-icon {
-  display: none;
-}
-
-#previewArea div:hover img:not([src*="placeholder"]) + .remove-icon {
+#previewArea div img:not([src*="placeholder"]) + .remove-icon {
   display: block;
 }
 
@@ -1080,13 +1188,29 @@ background: rgba(0, 165, 242, 0.04);
 <div id="gameWrapper">
  <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
   
-  <div id="hudTop" style="width: 800px; margin: 0px auto 8px; position: relative; z-index: 3; user-select:none; display: flex; visibility: hidden; opacity: 0;">
-    <div id="hudLine" style="display: flex; flex-direction: row; align-items: center; width: 100%;">
-      <div id="timerArea">
-        <span id="timerText">10</span>
+  <!-- HUD row wrapper: hudTop + mute button side by side, button always visible -->
+  <div style="position: relative; width: 800px; margin: 0 auto 8px; flex-shrink: 0;">
+    <div id="hudTop" style="width: 800px; margin: 0; position: relative; z-index: 3; user-select:none; display: flex; visibility: hidden; opacity: 0;">
+      <div id="hudLine" style="display: flex; flex-direction: row; align-items: center; width: 100%;">
+        <div id="timerArea">
+          <span id="timerText">10</span>
+        </div>
+        <div id="legendArea"></div>
       </div>
-      <div id="legendArea"></div>
     </div>
+    <!-- Mute button: outside hudTop so never hidden with it -->
+    <button id="bgm-mute-btn" title="Mute / Unmute" onclick="toggleBgmMute()">
+      <svg id="bgm-icon-on" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      </svg>
+      <svg id="bgm-icon-off" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ff3a34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <line x1="23" y1="9" x2="17" y2="15"/>
+        <line x1="17" y1="9" x2="23" y2="15"/>
+      </svg>
+    </button>
   </div>
   <div id="shipTypeArea"
     style="width:800px; margin-top:10px; text-align:center; color:#fff; font-family:'Orbitron',sans-serif; font-size:18px; letter-spacing:1px; text-shadow:0 0 9px #0ff8;">
@@ -1118,14 +1242,18 @@ background: rgba(0, 165, 242, 0.04);
 
 <!-- Sons -->
 <audio id="sfx-hit" src="sounds/sfx-hit.mp3"></audio>
+<audio id="sfx-hit2" src="sounds/sfx-hit2.mp3"></audio>
 <audio id="sfx-shot" src="sounds/sfx-shot.mp3"></audio>
 <audio id="sfx-explode" src="sounds/sfx-explode.mp3"></audio>
+<audio id="sfx-winner" src="sounds/sfx-winner.mp3"></audio>
+<audio id="sfx-loss" src="sounds/sfx-loss.mp3"></audio>
+<audio id="bgm-battle" loop></audio>
 
 
 
 <!-- Tela de Seleção de Naves -->
 <div id="naveSelectScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0); backdrop-filter: blur(0px); z-index:3000; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:12vh;">
-  <div id="previewArea" style="display:flex; gap:38px; justify-content:center; margin-bottom:-10px;">
+  <div id="previewArea" style="display:flex; gap:38px; justify-content:center; margin-bottom:50px;">
     <div style="position:relative;" onclick="removeNave(0)">
       <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
       <span class="remove-icon">✕</span>
@@ -1142,75 +1270,219 @@ background: rgba(0, 165, 242, 0.04);
       <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
     </div>
   </div>
-  <div style="display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 70px;">
-    <!-- Timer e legenda agora sempre no HUD superior (hudTop) -->
-  </div>
-  
+  <!-- Ship Selection Carousel -->
+  <div id="naveCarouselOuter" style="display:flex; align-items:center; justify-content:center; gap:28px; width:100%; margin-bottom:16px;">
+    <button id="carouselPrevBtn" onclick="naveCarouselMove(-1)" class="carousel-arrow-btn">&#8592;</button>
 
+    <div id="naveCarouselViewport">
+      <div id="naveCarouselTrack">
 
+        <!-- Slot 1: Maya V1 (Alcance) -->
+        <div class="nave-card-slot">
+          <div class="nave-card" data-nave="1">
+            <img src="images/nave_alcance.png" class="nave-img" alt="Nave 1">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 95%;"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 33%;"></div></div>
+            <div class="nave-description">
+              <strong>Maya V1</strong><br>
+              <span class="ship-desc-text" data-ship="1">Especialista em ataques de longa distância. Ideal para surpreender inimigos fora do alcance deles.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(1);" class="shot-type-btn" data-ship="1" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
 
+        <!-- Slot 2: Aegis JK-05 (Proteção) -->
+        <div class="nave-card-slot">
+          <div class="nave-card" data-nave="2">
+            <img src="images/nave_protecao.png" class="nave-img" alt="Nave 2">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 45%;"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 95%;"></div></div>
+            <div class="nave-description">
+              <strong>Aegis JK-05</strong><br>
+              <span class="ship-desc-text" data-ship="2">Blindagem reforçada e resistência extrema. Perfeita para absorver dano e proteger sua frota.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(2);" class="shot-type-btn" data-ship="2" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
 
- <div style="display:flex; gap:28px; justify-content:center; flex-wrap: wrap;">
-  <div style="position: relative; z-index: 1;">
-    <div class="nave-card" data-nave="1">
-      <img src="images/nave_alcance.png" class="nave-img" alt="Nave 1">
-      <div class="bar-label ship-label-range">Alcance</div>
-      <div class="bar-container"><div class="bar" style="width: 95%;"></div></div>
-      <div class="bar-label ship-label-protection">Proteção</div>
-      <div class="bar-container"><div class="bar" style="width: 33%;"></div></div>
-      <div class="nave-description">
-        <strong>Maya V1</strong><br>
-        <span class="ship-desc-text" data-ship="1">Especialista em ataques de longa distância. Ideal para surpreender inimigos fora do alcance deles.</span>
-      </div>
-      
-      <!-- Shot Type Button for Ship 1 -->
-      <button onclick="event.stopPropagation(); openShotTypeModal(1);" class="shot-type-btn" data-ship="1" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-        Tipo de Tiro
-      </button>
-    </div>
-  </div>
+        <!-- Slot 3: Orion-7 (Normal) -->
+        <div class="nave-card-slot">
+          <div class="nave-card" data-nave="3">
+            <img src="images/spaceschip.png" class="nave-img" alt="Nave 3">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 75%;"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 75%;"></div></div>
+            <div class="nave-description">
+              <strong>Orion-7</strong><br>
+              <span class="ship-desc-text" data-ship="3">Equilíbrio entre mobilidade e defesa. Versátil em qualquer situação de combate.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(3);" class="shot-type-btn" data-ship="3" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
 
-  <div style="position: relative; z-index: 1;">
-    <div class="nave-card" data-nave="2">
-      <img src="images/nave_protecao.png" class="nave-img" alt="Nave 2">
-      <div class="bar-label ship-label-range">Alcance</div>
-      <div class="bar-container"><div class="bar" style="width: 45%;"></div></div>
-      <div class="bar-label ship-label-protection">Proteção</div>
-      <div class="bar-container"><div class="bar" style="width: 95%;"></div></div>
-      <div class="nave-description">
-        <strong>Aegis JK-05</strong><br>
-        <span class="ship-desc-text" data-ship="2">Blindagem reforçada e resistência extrema. Perfeita para absorver dano e proteger sua frota.</span>
-      </div>
-      
-      <!-- Shot Type Button for Ship 2 -->
-      <button onclick="event.stopPropagation(); openShotTypeModal(2);" class="shot-type-btn" data-ship="2" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-        Tipo de Tiro
-      </button>
-    </div>
-  </div>
+        <!-- Slot 4: Phoenix VIP (Vermelha) - P2 only -->
+        <div class="nave-card-slot" id="naveSlot4">
+          <div class="nave-card vip-nave-card" data-nave="4" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_alcance_red_vip.png" class="nave-img" alt="Phoenix VIP">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 95%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 33%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Phoenix VIP</strong><br>
+              <span>Nave VIP exclusiva. Alcance devastador.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(4);" class="shot-type-btn" data-ship="4" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
 
-  <div style="position: relative; z-index: 1;">
-    <div class="nave-card" data-nave="3">
-      <img src="images/spaceschip.png" class="nave-img" alt="Nave 3">
-      <div class="bar-label ship-label-range">Alcance</div>
-      <div class="bar-container"><div class="bar" style="width: 75%;"></div></div>
-      <div class="bar-label ship-label-protection">Proteção</div>
-      <div class="bar-container"><div class="bar" style="width: 75%;"></div></div>
-      <div class="nave-description">
-        <strong>Orion-7</strong><br>
-        <span class="ship-desc-text" data-ship="3">Equilíbrio entre mobilidade e defesa. Versátil em qualquer situação de combate.</span>
-      </div>
-      
-      <!-- Shot Type Button for Ship 3 -->
-      <button onclick="event.stopPropagation(); openShotTypeModal(3);" class="shot-type-btn" data-ship="3" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-        Tipo de Tiro
-      </button>
-    </div>
-  </div>
-</div>
+        <!-- Slot 5: Maya VIP (Azul) - P1 + solo only -->
+        <div class="nave-card-slot" id="naveSlot5">
+          <div class="nave-card vip-nave-card" data-nave="5" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_alcance_vip.png" class="nave-img" alt="Maya VIP">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 95%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 33%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Maya VIP</strong><br>
+              <span>Nave VIP exclusiva. Alcance máximo.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(5);" class="shot-type-btn" data-ship="5" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
+
+        <!-- Slot 6: Vanguard VIP (Proteção Azul) - P1 + solo only -->
+        <div class="nave-card-slot" id="naveSlot6">
+          <div class="nave-card vip-nave-card" data-nave="6" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_protecao_vip.png" class="nave-img" alt="Vanguard VIP">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 30%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 90%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Vanguard VIP</strong><br>
+              <span>Nave VIP exclusiva. Proteção máxima.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(6);" class="shot-type-btn" data-ship="6" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
+
+        <!-- Slot 7: Vanguard VIP (Proteção Vermelha) - P2 only -->
+        <div class="nave-card-slot" id="naveSlot7">
+          <div class="nave-card vip-nave-card" data-nave="7" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_protecao_red_vip.png" class="nave-img" alt="Vanguard VIP Red">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 30%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 90%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Vanguard VIP</strong><br>
+              <span>Nave VIP exclusiva. Proteção máxima.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(7);" class="shot-type-btn" data-ship="7" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
+
+        <!-- Slot 8: Titan VIP (Normal Azul) - P1 + solo only -->
+        <div class="nave-card-slot" id="naveSlot8">
+          <div class="nave-card vip-nave-card" data-nave="8" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_normal_vip.png" class="nave-img" alt="Titan VIP">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 65%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 55%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Titan VIP</strong><br>
+              <span>Nave VIP exclusiva. Equilíbrio perfeito.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(8);" class="shot-type-btn" data-ship="8" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
+
+        <!-- Slot 9: Titan VIP (Normal Vermelho) - P2 only -->
+        <div class="nave-card-slot" id="naveSlot9">
+          <div class="nave-card vip-nave-card" data-nave="9" style="border-color: #FFD700;">
+            <div class="vip-nave-badge" style="display:none; position:absolute; top:10px; right:10px; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px; z-index:6;">💎 VIP</div>
+            <div class="vip-nave-lock" style="display:none; position:absolute; inset:0; border-radius:18px; background:rgba(0,0,0,0.65); z-index:5; flex-direction:column; align-items:center; justify-content:center; gap:8px; pointer-events:none;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+              <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+            </div>
+            <img src="images/nave_normal_red_vip.png" class="nave-img" alt="Titan VIP Red">
+            <div class="bar-label ship-label-range">Alcance</div>
+            <div class="bar-container"><div class="bar" style="width: 65%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="bar-label ship-label-protection">Proteção</div>
+            <div class="bar-container"><div class="bar" style="width: 55%; background: linear-gradient(to right, #ff8c00, #ffd700);"></div></div>
+            <div class="nave-description">
+              <strong>Titan VIP</strong><br>
+              <span>Nave VIP exclusiva. Equilíbrio perfeito.</span>
+            </div>
+            <button onclick="event.stopPropagation(); openShotTypeModal(9);" class="shot-type-btn" data-ship="9" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
+              Tipo de Tiro
+            </button>
+          </div>
+        </div>
+
+      </div><!-- end #naveCarouselTrack -->
+    </div><!-- end #naveCarouselViewport -->
+
+    <button id="carouselNextBtn" onclick="naveCarouselMove(1)" class="carousel-arrow-btn">&#8594;</button>
+  </div><!-- end #naveCarouselOuter -->
 
   <button id="startGameBtn" onclick="startGameAfterSelection()" style="display:none; margin-top:34px; background: linear-gradient(90deg, #07d8ff, #005ea8 70%); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 22px; border: none; border-radius: 8px; padding: 10px 44px; letter-spacing: 2px; box-shadow: 0 0 20px #0ff5; cursor: pointer; transition: background 0.3s;">Iniciar Jogo</button>
 
@@ -1541,11 +1813,30 @@ window.showOnly = function(screenName) {
     }
     setTimeout(() => {
       updateUITranslations();
+      // Apply VIP lock/badge to VIP nave cards
+      const isVip = localStorage.getItem('thor_is_vip') === 'true';
+      document.querySelectorAll('.vip-nave-card').forEach(card => {
+        const lock = card.querySelector('.vip-nave-lock');
+        const badge = card.querySelector('.vip-nave-badge');
+        if (isVip) {
+          card.style.opacity = '1';
+          card.style.cursor = 'pointer';
+          if (lock) lock.style.display = 'none';
+          if (badge) badge.style.display = 'block';
+        } else {
+          card.style.opacity = '0.6';
+          card.style.cursor = 'not-allowed';
+          if (lock) lock.style.display = 'flex';
+          if (badge) badge.style.display = 'none';
+        }
+      });
       if (multiplayerMode && currentPhase === 'select') {
         startSelectionTimer();
       } else {
         cancelSelectionTimer();
       }
+      // Init carousel (applies team filter + arrow state)
+      initNaveCarousel();
     }, 100);
   } else {
     cancelSelectionTimer();
@@ -2728,8 +3019,8 @@ function getUrlParams() {
   const refresh_token = params.get('refresh_token') ? decodeURIComponent(params.get('refresh_token')).trim() : null;
   const userId = params.get('userId') ? decodeURIComponent(params.get('userId')).trim() : null;
   
-  // Validar matchId como UUID
-  if (matchId && !UUID_REGEX.test(matchId)) {
+  // Validar matchId como UUID (ignorar fake matchIds usados em modo treino)
+  if (matchId && !UUID_REGEX.test(matchId) && !matchId.startsWith('fake-')) {
     console.error('[URL] ❌ matchId inválido (não é UUID):', matchId);
     return { mode, matchId: null, supabaseUrl, supabaseKey, access_token, refresh_token, userId, error: 'matchId inválido' };
   }
@@ -3562,13 +3853,13 @@ function processHitEvent(event) {
   if (projectileIndex >= 0) {
     explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
     try {
-      sfxHit.play().catch(e => {});
+      playHit();
     } catch (e) {}
   }
   
   if (payload.destroyed) {
     try {
-      sfxExplode.play().catch(e => {});
+      if (!sfxMuted) sfxExplode.play().catch(e => {});
     } catch (e) {}
     wrecks.push({ x: target.x, y: target.y });
     
@@ -4409,6 +4700,7 @@ function startBattleFromSelection() {
   // Esconder tela de seleção e mostrar jogo
   document.getElementById('naveSelectScreen').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
+  playRandomBgm();
   
   // Aplicar fundo aleatório ao iniciar o jogo
   applyGameBackground();
@@ -4440,8 +4732,10 @@ function startBattleFromSelection() {
       player2Name = currentPlayerName;
     }
     
-    playerNameDisplay.textContent = player1Name;
-    playerNameDisplay.style.color = "#00E5FF"; // P1 sempre azul
+    const _p1IsVip = localStorage.getItem('thor_is_vip') === 'true';
+    const _p1VipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    playerNameDisplay.textContent = _p1IsVip ? ('💎 ' + player1Name) : player1Name;
+    playerNameDisplay.style.color = _p1IsVip ? _p1VipColor : "#00E5FF"; // P1 color
     
     opponentNameDisplay.textContent = player2Name;
     opponentNameDisplay.style.color = "#FF4444"; // P2 sempre vermelho
@@ -4641,6 +4935,30 @@ function applyEnemyShips(shipsArray, myIsP1) {
         sprite.src = 'images/nave_protecao.png';
         hp = 132;
         alcance = 160;
+      } else if (tipo === 4) {
+        sprite.src = 'images/nave_alcance_red_vip.png';
+        hp = 66;
+        alcance = 400;
+      } else if (tipo === 5) {
+        sprite.src = 'images/nave_alcance_vip.png';
+        hp = 66;
+        alcance = 400;
+      } else if (tipo === 6) {
+        sprite.src = 'images/nave_protecao_vip.png';
+        hp = 160;
+        alcance = 180;
+      } else if (tipo === 7) {
+        sprite.src = 'images/nave_protecao_red_vip.png';
+        hp = 160;
+        alcance = 180;
+      } else if (tipo === 8) {
+        sprite.src = 'images/nave_normal_vip.png';
+        hp = 99;
+        alcance = 360;
+      } else if (tipo === 9) {
+        sprite.src = 'images/nave_normal_red_vip.png';
+        hp = 99;
+        alcance = 360;
       } else {
         sprite.src = 'images/spaceschip.png';
         hp = 99;
@@ -4689,6 +5007,24 @@ function applyOpponentNavesFromSelection(shipsArray, isPlayer1Owner = true) {
         } else if (tipo === 2) {
           sprite.src = 'images/nave_protecao.png';
           hp = 132;
+        } else if (tipo === 4) {
+          sprite.src = 'images/nave_alcance_red_vip.png';
+          hp = 66;
+        } else if (tipo === 5) {
+          sprite.src = 'images/nave_alcance_vip.png';
+          hp = 66;
+        } else if (tipo === 6) {
+          sprite.src = 'images/nave_protecao_vip.png';
+          hp = 160;
+        } else if (tipo === 7) {
+          sprite.src = 'images/nave_protecao_red_vip.png';
+          hp = 160;
+        } else if (tipo === 8) {
+          sprite.src = 'images/nave_normal_vip.png';
+          hp = 99;
+        } else if (tipo === 9) {
+          sprite.src = 'images/nave_normal_red_vip.png';
+          hp = 99;
         } else {
           sprite.src = 'images/spaceschip.png';
           hp = 99;
@@ -5086,7 +5422,9 @@ function showOnly(screenId) {
     document.querySelectorAll('.nave-img').forEach(img => {
       const originalSrc = img.src;
       // Trocar para versão _red
-      if (originalSrc.includes('nave_alcance.png')) {
+      if (originalSrc.includes('_vip.png')) {
+        // All VIP ships keep their own image — already team-colored by design
+      } else if (originalSrc.includes('nave_alcance.png')) {
         img.src = originalSrc.replace('nave_alcance.png', 'nave_alcance_red.png');
       } else if (originalSrc.includes('nave_protecao.png')) {
         img.src = originalSrc.replace('nave_protecao.png', 'nave_protecao_red.png');
@@ -5243,6 +5581,10 @@ function backToStartMenu() {
   gameActive = false;
   window._gameLoopStarted = false;
 
+  // Esconder botão de mute (fora do jogo)
+  const muteBtn = document.getElementById('bgm-mute-btn');
+  if (muteBtn) muteBtn.style.display = 'none';
+
   // 3) Limpa algumas coisas do jogo (opcional, mas recomendado)
   projectiles = [];
   explosions = [];
@@ -5366,9 +5708,72 @@ window.backgroundGalaxy = backgroundGalaxy; // Expor globalmente para applyGameB
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const sfxHit = document.getElementById("sfx-hit");
+const sfxHit = [document.getElementById("sfx-hit"), document.getElementById("sfx-hit2")];
+function playHit() {
+  if (sfxMuted) return;
+  const s = sfxHit[Math.floor(Math.random() * sfxHit.length)];
+  s.currentTime = 0;
+  s.play().catch(e => {});
+}
 const sfxShot = document.getElementById("sfx-shot");
 const sfxExplode = document.getElementById("sfx-explode");
+const sfxWinner = document.getElementById("sfx-winner");
+const sfxLoss = document.getElementById("sfx-loss");
+const bgmBattle = document.getElementById("bgm-battle");
+bgmBattle.volume = 0.15;
+const BGM_TRACKS = [
+  'sounds/battle1.mp3',
+  'sounds/battle2.mp3',
+  'sounds/battle3.mp3',
+  'sounds/battle4.mp3',
+];
+let bgmMuted = false;
+let sfxMuted = false;
+let musicMuted = false;
+
+function applyAudioSettings() {
+  try {
+    const raw = localStorage.getItem('thor_settings_v1');
+    const s = raw ? JSON.parse(raw) : {};
+    const audio = s.audio || {};
+    const master = audio.master !== false;
+    const music  = audio.music  !== false;
+    const sfx    = audio.sfx    !== false;
+    sfxMuted   = !master || !sfx;
+    musicMuted = !master || !music;
+    bgmBattle.muted = musicMuted || bgmMuted;
+    // Sync BGM button icon
+    const effectiveMuted = bgmMuted || musicMuted;
+    const iconOn  = document.getElementById('bgm-icon-on');
+    const iconOff = document.getElementById('bgm-icon-off');
+    if (iconOn)  iconOn.style.display  = effectiveMuted ? 'none' : '';
+    if (iconOff) iconOff.style.display = effectiveMuted ? '' : 'none';
+  } catch(e) {}
+}
+applyAudioSettings();
+
+function playRandomBgm() {
+  const track = BGM_TRACKS[Math.floor(Math.random() * BGM_TRACKS.length)];
+  bgmBattle.src = track;
+  bgmBattle.currentTime = 0;
+  bgmBattle.muted = bgmMuted || musicMuted;
+  bgmBattle.play().catch(e => {});
+  const muteBtn = document.getElementById('bgm-mute-btn');
+  if (muteBtn) muteBtn.style.display = 'flex';
+}
+function toggleBgmMute() {
+  bgmMuted = !bgmMuted;
+  const effectiveMuted = bgmMuted || musicMuted;
+  bgmBattle.muted = effectiveMuted;
+  document.getElementById('bgm-icon-on').style.display = effectiveMuted ? 'none' : '';
+  document.getElementById('bgm-icon-off').style.display = effectiveMuted ? '' : 'none';
+}
+
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'THOR:AUDIO_SETTINGS') {
+    applyAudioSettings();
+  }
+});
 
 const NAVY_SIZE = 50;
 const SPEED = 2.5; // AAA: aumentado para movimento mais fluido
@@ -5463,6 +5868,30 @@ function applyMyShips(selecao, isP1) {
       hp = 132; // Nave Proteção: 4 tiros para destruir (132 / 33 = 4)
       alcance = 160;
       sprite.src = "images/nave_protecao.png";
+    } else if (tipo === 4) {
+      hp = 66;
+      alcance = 400;
+      sprite.src = "images/nave_alcance_red_vip.png";
+    } else if (tipo === 5) {
+      hp = 66;
+      alcance = 400;
+      sprite.src = "images/nave_alcance_vip.png";
+    } else if (tipo === 6) {
+      hp = 160;
+      alcance = 180;
+      sprite.src = "images/nave_protecao_vip.png";
+    } else if (tipo === 7) {
+      hp = 160;
+      alcance = 180;
+      sprite.src = "images/nave_protecao_red_vip.png";
+    } else if (tipo === 8) {
+      hp = 99;
+      alcance = 360;
+      sprite.src = "images/nave_normal_vip.png";
+    } else if (tipo === 9) {
+      hp = 99;
+      alcance = 360;
+      sprite.src = "images/nave_normal_red_vip.png";
     } else {
       hp = 99; // Nave Normal: 3 tiros para destruir (99 / 33 = 3)
       alcance = 300;
@@ -5529,6 +5958,30 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
           hp = 132;
           alcance = 160;
           sprite.src = "images/nave_protecao.png";
+        } else if (tipo === 4) {
+          hp = 66;
+          alcance = 400;
+          sprite.src = "images/nave_alcance_red_vip.png";
+        } else if (tipo === 5) {
+          hp = 66;
+          alcance = 400;
+          sprite.src = "images/nave_alcance_vip.png";
+        } else if (tipo === 6) {
+          hp = 160;
+          alcance = 180;
+          sprite.src = "images/nave_protecao_vip.png";
+        } else if (tipo === 7) {
+          hp = 160;
+          alcance = 180;
+          sprite.src = "images/nave_protecao_red_vip.png";
+        } else if (tipo === 8) {
+          hp = 99;
+          alcance = 360;
+          sprite.src = "images/nave_normal_vip.png";
+        } else if (tipo === 9) {
+          hp = 99;
+          alcance = 360;
+          sprite.src = "images/nave_normal_red_vip.png";
         } else {
           hp = 99;
           alcance = 300;
@@ -5742,6 +6195,13 @@ function handleCanvasClick(event) {
       if (playerNaves.filter(n => n.hp > 0).every(n => n.shot)) {
         phase = "wait";
         generateCpuOrders();
+        
+        // 🔥 AAA: Ativar fase de combate (necessário para o game loop processar projéteis)
+        combatPhase = 'combat';
+        movementComplete = false;
+        shootingComplete = false;
+        projectileHitRegistry.clear();
+        
         fireProjectiles();
         document.getElementById("legendArea").textContent = t('attentionCommander');
       } else {
@@ -6009,7 +6469,7 @@ function checkNaveCollisions() {
           spawnExplosionParticles(playerNaves[j].x, playerNaves[j].y, "#0ff");
           wrecks.push({ x: playerNaves[i].x, y: playerNaves[i].y });
           wrecks.push({ x: playerNaves[j].x, y: playerNaves[j].y });
-          sfxExplode.play();
+          if (!sfxMuted) sfxExplode.play().catch(e => {});
           screenShake = 10;
           alreadyExploded.add(id);
         }
@@ -6034,7 +6494,7 @@ function checkNaveCollisions() {
           spawnExplosionParticles(cpuNaves[j].x, cpuNaves[j].y, "#ff6600");
           wrecks.push({ x: cpuNaves[i].x, y: cpuNaves[i].y });
           wrecks.push({ x: cpuNaves[j].x, y: cpuNaves[j].y });
-          sfxExplode.play();
+          if (!sfxMuted) sfxExplode.play().catch(e => {});
           screenShake = 10;
           alreadyExploded.add(id);
         }
@@ -6065,7 +6525,7 @@ function checkNaveCollisions() {
           spawnExplosionParticles(cpuNaves[j].x, cpuNaves[j].y, "#ff6600");
           wrecks.push({ x: playerNaves[i].x, y: playerNaves[i].y });
           wrecks.push({ x: cpuNaves[j].x, y: cpuNaves[j].y });
-          sfxExplode.play();
+          if (!sfxMuted) sfxExplode.play().catch(e => {});
           screenShake = 10;
           alreadyExploded.add(id);
         }
@@ -6192,7 +6652,7 @@ function fireProjectiles() {
   playerNaves.forEach((n, idx) => {
     if (n.shot && n.hp > 0) {
       // Player nave disparando
-      sfxShot.play();
+      if (!sfxMuted) sfxShot.play().catch(e => {});
       const end = getEdgePoint({ x: n.x, y: n.y }, n.shot);
       const dist = Math.sqrt((end.x - n.x) ** 2 + (end.y - n.y) ** 2);
       const dx = (end.x - n.x) / dist * PROJECTILE_SPEED;
@@ -6237,7 +6697,7 @@ function fireProjectiles() {
 
   cpuNaves.forEach((n, idx) => {
     if (n.shot && n.hp > 0) {
-      sfxShot.play();
+      if (!sfxMuted) sfxShot.play().catch(e => {});
       const end = getEdgePoint({ x: n.x, y: n.y }, n.shot);
       const dist = Math.sqrt((end.x - n.x) ** 2 + (end.y - n.y) ** 2);
       const dx = (end.x - n.x) / dist * PROJECTILE_SPEED;
@@ -6350,12 +6810,12 @@ function updateProjectiles() {
           // Efeitos visuais no P1
           explosions.push({ x: t.x, y: t.y, radius: 1 });
           try {
-            sfxHit.play().catch(e => {});
+            playHit();
           } catch (e) {}
           
           if (t.hp <= 0) {
             try {
-              sfxExplode.play().catch(e => {});
+              if (!sfxMuted) sfxExplode.play().catch(e => {});
             } catch (e) {}
             wrecks.push({ x: t.x, y: t.y });
             const teamColor = (targets === cpuNaves) ? "#ff6600" : "#0ff";
@@ -6426,7 +6886,7 @@ function updateProjectiles() {
           
           // Som (com proteção contra bloqueio de autoplay)
           try {
-            sfxHit.play().catch(e => {});
+            playHit();
           } catch (e) {}
           
           projectiles.splice(i, 1);
@@ -7067,6 +7527,8 @@ function fillEndScoreUI(hideDetails = false, hideTotal = false) {
 function showVictoryScreen() {
   if (window.resultScreenShown) return;
   window.resultScreenShown = true;
+  bgmBattle.pause(); bgmBattle.currentTime = 0; bgmBattle.src = '';
+  if (!sfxMuted) { sfxWinner.currentTime = 0; sfxWinner.play().catch(e => {}); }
   if (document.getElementById("modeSelectionScreen").style.display === "flex") return;
 
   if ((cpuDestroyed - cpuDestroyedAntesDoRound) === 3) {
@@ -7103,6 +7565,8 @@ function showVictoryScreen() {
 function showDefeatScreen() {
   if (window.resultScreenShown) return;
   window.resultScreenShown = true;
+  bgmBattle.pause(); bgmBattle.currentTime = 0; bgmBattle.src = '';
+  if (!sfxMuted) { sfxLoss.currentTime = 0; sfxLoss.play().catch(e => {}); }
   if (document.getElementById("modeSelectionScreen").style.display === "flex") return;
 
   showOnly('defeatScreen');
@@ -7129,6 +7593,7 @@ function showDefeatScreen() {
 function showDrawScreen() {
   if (window.resultScreenShown) return;
   window.resultScreenShown = true;
+  bgmBattle.pause(); bgmBattle.currentTime = 0; bgmBattle.src = '';
   if (document.getElementById("modeSelectionScreen").style.display === "flex") return;
 
   showOnly('drawScreen');
@@ -7440,8 +7905,8 @@ projectiles.forEach(p => {
   // - target: "cpu" = tiros de playerNaves (MEUS tiros)
   // - target: "player" = tiros de cpuNaves (tiros do OPONENTE)
   let teamColor;
-  if (myTeam === 'blue') {
-    // P1 (azul): meus tiros (target: "cpu") = azul, tiros do P2 (target: "player") = vermelho
+  if (!multiplayerMode || myTeam === 'blue') {
+    // Solo ou P1 (azul): tiros do jogador (target: "cpu") = azul, tiros da CPU/P2 (target: "player") = vermelho
     teamColor = p.target === "cpu" ? "#0ff" : "#ff3a34";
   } else {
     // P2 (vermelho): meus tiros (target: "cpu") = vermelho, tiros do P1 (target: "player") = azul
@@ -7454,7 +7919,7 @@ projectiles.forEach(p => {
   const accentColor = shotConfig.accentColor || teamColor;
   
   // Parse RGB do team color e accent color para mixing
-  const isBlueShot = (myTeam === 'blue' && p.target === "cpu") || (myTeam === 'red' && p.target === "player");
+  const isBlueShot = !multiplayerMode ? p.target === "cpu" : (myTeam === 'blue' && p.target === "cpu") || (myTeam === 'red' && p.target === "player");
   const teamRGB = isBlueShot ? [0, 255, 255] : [255, 58, 52];
   
   let accentRGB;
@@ -7878,7 +8343,10 @@ function lerp(start, end, factor) {
 let selectPulseTime = 0;
 
 function gameLoop() {
-  if (!gameActive) return;
+  if (!gameActive) {
+    window._gameLoopActive = false; // mark loop as stopped so it can restart next session
+    return;
+  }
   selectPulseTime += 0.07; // quanto menor, mais lento o pulso
   
   // 🔥 AAA: Processar fila de eventos no P2
@@ -8086,13 +8554,25 @@ function setHeaderVisible(visible) {
 const naveSources = {
   1: "images/nave_alcance.png",
   2: "images/nave_protecao.png",
-  3: "images/spaceschip.png"
+  3: "images/spaceschip.png",
+  4: "images/nave_alcance_red_vip.png",
+  5: "images/nave_alcance_vip.png",
+  6: "images/nave_protecao_vip.png",
+  7: "images/nave_protecao_red_vip.png",
+  8: "images/nave_normal_vip.png",
+  9: "images/nave_normal_red_vip.png"
 };
 
 const naveSourcesRed = {
   1: "images/nave_alcance_red.png",
   2: "images/nave_protecao_red.png",
-  3: "images/nave_normal_red.png"
+  3: "images/nave_normal_red.png",
+  4: "images/nave_alcance_red_vip.png",
+  5: "images/nave_alcance_vip.png",
+  6: "images/nave_protecao_vip.png",
+  7: "images/nave_protecao_red_vip.png",
+  8: "images/nave_normal_vip.png",
+  9: "images/nave_normal_red_vip.png"
 };
 
 
@@ -8181,6 +8661,16 @@ function updatePreviews() {
       shotIcon.style.opacity = "0.9";
     }
   });
+
+  // Disable/enable carousel cards based on selection count (lock once all 3 slots filled)
+  const trackEl = document.getElementById('naveCarouselTrack');
+  if (trackEl) {
+    if (window.selectedNaves.length >= 3) {
+      trackEl.classList.add('carousel-all-selected');
+    } else {
+      trackEl.classList.remove('carousel-all-selected');
+    }
+  }
 
   // Mostra o botão somente se houver exatamente 3 selecionadas
   const btn = document.getElementById("startGameBtn");
@@ -8287,6 +8777,7 @@ function startGameAfterSelection() {
   // Mostra o canvas e o HUD do jogo
   galaxyBg.style.opacity = "0.18";
   document.getElementById("gameCanvas").style.display = "block";
+  playRandomBgm();
   var hudTop = document.getElementById("hudTop");
   var timerText = document.getElementById("timerText");
   var legendArea = document.getElementById("legendArea");
@@ -8320,8 +8811,10 @@ function startGameAfterSelection() {
     }
     
     // Exibir sempre P1 (azul) x P2 (vermelho)
-    playerNameDisplay.textContent = player1Name;
-    playerNameDisplay.style.color = "#00E5FF"; // Sempre azul (P1)
+    const _p1IsVip2 = localStorage.getItem('thor_is_vip') === 'true';
+    const _p1VipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    playerNameDisplay.textContent = _p1IsVip2 ? ('💎 ' + player1Name) : player1Name;
+    playerNameDisplay.style.color = _p1IsVip2 ? _p1VipColor2 : "#00E5FF"; // Sempre azul (P1)
     
     opponentNameDisplay.textContent = player2Name;
     opponentNameDisplay.style.color = "#FF4444"; // Sempre vermelho (P2)
@@ -8345,9 +8838,10 @@ function startGameAfterSelection() {
   canStartGame = true;
 
 // Chama o gameLoop só se ainda não estiver rodando
-if (!window._gameLoopStarted) {
+gameActive = true; // always re-enable before checking loop state
+if (!window._gameLoopActive) {
+  window._gameLoopActive = true;
   window._gameLoopStarted = true;
-  gameActive = true;
   if (spritesLoaded === 2) {
     gameLoop();
   } else {
@@ -8392,6 +8886,7 @@ const preloadAssets = [
   "images/nave_alcance.png",
   "images/nave_protecao.png",
   "sounds/sfx-hit.mp3",
+  "sounds/sfx-hit2.mp3",
   "sounds/sfx-shot.mp3",
   "sounds/sfx-explode.mp3"
 ];
@@ -8524,7 +9019,7 @@ showOnly("modeSelectionScreen");
         // Checar se há matchId na URL para modo PVP real
         const urlParams = getUrlParams();
         
-        if (urlParams.mode === 'multiplayer' && urlParams.matchId) {
+        if (urlParams.mode === 'multiplayer' && urlParams.matchId && !urlParams.matchId.startsWith('fake-')) {
           debug.pvp('[PVP] Detectado matchId na URL:', urlParams.matchId);
           
           // AGUARDAR um pouco para garantir que o Supabase client está disponível
@@ -8635,8 +9130,142 @@ document.getElementById("multiplayerBtn").onclick = () => {
 
 
 
+// ── Nave Selection Carousel ──────────────────────────
+let naveCarouselOffset = 0;
+let naveCarouselVisibleCount = 0;
+const CAROUSEL_SLOT_W = 250; // 230px slot + 20px gap
+
+function initNaveCarousel() {
+  const isVip = localStorage.getItem('thor_is_vip') === 'true';
+  const slot4 = document.getElementById('naveSlot4');
+  const slot5 = document.getElementById('naveSlot5');
+  const slot6 = document.getElementById('naveSlot6');
+  const slot7 = document.getElementById('naveSlot7');
+  const slot8 = document.getElementById('naveSlot8');
+  const slot9 = document.getElementById('naveSlot9');
+
+  // Team-based VIP ship visibility (always visible, locked for non-VIP):
+  // RED  (P2): tipo 4 (alcance red), tipo 7 (protecao red), tipo 9 (normal red)
+  // BLUE (P1/solo): tipo 5 (alcance), tipo 6 (protecao), tipo 8 (normal)
+  let showRed  = false; // P2 only
+  let showBlue = false; // P1 + solo
+  if (!multiplayerMode) {
+    showBlue = true;
+  } else if (myTeam === 'red') {
+    showRed = true;
+  } else {
+    showBlue = true;
+  }
+
+  if (slot4) slot4.style.display = showRed  ? 'block' : 'none';
+  if (slot5) slot5.style.display = showBlue ? 'block' : 'none';
+  if (slot6) slot6.style.display = showBlue ? 'block' : 'none';
+  if (slot7) slot7.style.display = showRed  ? 'block' : 'none';
+  if (slot8) slot8.style.display = showBlue ? 'block' : 'none';
+  if (slot9) slot9.style.display = showRed  ? 'block' : 'none';
+
+  // For VIP users: move their visible VIP slots to the front of the track
+  const isVipUser = localStorage.getItem('thor_is_vip') === 'true';
+  const track = document.getElementById('naveCarouselTrack');
+  // Hide immediately so the flash of wrong ordering is never painted
+  if (track) track.style.visibility = 'hidden';
+  if (track && isVipUser) {
+    const vipIds = ['naveSlot4','naveSlot5','naveSlot6','naveSlot7','naveSlot8','naveSlot9'];
+    const visibleVip = vipIds.map(id => document.getElementById(id)).filter(el => el && el.style.display !== 'none');
+    // prepend in reverse order so the first VIP slot lands at position 0
+    [...visibleVip].reverse().forEach(el => track.prepend(el));
+  }
+
+  // Count visible slots
+  naveCarouselVisibleCount = document.querySelectorAll('#naveCarouselTrack .nave-card-slot:not([style*="display: none"])').length;
+
+  // Reset offset
+  naveCarouselOffset = 0;
+
+  // Allow repaint to flush before we reveal (requestAnimationFrame ensures layout is committed)
+  requestAnimationFrame(() => {
+    updateNaveCarousel();
+    if (track) track.style.visibility = '';
+  });
+}
+
+function updateNaveCarousel() {
+  const track = document.getElementById('naveCarouselTrack');
+  const prevBtn = document.getElementById('carouselPrevBtn');
+  const nextBtn = document.getElementById('carouselNextBtn');
+  if (!track || !prevBtn || !nextBtn) return;
+
+  // Recalculate visible count
+  const visibleSlots = Array.from(document.querySelectorAll('#naveCarouselTrack .nave-card-slot')).filter(
+    s => s.style.display !== 'none'
+  );
+  naveCarouselVisibleCount = visibleSlots.length;
+
+  const maxOffset = Math.max(0, naveCarouselVisibleCount - 3);
+  naveCarouselOffset = Math.max(0, Math.min(naveCarouselOffset, maxOffset));
+
+  // Compute pixel offset: walk through all slots (visible + hidden) until we've passed `naveCarouselOffset` visible ones
+  const allSlots = Array.from(document.querySelectorAll('#naveCarouselTrack .nave-card-slot'));
+  let visIdx = 0;
+  let pixelOffset = 0;
+  for (const slot of allSlots) {
+    if (slot.style.display === 'none') continue;
+    if (visIdx === naveCarouselOffset) break;
+    pixelOffset += CAROUSEL_SLOT_W;
+    visIdx++;
+  }
+
+  track.style.transform = 'translateX(-' + pixelOffset + 'px)';
+
+  // Mark only the 3 currently-visible slots so off-screen cards lose their glow
+  let inViewIdx = 0;
+  for (const slot of allSlots) {
+    if (slot.style.display === 'none') { slot.classList.remove('carousel-in-view'); continue; }
+    const inView = inViewIdx >= naveCarouselOffset && inViewIdx < naveCarouselOffset + 3;
+    slot.classList.toggle('carousel-in-view', inView);
+    inViewIdx++;
+  }
+
+  const needArrows = naveCarouselVisibleCount > 3;
+  prevBtn.style.visibility = needArrows ? 'visible' : 'hidden';
+  nextBtn.style.visibility = needArrows ? 'visible' : 'hidden';
+  prevBtn.style.opacity = (naveCarouselOffset <= 0) ? '0.3' : '1';
+  nextBtn.style.opacity = (naveCarouselOffset >= maxOffset) ? '0.3' : '1';
+  prevBtn.style.pointerEvents = (naveCarouselOffset <= 0) ? 'none' : 'auto';
+  nextBtn.style.pointerEvents = (naveCarouselOffset >= maxOffset) ? 'none' : 'auto';
+}
+
+function naveCarouselMove(dir) {
+  naveCarouselOffset += dir;
+  updateNaveCarousel();
+}
+// Expose to global scope so inline onclick handlers can reach them
+window.initNaveCarousel = initNaveCarousel;
+window.updateNaveCarousel = updateNaveCarousel;
+window.naveCarouselMove = naveCarouselMove;
+// ────────────────────────────────────────────────────────
+
   document.querySelectorAll(".nave-card").forEach(el => {
     el.addEventListener("click", (e) => {
+      // VIP guard: block selection of VIP ships for non-VIP users
+      if (el.classList.contains('vip-nave-card') && localStorage.getItem('thor_is_vip') !== 'true') {
+        e.stopPropagation();
+        // Shake the card and show tooltip
+        el.classList.remove('vip-nave-shake');
+        void el.offsetWidth; // reflow to restart animation
+        el.classList.add('vip-nave-shake');
+        let tip = el.querySelector('.vip-locked-tip');
+        if (!tip) {
+          tip = document.createElement('div');
+          tip.className = 'vip-locked-tip';
+          tip.textContent = '💎 Exclusivo VIP';
+          el.appendChild(tip);
+        }
+        tip.style.opacity = '1';
+        clearTimeout(tip._hideTimer);
+        tip._hideTimer = setTimeout(() => { tip.style.opacity = '0'; }, 1800);
+        return;
+      }
       // AAA: Permitir seleção de nave SEMPRE que a tela de seleção estiver visível
       const naveSelectScreen = document.getElementById('naveSelectScreen');
       if (naveSelectScreen && naveSelectScreen.style.display !== 'none') {
@@ -8852,11 +9481,16 @@ window.addEventListener('beforeunload', () => {
 
       <!-- Pulse Card -->
       <div class="shot-card" data-type="pulse" onclick="selectShotType('pulse')" style="background:rgba(0,20,40,0.6); border:2px solid rgba(251,191,36,0.3); border-radius:12px; padding:14px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
+        <div class="vip-lock-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.65); border-radius:10px; z-index:10; flex-direction:column; align-items:center; justify-content:center; gap:6px; pointer-events:none;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+          <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+        </div>
         <div style="width:100%; height:100px; border-radius:8px; background:rgba(0,0,0,0.4); margin-bottom:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid rgba(0,229,255,0.2);">
           <img src="images/shots/pulse.png" alt="Pulse" style="max-width:70%; max-height:70%; object-fit:contain;">
         </div>
-        <div style="font-size:15px; font-weight:700; color:#fbbf24; margin-bottom:6px; font-family:'Orbitron',sans-serif;">
+        <div style="font-size:15px; font-weight:700; color:#fbbf24; margin-bottom:6px; font-family:'Orbitron',sans-serif; display:flex; align-items:center; gap:8px;">
           Pulse Energy
+          <span class="vip-badge" style="display:none; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 VIP</span>
         </div>
         <div style="font-size:11px; color:rgba(255,255,255,0.7); line-height:1.4; margin-bottom:8px; font-family:'Orbitron',sans-serif;">
           Projétil energético pulsante amarelo.
@@ -8871,11 +9505,16 @@ window.addEventListener('beforeunload', () => {
 
       <!-- Energy Card -->
       <div class="shot-card" data-type="energy" onclick="selectShotType('energy')" style="background:rgba(0,20,40,0.6); border:2px solid rgba(217,70,239,0.3); border-radius:12px; padding:14px; cursor:pointer; transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
+        <div class="vip-lock-overlay" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.65); border-radius:10px; z-index:10; flex-direction:column; align-items:center; justify-content:center; gap:6px; pointer-events:none;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="#FFD700" stroke-width="2"/><path d="M8 11V7a4 4 0 118 0v4" stroke="#FFD700" stroke-width="2" stroke-linecap="round"/></svg>
+          <span style="font-size:10px; font-weight:900; color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 EXCLUSIVO VIP</span>
+        </div>
         <div style="width:100%; height:100px; border-radius:8px; background:rgba(0,0,0,0.4); margin-bottom:10px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid rgba(0,229,255,0.2);">
           <img src="images/shots/energy.png" alt="Energy" style="max-width:70%; max-height:70%; object-fit:contain;">
         </div>
-        <div style="font-size:15px; font-weight:700; color:#d946ef; margin-bottom:6px; font-family:'Orbitron',sans-serif;">
+        <div style="font-size:15px; font-weight:700; color:#d946ef; margin-bottom:6px; font-family:'Orbitron',sans-serif; display:flex; align-items:center; gap:8px;">
           Ion Spark
+          <span class="vip-badge" style="display:none; font-size:9px; font-weight:900; padding:2px 7px; border-radius:20px; background:rgba(255,215,0,0.18); border:1px solid rgba(255,215,0,0.55); color:#FFD700; font-family:'Orbitron',sans-serif; letter-spacing:1px;">💎 VIP</span>
         </div>
         <div style="font-size:11px; color:rgba(255,255,255,0.7); line-height:1.4; margin-bottom:8px; font-family:'Orbitron',sans-serif;">
           Projétil de íons elétricos roxo.
@@ -8923,6 +9562,15 @@ window.addEventListener('beforeunload', () => {
 }
 .shot-card.selected .shot-active-badge {
   display: inline-flex !important;
+}
+.shot-card.shot-locked {
+  opacity: 0.55;
+  cursor: not-allowed !important;
+}
+.shot-card.shot-locked:hover {
+  transform: none !important;
+  border-color: rgba(255,215,0,0.3) !important;
+  box-shadow: none !important;
 }
 #shotTypeModalContent button:last-child:hover {
   transform: translateY(-2px);
@@ -9077,8 +9725,8 @@ async function loadShotPreferences() {
 
 // Update button thumbnails based on preferences - AAA Quality
 function updateButtonThumbnails() {
-  // Atualizar os 3 botões fixos (naves tipo 1, 2, 3)
-  for (let shipType = 1; shipType <= 3; shipType++) {
+  // Atualizar todos os botões de nave (tipos 1–9)
+  for (let shipType = 1; shipType <= 9; shipType++) {
     const btn = document.querySelector(`.shot-type-btn[data-ship="${shipType}"]`);
     if (!btn) continue;
     
@@ -9125,6 +9773,22 @@ function openShotTypeModal(shipType) {
     card.classList.toggle('selected', isSelected);
   });
   
+  // Apply VIP locks/badges to pulse and energy cards
+  const isVip = localStorage.getItem('thor_is_vip') === 'true';
+  document.querySelectorAll('.shot-card[data-type="pulse"], .shot-card[data-type="energy"]').forEach(card => {
+    const overlay = card.querySelector('.vip-lock-overlay');
+    const badge = card.querySelector('.vip-badge');
+    if (!isVip) {
+      card.classList.add('shot-locked');
+      if (overlay) overlay.style.display = 'flex';
+      if (badge) badge.style.display = 'none';
+    } else {
+      card.classList.remove('shot-locked');
+      if (overlay) overlay.style.display = 'none';
+      if (badge) badge.style.display = 'inline-block';
+    }
+  });
+
   // Show modal
   const modal = document.getElementById('shotTypeModal');
   if (modal) {
@@ -9143,6 +9807,10 @@ function selectShotType(type) {
     console.error('[SHOT TYPE] Invalid shot type:', type);
     return;
   }
+
+  // Block VIP-locked shots
+  const card = document.querySelector(`.shot-card[data-type="${type}"]`);
+  if (card && card.classList.contains('shot-locked')) return;
   
   selectedShotType = type;
   

@@ -75,12 +75,12 @@ export default function GamePage() {
             );
             console.log("[GamePage] Multiplayer - enviando userId:", userId, "matchId:", matchId);
           } else {
-            // Em solo, enviar username e mode
+            // Em solo, enviar username, userId e mode
             win.postMessage(
-              { type: "THOR:INIT", payload: { username, mode } },
+              { type: "THOR:INIT", payload: { userId, username, mode } },
               window.location.origin
             );
-            console.log("[GamePage] Solo mode -", mode);
+            console.log("[GamePage] Solo mode -", mode, "userId:", userId);
           }
         }
       } catch (e) {
@@ -284,7 +284,10 @@ export default function GamePage() {
 
     if (msg.type === "THOR:BACK_TO_MODE") {
       // Usuário clicou no botão "Voltar ao início" na tela de resultado
-      console.log("THOR:BACK_TO_MODE received, navigating to /mode");
+      console.log("THOR:BACK_TO_MODE received");
+      
+      // Verificar se veio de uma sessão multiplayer (ex: partida com bot)
+      const selectedMode = localStorage.getItem("thor_selected_mode");
       
       // Limpar dados do jogo anterior
       localStorage.removeItem("thor_match_id");
@@ -292,7 +295,13 @@ export default function GamePage() {
       localStorage.removeItem("thor_match_opponent_name");
       localStorage.removeItem("thor_selected_mode");
       
-      router.replace("/mode");
+      if (selectedMode === "multiplayer") {
+        console.log("THOR:BACK_TO_MODE — origem multiplayer, navegando para /multiplayer");
+        router.replace("/multiplayer");
+      } else {
+        console.log("THOR:BACK_TO_MODE — navegando para /mode");
+        router.replace("/mode");
+      }
       return;
     }
 

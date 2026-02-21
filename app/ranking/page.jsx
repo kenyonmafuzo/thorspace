@@ -18,6 +18,7 @@ export default function RankingPage() {
   const [loadingRanking, setLoadingRanking] = useState(false);
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [zoomModal, setZoomModal] = useState(null); // { src, label, level? }
 
   useEffect(() => {
     let isMounted = true;
@@ -29,7 +30,7 @@ export default function RankingPage() {
         // Buscar todos os perfis
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
-          .select("id, username, avatar_preset")
+          .select("id, username, avatar_preset, is_vip, vip_name_color, vip_frame_color")
           .order("username", { ascending: true });
         if (profilesError) {
           setError("Erro ao buscar perfis.");
@@ -68,6 +69,9 @@ export default function RankingPage() {
             user_id: profile.id,
             username: profile.username,
             avatar_preset: profile.avatar_preset,
+            is_vip: profile.is_vip || false,
+            vip_name_color: profile.vip_name_color || "#FFD700",
+            vip_frame_color: profile.vip_frame_color || "#FFD700",
             total_xp,
             level,
             tier,
@@ -129,10 +133,74 @@ export default function RankingPage() {
   }, [router]);
 
   return (
-    <>
+    <div style={{ minHeight: "100vh" }}>
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <UserHeader />
-      <div style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px' }}>
+
+      {/* Zoom Modal */}
+      {zoomModal && (
+        <div
+          onClick={() => setZoomModal(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.88)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 99999, cursor: 'pointer',
+            animation: 'rankZoomFadeIn 0.2s ease',
+          }}
+        >
+          <style>{`@keyframes rankZoomFadeIn{from{opacity:0;transform:scale(0.85)}to{opacity:1;transform:scale(1)}}`}</style>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'rgba(10,20,40,0.95)',
+              border: '2px solid rgba(0,229,255,0.35)',
+              borderRadius: 20,
+              padding: '36px 48px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
+              boxShadow: '0 0 40px rgba(0,229,255,0.2)',
+              animation: 'rankZoomFadeIn 0.22s ease',
+            }}
+          >
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <img
+                src={zoomModal.src}
+                alt={zoomModal.label}
+                style={{ width: 220, height: 220, objectFit: 'contain', borderRadius: 16 }}
+                onError={e => { e.currentTarget.src = '/game/images/ranks/rookie/rookie_bronze.png'; }}
+              />
+              {zoomModal.level != null && (
+                <div style={{
+                  position: 'absolute',
+                  top: 6,
+                  right: 6,
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #00E5FF 0%, #0099CC 100%)',
+                  border: '2.5px solid #001a2e',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: 16,
+                  color: '#FFF',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.6)',
+                  boxShadow: '0 2px 10px rgba(0,229,255,0.5)',
+                  fontFamily: "'Orbitron',sans-serif",
+                }}>
+                  {zoomModal.level}
+                </div>
+              )}
+            </div>
+            <span style={{ color: '#00E5FF', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: 1 }}>
+              {zoomModal.label}
+            </span>
+          </div>
+        </div>
+      )}
+      <div style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
         <div style={{
           display: "flex",
           alignItems: "center",
@@ -185,7 +253,10 @@ export default function RankingPage() {
                     const tierUrl = `/game/images/ranks/${tier.toLowerCase()}/${tier.toLowerCase()}_${material.toLowerCase()}.png`;
                     const avatarPreset = player.avatar_preset || 'normal';
                     let avatarUrl = null;
-                    if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
+                    // avatar_preset can be a full path (VIP custom) or a short preset key
+                    if (avatarPreset.startsWith('/')) {
+                      avatarUrl = avatarPreset;
+                    } else if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
                     else if (avatarPreset === 'protecao') avatarUrl = '/game/images/nave_protecao.png';
                     else if (avatarPreset === 'alcance') avatarUrl = '/game/images/nave_alcance.png';
                     else avatarUrl = '/game/images/nave_normal.png';
@@ -212,7 +283,8 @@ export default function RankingPage() {
                               src={tierUrl} 
                               alt={`${tier} ${material}`} 
                               title={`${tier} ${material}`} 
-                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222' }}
+                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222', cursor: 'pointer' }}
+                              onClick={() => setZoomModal({ src: tierUrl, label: `${tier} ${material}`, level: player.level })}
                               onError={(e) => {
                                 e.currentTarget.src = '/game/images/ranks/rookie/rookie_bronze.png';
                               }}
@@ -242,9 +314,12 @@ export default function RankingPage() {
                             </div>
                           </div>
                           {avatarUrl && (
-                            <img src={avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, border: '2px solid #222' }} />
+                            <img src={avatarUrl} alt="avatar" onClick={() => setZoomModal({ src: avatarUrl, label: player.username || 'Player' })} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, cursor: 'pointer', border: player.is_vip ? `2px solid ${player.vip_frame_color}` : '2px solid #222', boxShadow: player.is_vip ? `0 0 8px ${player.vip_frame_color}88` : 'none' }} />
                           )}
-                          <span>{player.username || "Player"}</span>
+                          <span style={{ color: player.is_vip ? player.vip_name_color : '#fff', textShadow: player.is_vip ? `0 0 8px ${player.vip_name_color}99` : 'none' }}>
+                            {player.is_vip && <span style={{ marginRight: 4, fontSize: 13 }}>💎</span>}
+                            {player.username || "Player"}
+                          </span>
                           {isCurrentUser && <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>}
                         </td>
                         <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
@@ -285,7 +360,10 @@ export default function RankingPage() {
                     const tierUrl = `/game/images/ranks/${tier.toLowerCase()}/${tier.toLowerCase()}_${material.toLowerCase()}.png`;
                     const avatarPreset = player.avatar_preset || 'normal';
                     let avatarUrl = null;
-                    if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
+                    // avatar_preset can be a full path (VIP custom) or a short preset key
+                    if (avatarPreset.startsWith('/')) {
+                      avatarUrl = avatarPreset;
+                    } else if (avatarPreset === 'normal') avatarUrl = '/game/images/nave_normal.png';
                     else if (avatarPreset === 'protecao') avatarUrl = '/game/images/nave_protecao.png';
                     else if (avatarPreset === 'alcance') avatarUrl = '/game/images/nave_alcance.png';
                     else avatarUrl = '/game/images/nave_normal.png';
@@ -308,7 +386,8 @@ export default function RankingPage() {
                               src={tierUrl} 
                               alt={`${tier} ${material}`} 
                               title={`${tier} ${material}`} 
-                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222' }}
+                              style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: '#181c22', border: '2px solid #222', cursor: 'pointer' }}
+                              onClick={() => setZoomModal({ src: tierUrl, label: `${tier} ${material}`, level: player.level })}
                               onError={(e) => {
                                 e.currentTarget.src = '/game/images/ranks/rookie/rookie_bronze.png';
                               }}
@@ -338,9 +417,12 @@ export default function RankingPage() {
                             </div>
                           </div>
                           {avatarUrl && (
-                            <img src={avatarUrl} alt="avatar" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, border: '2px solid #222' }} />
+                            <img src={avatarUrl} alt="avatar" onClick={() => setZoomModal({ src: avatarUrl, label: player.username || 'Você' })} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', marginRight: 6, cursor: 'pointer', border: player.is_vip ? `2px solid ${player.vip_frame_color}` : '2px solid #222', boxShadow: player.is_vip ? `0 0 8px ${player.vip_frame_color}88` : 'none' }} />
                           )}
-                          <span>{player.username || "Você"}</span>
+                          <span style={{ color: player.is_vip ? player.vip_name_color : '#fff', textShadow: player.is_vip ? `0 0 8px ${player.vip_name_color}99` : 'none' }}>
+                            {player.is_vip && <span style={{ marginRight: 4, fontSize: 13 }}>💎</span>}
+                            {player.username || "Você"}
+                          </span>
                           <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>
                         </td>
                         <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
@@ -375,7 +457,7 @@ export default function RankingPage() {
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
