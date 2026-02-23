@@ -8,9 +8,46 @@ function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const paymentId = searchParams.get("payment_id");
-  const [countdown, setCountdown] = useState(6);
+  const [countdown, setCountdown] = useState(8);
+  const [confirming, setConfirming] = useState(true);
+  const [confirmResult, setConfirmResult] = useState(null);
 
+  // Call /api/mp/confirm on mount to activate VIP server-side
   useEffect(() => {
+    if (!paymentId) {
+      setConfirming(false);
+      return;
+    }
+    fetch("/api/mp/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setConfirmResult(data);
+        if (data.activated && typeof window !== "undefined") {
+          // Store flag so the VIP page can show the activation modal
+          localStorage.setItem(
+            "thor_vip_just_activated",
+            JSON.stringify({
+              plan_label: data.plan_label,
+              vip_starts: data.vip_starts,
+              vip_expires: data.vip_expires,
+            })
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("[success] confirm error:", err);
+        setConfirmResult({ activated: false, error: err.message });
+      })
+      .finally(() => setConfirming(false));
+  }, [paymentId]);
+
+  // Start countdown only after confirmation attempt
+  useEffect(() => {
+    if (confirming) return;
     const timer = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) { clearInterval(timer); router.push("/vip"); return 0; }
@@ -18,7 +55,17 @@ function SuccessContent() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [router]);
+  }, [confirming, router]);
+
+  const fmt = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleString("pt-BR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+  };
 
   return (
     <div className="card" style={{
@@ -31,7 +78,9 @@ function SuccessContent() {
       textAlign: "center",
       animation: "glow 3s ease infinite",
     }}>
-      <div className="crown" style={{ fontSize: 72, marginBottom: 20 }}>👑</div>
+      <div className="crown" style={{ fontSize: 72, marginBottom: 20 }}>
+        {confirming ? "⌛" : "👑"}
+      </div>
 
       <h1 style={{
         fontSize: 22,
@@ -43,27 +92,54 @@ function SuccessContent() {
         animation: "shimmer 3s linear infinite",
         marginBottom: 12,
       }}>
-        PAGAMENTO CONFIRMADO!
+        {confirming ? "ATIVANDO VIP..." : "VIP ATIVADO! 🎉"}
       </h1>
 
-      <p style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
-        Seu VIP está sendo ativado agora.
-      </p>
-      <p style={{ color: "#666", fontSize: 12, marginBottom: 32 }}>
-        Em alguns instantes você terá acesso a todos os benefícios exclusivos.
-      </p>
+      {confirming ? (
+        <p style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
+          Confirmando seu pagamento...
+        </p>
+      ) : confirmResult?.activated ? (
+        <>
+          <p style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+            Seu <strong style={{ color: "#FFD700" }}>VIP {confirmResult.plan_label}</strong> está ativo!
+          </p>
+          <div style={{
+            background: "rgba(255,215,0,0.06)",
+            border: "1px solid rgba(255,215,0,0.2)",
+            borderRadius: 12,
+            padding: "14px 18px",
+            marginBottom: 28,
+            fontSize: 12,
+            color: "#aaa",
+            lineHeight: 1.8,
+          }}>
+            <div>⏱ <strong style={{ color: "#FFD700" }}>Início:</strong> {fmt(confirmResult.vip_starts)}</div>
+            <div>🏁 <strong style={{ color: "#FFD700" }}>Expira:</strong> {fmt(confirmResult.vip_expires)}</div>
+          </div>
+        </>
+      ) : (
+        <>
+          <p style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 8 }}>
+            Pagamento recebido! Seu VIP será ativado em instantes.
+          </p>
+          <p style={{ color: "#555", fontSize: 12, marginBottom: 28 }}>
+            Se não aparecer em 1 minuto, entre em contato com o suporte.
+          </p>
+        </>
+      )}
 
       {paymentId && (
         <div style={{
-          background: "rgba(255,215,0,0.06)",
-          border: "1px solid rgba(255,215,0,0.15)",
-          borderRadius: 10,
-          padding: "10px 16px",
-          marginBottom: 28,
-          fontSize: 11,
-          color: "#666",
+          background: "rgba(255,255,255,0.03)",
+          border: "1px solid rgba(255,255,255,0.07)",
+          borderRadius: 8,
+          padding: "8px 14px",
+          marginBottom: 24,
+          fontSize: 10,
+          color: "#444",
         }}>
-          ID: <span style={{ color: "#888" }}>{paymentId}</span>
+          Pedido: <span style={{ color: "#666" }}>{paymentId}</span>
         </div>
       )}
 
@@ -86,9 +162,11 @@ function SuccessContent() {
         ⚡ IR PARA ÁREA VIP
       </Link>
 
-      <p style={{ color: "#444", fontSize: 11 }}>
-        Redirecionando em {countdown}s...
-      </p>
+      {!confirming && (
+        <p style={{ color: "#444", fontSize: 11 }}>
+          Redirecionando em {countdown}s...
+        </p>
+      )}
     </div>
   );
 }

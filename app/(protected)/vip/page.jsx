@@ -38,6 +38,9 @@ export default function VIPPage() {
   const [vipSaving, setVipSaving] = useState(false);
   const [vipSaveMessage, setVipSaveMessage] = useState("");
 
+  // VIP activation modal — shown once after a successful purchase
+  const [vipActivatedModal, setVipActivatedModal] = useState(null); // { plan_label, vip_starts, vip_expires }
+
   // Reset to PIX when language is PT, credit card otherwise
   useEffect(() => {
     setPaymentMethod(lang === "pt" ? "pix" : "credit");
@@ -77,6 +80,21 @@ export default function VIPPage() {
         }
       }
     });
+  }, []);
+
+  // Show activation modal if redirected from a successful payment
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = localStorage.getItem("thor_vip_just_activated");
+    if (raw) {
+      try {
+        const data = JSON.parse(raw);
+        setVipActivatedModal(data);
+        localStorage.removeItem("thor_vip_just_activated");
+      } catch (_) {
+        localStorage.removeItem("thor_vip_just_activated");
+      }
+    }
   }, []);
 
   const isVipActive =
@@ -161,6 +179,91 @@ export default function VIPPage() {
     <div style={pageStyle}>
       <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
+      {/* VIP Activation Modal */}
+      {vipActivatedModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.88)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20,
+          backdropFilter: "blur(8px)",
+        }} onClick={() => setVipActivatedModal(null)}>
+          <div style={{
+            background: "linear-gradient(135deg, #0a0e27 0%, #050514 100%)",
+            border: "2px solid rgba(255,215,0,0.6)",
+            borderRadius: 24,
+            padding: "48px 36px",
+            maxWidth: 420,
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 0 60px rgba(255,215,0,0.35), 0 0 120px rgba(255,215,0,0.15)",
+            animation: "vipModalPop 0.5s cubic-bezier(.34,1.56,.64,1) both",
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 72, marginBottom: 16, animation: "vipCrownFloat 3s ease-in-out infinite" }}>
+              👑
+            </div>
+            <h2 style={{
+              fontSize: 20,
+              fontFamily: "'Orbitron', sans-serif",
+              fontWeight: 900,
+              backgroundImage: "linear-gradient(90deg, #FFD700, #FFF8A0, #FFD700)",
+              backgroundSize: "200% auto",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              animation: "shimmer 3s linear infinite",
+              marginBottom: 8,
+            }}>
+              VIP {vipActivatedModal.plan_label} ATIVADO!
+            </h2>
+            <p style={{ color: "#aaa", fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
+              Bem-vindo ao clube exclusivo.<br />Aproveite todos os benefícios!
+            </p>
+            <div style={{
+              background: "rgba(255,215,0,0.07)",
+              border: "1px solid rgba(255,215,0,0.2)",
+              borderRadius: 12,
+              padding: "14px 18px",
+              marginBottom: 28,
+              fontSize: 12,
+              color: "#aaa",
+              lineHeight: 2,
+              fontFamily: "monospace",
+            }}>
+              <div>⏱ <span style={{ color: "#FFD700" }}>Início:</span> {new Date(vipActivatedModal.vip_starts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
+              <div>🏁 <span style={{ color: "#FFD700" }}>Expira:</span> {new Date(vipActivatedModal.vip_expires).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
+            </div>
+            <button
+              onClick={() => setVipActivatedModal(null)}
+              style={{
+                padding: "14px 32px",
+                backgroundImage: "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
+                backgroundSize: "200% auto",
+                animation: "shimmer 3s linear infinite",
+                border: "none",
+                borderRadius: 12,
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: 13,
+                fontWeight: 900,
+                color: "#000",
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}>
+              ⚡ APROVEITAR!
+            </button>
+          </div>
+          <style>{`
+            @keyframes vipModalPop {
+              0% { transform: scale(0.5); opacity: 0; }
+              70% { transform: scale(1.05); }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes vipCrownFloat {
+              0%, 100% { transform: translateY(0) rotate(-5deg); }
+              50% { transform: translateY(-10px) rotate(5deg); }
+            }
+          `}</style>
+        </div>
+      )}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
         @keyframes crownGlow {
