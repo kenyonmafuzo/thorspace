@@ -200,7 +200,7 @@ export default function VIPPage() {
             animation: "vipModalPop 0.5s cubic-bezier(.34,1.56,.64,1) both",
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{ fontSize: 72, marginBottom: 16, animation: "vipCrownFloat 3s ease-in-out infinite" }}>
-              �
+              {"\u{1F48E}"}
             </div>
             <h2 style={{
               fontSize: 20,
@@ -574,7 +574,7 @@ export default function VIPPage() {
             }}>
               <div>
                 <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>
-                  � {currentPlan.label}
+                  {"\u{1F48E}"} {currentPlan.label}
                 </div>
                 <div style={{ color: "#888", fontSize: 12, marginTop: 3 }}>
                   {vip.viaPayment} {paymentLabel}

@@ -57,12 +57,12 @@ function SuccessContent() {
     return () => clearInterval(timer);
   }, [confirming]);
 
-  // Navigate when countdown reaches 0
+  // Navigate when countdown reaches 0 — hard reload to get fresh Supabase data
   useEffect(() => {
     if (!confirming && countdown === 0) {
-      router.push("/vip");
+      window.location.href = "/vip";
     }
-  }, [countdown, confirming, router]);
+  }, [countdown, confirming]);
 
   const fmt = (iso) => {
     if (!iso) return "";
@@ -86,7 +86,7 @@ function SuccessContent() {
       animation: "glow 3s ease infinite",
     }}>
       <div className="crown" style={{ fontSize: 72, marginBottom: 20 }}>
-        {confirming ? "⌛" : "�"}
+        {confirming ? "⌛" : "\u{1F48E}"}
       </div>
 
       <h1 style={{
