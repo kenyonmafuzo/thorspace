@@ -10,6 +10,8 @@ const PLANS = {
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://thorspace.vercel.app";
+// Webhook URL must always be a public internet-accessible URL (not localhost)
+const WEBHOOK_URL = process.env.NEXT_PUBLIC_PROD_URL || "https://thorspace.vercel.app";
 
 export async function POST(request) {
   try {
@@ -74,8 +76,8 @@ export async function POST(request) {
           failure: `${BASE_URL}/vip/failure`,
           pending: `${BASE_URL}/vip/pending`,
         },
-        auto_return: "approved",
-        notification_url: `${BASE_URL}/api/mp/webhook`,
+        auto_return: isMpTestMode() ? undefined : "approved",
+        notification_url: `${WEBHOOK_URL}/api/mp/webhook`,
         external_reference: `${user.id}:${planId}`,
         statement_descriptor: "THORSPACE VIP",
         payment_methods: {

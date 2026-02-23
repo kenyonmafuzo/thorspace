@@ -596,7 +596,7 @@ export default function VIPPage() {
               backgroundImage: paymentLoading
                 ? "none"
                 : "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
-              background: paymentLoading ? "rgba(255,215,0,0.15)" : undefined,
+              backgroundColor: paymentLoading ? "rgba(255,215,0,0.15)" : "transparent",
               backgroundSize: "200% auto",
               animation: paymentLoading ? "none" : "shimmer 3s linear infinite",
               border: paymentLoading ? "1px solid rgba(255,215,0,0.3)" : "none",

@@ -234,6 +234,14 @@ export default function InboxPage() {
                         text = `${badgeData.description || 'Você desbloqueou uma nova badge!'}\n\nParabéns! Confira sua conquista e exiba com orgulho.`;
                         cta = "Badge";
                         ctaUrl = "/badges";
+                      } else if (notif.type === "vip") {
+                        // VIP ativado — dourado
+                        bg = "rgba(255,215,0,0.08)";
+                        border = "1.5px solid #FFD70066";
+                        color = "#FFD700";
+                        text = notif.content || "Seu VIP foi ativado!";
+                        cta = notif.cta || "VIP";
+                        ctaUrl = notif.cta_url || "/vip";
                       } else {
                         // Outros tipos de notificação
                         const username = notif.meta?.username || 'Alguém';
@@ -241,8 +249,8 @@ export default function InboxPage() {
                           ? notif.content
                           : t(`inbox.${notif.type}`, { username }) || `Notificação: ${notif.type}`;
                       }
-                      // Definir CTA padrão apenas para notificações de amizade (não badge_unlocked, daily_login, streak_broken)
-                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "system" && notif.cta && t(`inbox.cta_friends`)) {
+                      // Definir CTA padrão apenas para notificações de amizade (não vip, badge_unlocked, daily_login, streak_broken)
+                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "vip" && notif.type !== "system" && notif.cta && t(`inbox.cta_friends`)) {
                         cta = t(`inbox.cta_friends`);
                       }
                       return (
@@ -257,7 +265,7 @@ export default function InboxPage() {
                         }}>
                           <div style={{ fontSize: 13, color: "#b3eaff", fontWeight: 600, marginBottom: 2, letterSpacing: 0.2 }}>{dayStr} • {timeStr}</div>
                           {notif.title && (
-                            <div style={{ fontSize: 15, color: border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF", fontWeight: 800, marginBottom: 6, letterSpacing: 0.2 }}>{notif.title}</div>
+                            <div style={{ fontSize: 15, color: notif.type === "vip" ? "#FFD700" : border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF", fontWeight: 800, marginBottom: 6, letterSpacing: 0.2 }}>{notif.title}</div>
                           )}
                           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 0 }}>
                             <span
@@ -272,7 +280,7 @@ export default function InboxPage() {
                             />
                             {cta && ctaUrl && (
                               <Link href={ctaUrl} style={{
-                                background: notif.type === "badge_unlocked" ? "#00FF7F" : (border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF"),
+                                background: notif.type === "vip" ? "#FFD700" : notif.type === "badge_unlocked" ? "#00FF7F" : (border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF"),
                                 color: "#10131a",
                                 border: "none",
                                 borderRadius: 7,
@@ -283,7 +291,7 @@ export default function InboxPage() {
                                 cursor: "pointer",
                                 opacity: 1,
                                 transition: "opacity 0.2s, box-shadow 0.2s",
-                                boxShadow: notif.type === "badge_unlocked" ? "0 0 8px #00FF7F99" : (border.includes("FF7F7F") ? "0 0 8px #FF7F7F55" : border.includes("00FFB4") ? "0 0 8px #00FFB455" : "0 0 8px #00e5ff55"),
+                                boxShadow: notif.type === "vip" ? "0 0 8px #FFD70077" : notif.type === "badge_unlocked" ? "0 0 8px #00FF7F99" : (border.includes("FF7F7F") ? "0 0 8px #FF7F7F55" : border.includes("00FFB4") ? "0 0 8px #00FFB455" : "0 0 8px #00e5ff55"),
                                 textDecoration: "none",
                                 marginLeft: 0,
                                 marginTop: 12,

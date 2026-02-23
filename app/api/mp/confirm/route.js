@@ -102,7 +102,7 @@ async function sendInboxNotification(admin, userId, planId, vipStarts, vipExpire
     {
       user_id: userId,
       type: "vip",
-      title: "👑 VIP Ativado!",
+      title: "� VIP Ativado!",
       content: `Seu VIP ${planLabel} está ativo de ${fmt(vipStarts)} até ${fmt(vipExpires)}.`,
       cta: "Ver minha área VIP",
       cta_url: "/vip",
