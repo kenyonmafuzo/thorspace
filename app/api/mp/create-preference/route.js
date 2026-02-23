@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { getMpAccessToken, isMpTestMode } from "@/lib/mpCredentials";
 
 const PLANS = {
   "1day":   { days: 1,  price: 4.90,  title: "THORSPACE VIP — 1 Dia" },
@@ -33,11 +34,15 @@ export async function POST(request) {
       return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
     }
 
-    const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    if (!ACCESS_TOKEN) {
-      console.error("[MP] MERCADOPAGO_ACCESS_TOKEN não configurado");
+    let ACCESS_TOKEN;
+    try {
+      ACCESS_TOKEN = getMpAccessToken();
+    } catch (e) {
+      console.error("[MP create-preference]", e.message);
       return NextResponse.json({ error: "Configuração de pagamento indisponível" }, { status: 500 });
     }
+    const isTestMode = isMpTestMode();
+    if (isTestMode) console.log("[MP create-preference] 🧪 MODO TESTE ativo");
 
     // Create Mercado Pago preference
     const idempotencyKey = `${user.id}-${planId}-${Date.now()}`;

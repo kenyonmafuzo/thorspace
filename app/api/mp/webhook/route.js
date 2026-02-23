@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getMpAccessToken } from "@/lib/mpCredentials";
 
 const PLAN_DAYS = {
   "1day":   1,
@@ -19,7 +20,7 @@ function getAdminClient() {
 }
 
 async function fetchMpPayment(paymentId) {
-  const ACCESS_TOKEN = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  const ACCESS_TOKEN = getMpAccessToken();
   const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: { "Authorization": `Bearer ${ACCESS_TOKEN}` },
     cache: "no-store",
