@@ -161,7 +161,7 @@ export default function VIPPage() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ planId: selectedPlan }),
+        body: JSON.stringify({ planId: selectedPlan, paymentMethod }),
       });
       const data = await res.json();
       if (!res.ok || !data.init_point) {

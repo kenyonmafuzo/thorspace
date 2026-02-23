@@ -29,12 +29,21 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { planId } = body;
+    const { planId, paymentMethod } = body;
     const plan = PLANS[planId];
 
     if (!plan) {
       return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
     }
+
+    // Build excluded_payment_types based on selected method
+    // PIX = bank_transfer, credit = credit_card, debit = debit_card
+    const EXCLUDE_MAP = {
+      pix:    [{ id: "credit_card" }, { id: "debit_card" }, { id: "ticket" }],
+      credit: [{ id: "debit_card"  }, { id: "bank_transfer" }, { id: "ticket" }],
+      debit:  [{ id: "credit_card" }, { id: "bank_transfer" }, { id: "ticket" }],
+    };
+    const excludedPaymentTypes = EXCLUDE_MAP[paymentMethod] || [];
 
     let ACCESS_TOKEN;
     try {
@@ -80,7 +89,8 @@ export async function POST(request) {
         external_reference: `${user.id}:${planId}`,
         statement_descriptor: "THORSPACE VIP",
         payment_methods: {
-          installments: 12,
+          installments: paymentMethod === "credit" ? 12 : 1,
+          ...(excludedPaymentTypes.length > 0 ? { excluded_payment_types: excludedPaymentTypes } : {}),
         },
         metadata: {
           user_id: user.id,
