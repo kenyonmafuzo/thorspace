@@ -86,8 +86,18 @@ export default function UserHeader() {
       const url = localStorage.getItem('thor_vip_avatar') || '';
       setVipAvatarUrl(url);
     }
+    function handleVipColorsChanged(e) {
+      const nameColor = e.detail?.vipNameColor || localStorage.getItem('thor_vip_name_color');
+      const frameColor = e.detail?.vipFrameColor || localStorage.getItem('thor_vip_frame_color');
+      if (nameColor) setVipNameColor(nameColor);
+      if (frameColor) setVipFrameColor(frameColor);
+    }
     window.addEventListener('thor_vip_avatar_changed', handleVipAvatarChanged);
-    return () => window.removeEventListener('thor_vip_avatar_changed', handleVipAvatarChanged);
+    window.addEventListener('thor_vip_colors_changed', handleVipColorsChanged);
+    return () => {
+      window.removeEventListener('thor_vip_avatar_changed', handleVipAvatarChanged);
+      window.removeEventListener('thor_vip_colors_changed', handleVipColorsChanged);
+    };
   }, []);
 
   useEffect(() => {

@@ -131,6 +131,9 @@ export default function VIPPage() {
         if (vipAvatar) localStorage.setItem("thor_vip_avatar", vipAvatar);
         // Notify other components
         window.dispatchEvent(new Event("thor_vip_avatar_changed"));
+        window.dispatchEvent(new CustomEvent("thor_vip_colors_changed", {
+          detail: { vipNameColor, vipFrameColor },
+        }));
       }
       setTimeout(() => setVipSaveMessage(""), 3000);
     }
