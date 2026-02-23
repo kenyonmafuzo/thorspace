@@ -83,6 +83,7 @@ export default function VIPPage() {
   }, []);
 
   // Show activation modal if redirected from a successful payment
+  // Also patch profile state immediately so VIP shows as active without waiting for DB fetch
   useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = localStorage.getItem("thor_vip_just_activated");
@@ -91,6 +92,12 @@ export default function VIPPage() {
         const data = JSON.parse(raw);
         setVipActivatedModal(data);
         localStorage.removeItem("thor_vip_just_activated");
+        // Optimistically mark VIP as active using the data we already have
+        setProfile((prev) => ({
+          ...(prev || {}),
+          is_vip: true,
+          vip_expires_at: data.vip_expires,
+        }));
       } catch (_) {
         localStorage.removeItem("thor_vip_just_activated");
       }
