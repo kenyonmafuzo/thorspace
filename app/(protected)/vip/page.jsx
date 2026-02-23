@@ -155,6 +155,30 @@ export default function VIPPage() {
         setPaymentLoading(false);
         return;
       }
+
+      // PIX: use direct Payments API → show QR code on our own page
+      if (paymentMethod === "pix") {
+        const res = await fetch("/api/mp/create-pix", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ planId: selectedPlan }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.qr_code) {
+          setPaymentError(data.error || "Erro ao gerar PIX. Tente novamente.");
+          setPaymentLoading(false);
+          return;
+        }
+        // Store PIX data in sessionStorage and redirect to PIX page
+        sessionStorage.setItem("thor_pix_pending", JSON.stringify(data));
+        window.location.href = "/vip/pix";
+        return;
+      }
+
+      // Credit / Debit: use Checkout Pro
       const res = await fetch("/api/mp/create-preference", {
         method: "POST",
         headers: {
@@ -169,7 +193,6 @@ export default function VIPPage() {
         setPaymentLoading(false);
         return;
       }
-      // Redirect to Mercado Pago Checkout Pro
       window.location.href = data.init_point;
     } catch (err) {
       console.error("[VIP] handlePay error:", err);
