@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
@@ -22,11 +23,13 @@ export default function VIPPage() {
   const benefits = Array.isArray(vip.benefits) ? vip.benefits : [];
   const isPT     = lang === "pt";
 
+  const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState("30days");
   const [paymentMethod, setPaymentMethod] = useState("pix");
   const [profile, setProfile] = useState(null);
   const [profileUserId, setProfileUserId] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   // VIP customization
   const [vipNameColor, setVipNameColor] = useState("#FFD700");
@@ -119,6 +122,40 @@ export default function VIPPage() {
     paymentMethod === "pix"    ? (vip.pixLabel    || "PIX") :
     paymentMethod === "credit" ? (vip.creditLabel || "Credit Card") :
                                  (vip.debitLabel  || "Debit");
+
+  const handlePay = async () => {
+    if (paymentLoading) return;
+    setPaymentLoading(true);
+    setPaymentError("");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setPaymentError("Você precisa estar logado para continuar.");
+        setPaymentLoading(false);
+        return;
+      }
+      const res = await fetch("/api/mp/create-preference", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ planId: selectedPlan }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.init_point) {
+        setPaymentError(data.error || "Erro ao iniciar pagamento. Tente novamente.");
+        setPaymentLoading(false);
+        return;
+      }
+      // Redirect to Mercado Pago Checkout Pro
+      window.location.href = data.init_point;
+    } catch (err) {
+      console.error("[VIP] handlePay error:", err);
+      setPaymentError("Erro de conexão. Verifique sua internet e tente novamente.");
+      setPaymentLoading(false);
+    }
+  };
 
   return (
     <div style={pageStyle}>
@@ -449,19 +486,43 @@ export default function VIPPage() {
           {/* Botão pagar */}
           <button
             className="pay-btn"
-            onClick={() => setShowPaymentModal(true)}
+            onClick={handlePay}
+            disabled={paymentLoading}
             style={{
               width: "100%", padding: "16px 24px",
-              backgroundImage: "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
-              backgroundSize: "200% auto", animation: "shimmer 3s linear infinite",
-              border: "none", borderRadius: 12,
+              backgroundImage: paymentLoading
+                ? "none"
+                : "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
+              background: paymentLoading ? "rgba(255,215,0,0.15)" : undefined,
+              backgroundSize: "200% auto",
+              animation: paymentLoading ? "none" : "shimmer 3s linear infinite",
+              border: paymentLoading ? "1px solid rgba(255,215,0,0.3)" : "none",
+              borderRadius: 12,
               fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
-              color: "#000", cursor: "pointer", letterSpacing: 1,
-              boxShadow: "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
+              color: paymentLoading ? "#FFD70088" : "#000",
+              cursor: paymentLoading ? "not-allowed" : "pointer",
+              letterSpacing: 1,
+              boxShadow: paymentLoading ? "none" : "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
+              transition: "all 0.2s",
             }}
           >
-            ⚡ {vip.payNow} — {currentPlan?.price}
+            {paymentLoading ? "⏳ REDIRECIONANDO..." : `⚡ ${vip.payNow} — ${currentPlan?.price}`}
           </button>
+
+          {paymentError && (
+            <div style={{
+              marginTop: 12,
+              padding: "10px 16px",
+              background: "rgba(255,58,52,0.1)",
+              border: "1px solid rgba(255,58,52,0.3)",
+              borderRadius: 10,
+              color: "#ff6b66",
+              fontSize: 12,
+              textAlign: "center",
+            }}>
+              ⚠️ {paymentError}
+            </div>
+          )}
 
           <p style={{ color: "#555", fontSize: 11, textAlign: "center", marginTop: 12 }}>
             🔒 {vip.securePayment}
@@ -671,70 +732,7 @@ export default function VIPPage() {
       </div>
 
       {/* Modal de pagamento (placeholder) */}
-      {showPaymentModal && (
-        <div style={{
-          position: "fixed", inset: 0,
-          background: "rgba(0,0,0,0.85)",
-          backdropFilter: "blur(6px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 99999,
-        }}>
-          <div style={{
-            width: "90%", maxWidth: 440,
-            background: "linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%)",
-            border: "2px solid rgba(255,215,0,0.5)",
-            borderRadius: 20, overflow: "hidden",
-            boxShadow: "0 0 60px rgba(255,215,0,0.2)",
-            animation: "fadeIn 0.25s ease-out",
-          }}>
-            {/* Header modal */}
-            <div style={{
-              padding: "20px 24px",
-              background: "rgba(255,215,0,0.1)",
-              borderBottom: "1px solid rgba(255,215,0,0.2)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 20 }}>👑</span>
-                <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 15, fontWeight: 700, color: "#FFD700" }}>
-                  {vip.confirmTitle}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{ background: "none", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 8, color: "#fff", width: 32, height: 32, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                ×
-              </button>
-            </div>
 
-            <div style={{ padding: 28, textAlign: "center" }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🚧</div>
-              <div style={{ color: "#FFD700", fontWeight: 700, fontFamily: "'Orbitron',sans-serif", fontSize: 14, marginBottom: 8 }}>
-                {vip.comingSoon}
-              </div>
-              <div style={{ color: "#aaa", fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-                {vip.comingSoonMsg}<br /><br />
-                <span style={{ color: "#FFD700", fontWeight: 600 }}>{vip.selectedPlan}: {currentPlan?.label} — {currentPlan?.price}</span>
-              </div>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                style={{
-                  width: "100%", padding: "12px 24px",
-                  background: "linear-gradient(90deg, #FFD700, #f59e0b)",
-                  border: "none", borderRadius: 10,
-                  fontFamily: "'Orbitron',sans-serif", fontSize: 13, fontWeight: 700,
-                  color: "#000", cursor: "pointer", letterSpacing: 1,
-                }}
-              >
-                {vip.ok}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
       </div>
     </div>
   );
