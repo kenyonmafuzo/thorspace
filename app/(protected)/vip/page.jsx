@@ -630,6 +630,45 @@ export default function VIPPage() {
           <p style={{ color: "#555", fontSize: 11, textAlign: "center", marginTop: 12 }}>
             🔒 {vip.securePayment}
           </p>
+
+          {/* TEST MODE BUTTON — only visible when NEXT_PUBLIC_MP_TEST_MODE=true */}
+          {process.env.NEXT_PUBLIC_MP_TEST_MODE === "true" && (
+            <button
+              onClick={async () => {
+                if (!profileUserId) return;
+                const res = await fetch("/api/mp/test-activate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ userId: profileUserId, planId: selectedPlan }),
+                });
+                const data = await res.json();
+                if (data.activated) {
+                  localStorage.setItem("thor_vip_just_activated", JSON.stringify({
+                    plan_label: data.plan_label,
+                    vip_starts: data.vip_starts,
+                    vip_expires: data.vip_expires,
+                  }));
+                  window.location.href = `/vip/success?payment_id=${data.fake_payment_id}&status=approved`;
+                }
+              }}
+              style={{
+                marginTop: 16,
+                width: "100%",
+                padding: "12px",
+                background: "rgba(255,100,0,0.12)",
+                border: "1px dashed rgba(255,100,0,0.4)",
+                borderRadius: 10,
+                color: "#ff6422",
+                fontFamily: "'Orbitron', sans-serif",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                letterSpacing: 1,
+              }}
+            >
+              🧪 [TESTE] ATIVAR VIP SEM PAGAMENTO
+            </button>
+          )}
         </section>
 
         </>)}
