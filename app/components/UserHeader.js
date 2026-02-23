@@ -188,6 +188,9 @@ export default function UserHeader() {
 
   return (
     <>
+      <style>{`
+        @media (max-width: 768px) { #userHeader { display: none !important; } }
+      `}</style>
       <div id="userHeader" style={headerStyle}>
         {/* Logo — upper left */}
         <img
