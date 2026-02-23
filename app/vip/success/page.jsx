@@ -50,12 +50,19 @@ function SuccessContent() {
     if (confirming) return;
     const timer = setInterval(() => {
       setCountdown((c) => {
-        if (c <= 1) { clearInterval(timer); router.push("/vip"); return 0; }
+        if (c <= 1) { clearInterval(timer); return 0; }
         return c - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [confirming, router]);
+  }, [confirming]);
+
+  // Navigate when countdown reaches 0
+  useEffect(() => {
+    if (!confirming && countdown === 0) {
+      router.push("/vip");
+    }
+  }, [countdown, confirming, router]);
 
   const fmt = (iso) => {
     if (!iso) return "";
@@ -79,7 +86,7 @@ function SuccessContent() {
       animation: "glow 3s ease infinite",
     }}>
       <div className="crown" style={{ fontSize: 72, marginBottom: 20 }}>
-        {confirming ? "⌛" : "👑"}
+        {confirming ? "⌛" : "�"}
       </div>
 
       <h1 style={{
