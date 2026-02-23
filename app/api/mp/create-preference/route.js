@@ -68,9 +68,8 @@ export async function POST(request) {
             category_id: "services",
           },
         ],
-        payer: {
-          email: user.email,
-        },
+        // In test mode don't send payer email — sandbox rejects real account emails as "suspicious"
+        ...(isMpTestMode() ? {} : { payer: { email: user.email } }),
         back_urls: {
           success: `${BASE_URL}/vip/success`,
           failure: `${BASE_URL}/vip/failure`,
