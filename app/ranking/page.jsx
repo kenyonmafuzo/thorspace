@@ -139,7 +139,7 @@ export default function RankingPage() {
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <style>{`
         @media (max-width: 768px) {
-          .rank-main-container { margin-top: 148px !important; }
+          .rank-main-container { margin-top: 440px !important; }
           .rank-table-wrap { display: none !important; }
           .rank-cards-mobile { display: block !important; }
         }

@@ -153,7 +153,6 @@ export default function MobileHeader() {
       {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
         position: "fixed", top: 0, left: 0, right: 0,
-        height: 140,
         background: "transparent",
         zIndex: 10020,
         flexDirection: "column",
@@ -162,17 +161,17 @@ export default function MobileHeader() {
 
         {/* Row 1 — Logo centered */}
         <div style={{
-          display: "flex", alignItems: "center", justifyContent: "center",
-          height: 102, width: "100%",
+          display: "flex", alignItems: "flex-start", justifyContent: "center",
+          paddingTop: 40, paddingBottom: 12, width: "100%",
         }}>
           <img
             src="/game/images/thorspace.png"
             alt="ThorSpace"
             onClick={() => nav("/mode")}
             style={{
-              height: 92, width: "auto", cursor: "pointer",
+              height: 282, width: "auto", cursor: "pointer",
               objectFit: "contain",
-              filter: "drop-shadow(0 0 12px rgba(0,229,255,0.6))",
+              filter: "drop-shadow(0 0 16px rgba(0,229,255,0.65))",
             }}
           />
         </div>
@@ -180,33 +179,33 @@ export default function MobileHeader() {
         {/* Row 2 — Tier + Pill | Hamburger */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          height: 38, paddingLeft: 10, paddingRight: 10,
+          paddingBottom: 16, paddingLeft: 14, paddingRight: 14,
         }}>
           {/* LEFT — Tier + Username pill */}
-          <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 5 }}>
-            {progress && <RankBadge totalXp={progress.totalXp} size={36} />}
+          <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
+            {progress && <RankBadge totalXp={progress.totalXp} size={86} />}
             <button
               onClick={() => setProfileOpen((o) => !o)}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: 8,
                 background: isVipActive ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.06)",
                 border: isVipActive ? `1px solid ${vipFrameColor}66` : "1px solid rgba(255,255,255,0.15)",
                 borderRadius: 50,
-                padding: "5px 10px",
+                padding: "8px 14px",
                 cursor: "pointer",
                 color: "#fff",
                 fontFamily: "'Orbitron',sans-serif",
-                fontSize: 10,
+                fontSize: 12,
                 fontWeight: 700,
               }}
             >
               <img
                 src={isVipActive && vipAvatarUrl ? vipAvatarUrl : getAvatarSrc(userStats?.avatar_preset || "normal")}
                 alt="nave"
-                style={{ width: 16, height: "auto" }}
+                style={{ width: 32, height: "auto" }}
               />
-              <span style={{ color: isVipActive ? vipNameColor : "#fff", display: "flex", alignItems: "center", gap: 3 }}>
-                {isVipActive && <span style={{ fontSize: 9 }}>💎</span>}
+              <span style={{ color: isVipActive ? vipNameColor : "#fff", display: "flex", alignItems: "center", gap: 4 }}>
+                {isVipActive && <span style={{ fontSize: 18 }}>💎</span>}
                 {displayUsername || "..."}
               </span>
             </button>
@@ -242,15 +241,15 @@ export default function MobileHeader() {
               background: "rgba(255,255,255,0.06)",
               border: "1px solid rgba(255,255,255,0.15)",
               borderRadius: 8,
-              width: 34, height: 34,
+              width: 44, height: 44,
               display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center", gap: 4,
+              alignItems: "center", justifyContent: "center", gap: 5,
               cursor: "pointer",
             }}
           >
-            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
-            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
-            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
+            <span style={{ width: 20, height: 2.5, background: "rgba(159,246,255,0.60)", borderRadius: 2 }} />
+            <span style={{ width: 20, height: 2.5, background: "rgba(159,246,255,0.60)", borderRadius: 2 }} />
+            <span style={{ width: 20, height: 2.5, background: "rgba(159,246,255,0.60)", borderRadius: 2 }} />
           </button>
         </div>
       </div>
