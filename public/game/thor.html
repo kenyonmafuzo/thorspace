@@ -2354,11 +2354,8 @@ async function submitMyAction(actionPayload) {
 
     // Removido: banner central de aguarde. Só usar legendArea no HUD.
 
-    // Cancelar timers de countdown (mas não o timer principal)
-    if (turnTimerInterval) {
-      clearInterval(turnTimerInterval);
-      turnTimerInterval = null;
-    }
+    // NÃO cancelar turnTimerInterval: precisa continuar para disparar maybeResolveTurn() no deadline
+    // caso o oponente submeta depois do nosso 300ms check inicial.
 
     // Tentar resolver turno agora (se ambos já enviaram)
     setTimeout(() => maybeResolveTurn(), 300);
@@ -4383,26 +4380,15 @@ async function handleMatchUpdate(payload) {
     }
     
     // Verificar se algum jogador submeteu ação (para tentar resolver turno)
-    const blue_data = row.ships_blue;
-    const red_data = row.ships_red;
+    // 🔥 FIX: usar submitted_blue/submitted_red (os campos corretos no banco)
+    // ships_blue/ships_red não existem — esse bug impedia P1 de re-tentar resolver
+    // quando P2 submetia depois do check inicial de 300ms.
+    const submitted_blue = row.submitted_blue === true;
+    const submitted_red = row.submitted_red === true;
     
-    
-    const submitted_blue = blue_data && typeof blue_data === 'object' && blue_data.type === 'ACTION';
-    const submitted_red = red_data && typeof red_data === 'object' && red_data.type === 'ACTION';
-    
-    if (submitted_blue || submitted_red) {
-      
-      // Checar pelo banco se EU submetei (não usar variável local myActionSubmitted que pode estar incorreta)
-      const mySubmitted = (myTeam === 'blue') ? submitted_blue : submitted_red;
-      const opponentSubmitted = (myTeam === 'blue') ? submitted_red : submitted_blue;
-      
-      
-      // Se AMBOS submeteram (checando o banco, não variáveis locais)
-      if (submitted_blue && submitted_red) {
-        setTimeout(() => maybeResolveTurn(), 500);
-      } else if (!mySubmitted) {
-      } else {
-      }
+    // Se AMBOS submeteram, P1 tenta resolver agora (aciona maybeResolveTurn via Realtime)
+    if (submitted_blue && submitted_red) {
+      setTimeout(() => maybeResolveTurn(), 500);
     }
   }
 }
