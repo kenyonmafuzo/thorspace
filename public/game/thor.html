@@ -2155,6 +2155,9 @@ function startTurnWindow(deadlineISO) {
   // 1) Destravar input do setup do round
   inputLocked = false;
 
+  // 🔥 Performance: limpar destroços do round anterior (wrecks cresce indefinidamente se não limpar)
+  wrecks = [];
+
   // 2) MUITO IMPORTANTE: zerar seleção do round (senão Round 2 fica travado)
   window.selectedNaves = [];
   // Resetando locks/ready das naves do jogador
@@ -3930,27 +3933,16 @@ function processHitEvent(event) {
 function processEventQueue() {
   if (eventQueue.length === 0) return;
   
-  // Ordenar por sequence_number
+  // Ordenar por sequence_number e processar todos de uma vez.
+  // HP_UPDATE é idempotente (hp_final absoluto) — projectileHitRegistry garante sem duplicatas.
+  // Remover stall sequencial: se um evento chegar fora de ordem, não travar a fila.
   eventQueue.sort((a, b) => a.sequence_number - b.sequence_number);
   
-  // Processar eventos na ordem
   while (eventQueue.length > 0) {
-    const event = eventQueue[0];
+    const event = eventQueue.shift();
     
-    // Verificar se é o próximo evento esperado
-    if (event.sequence_number <= lastProcessedSequence) {
-      // Evento duplicado ou já processado
-      eventQueue.shift();
-      continue;
-    }
-    
-    if (event.sequence_number !== lastProcessedSequence + 1) {
-      // Falta evento anterior, aguardar
-      console.warn('[AAA-QUEUE] ⏳ Aguardando evento #' + (lastProcessedSequence + 1));
-      break;
-    }
-    
-    // Processar evento
+    // Ignorar duplicatas já processadas
+    if (event.sequence_number <= lastProcessedSequence) continue;
     
     if (event.type === 'HP_UPDATE' || event.type === 'PROJECTILE_HIT') {
       processHitEvent(event);
@@ -3959,7 +3951,6 @@ function processEventQueue() {
     }
     
     lastProcessedSequence = event.sequence_number;
-    eventQueue.shift();
   }
 }
 
@@ -4181,13 +4172,14 @@ async function handleMatchUpdate(payload) {
         turnTimer = null;
       }
       
-      // 🚫 NUNCA recalcular placar no handler Realtime
-      // O placar correto já foi salvo no checkWinCondition local
-      debug.win('[WIN] ✅ Placar foi salvo anteriormente:', finalScoreSaved);
-      debug.win('[WIN] 📊 Estado das naves (apenas para debug):');
-      debug.win('[WIN]   - playerNaves HP:', playerNaves.map(n => n.hp));
-      debug.win('[WIN]   - cpuNaves HP:', cpuNaves.map(n => n.hp));
-      debug.win('[WIN] ⚠️ NÃO recalcular placar aqui - usar finalScoreSaved');
+      // Calcular finalScoreSaved a partir do HP autoritativo (DB já foi sincronizado acima).
+      // checkWinCondition pode não ter rodado no P2 se o Realtime chegou antes do game loop terminar.
+      // Aqui as cpuNaves já têm HP do banco (linhas acima), então o cálculo é correto.
+      finalScoreSaved = {
+        myLost: playerNaves.filter(n => n.hp <= 0).length,
+        oppLost: cpuNaves.filter(n => n.hp <= 0).length
+      };
+      debug.win('[WIN] 💾 finalScoreSaved calculado no handler Realtime (após HP sync do banco):', finalScoreSaved);
       
       // 🎮 ARQUITETURA AAA: Client-side apenas renderiza
       // Stats são atualizadas APENAS pelo HOST via updateMatchAsAuthority
