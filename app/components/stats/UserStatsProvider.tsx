@@ -226,36 +226,29 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   // Get current userId and claim daily XP after login
   useEffect(() => {
     let cancelled = false;
-    
-    const checkAndSetUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      const uid = data?.user?.id || null;
-      if (!cancelled) setUserId(uid);
-      // ⚠️ NÃO chamar claim_daily_xp aqui - será chamado no onAuthStateChange SIGNED_IN
-      // Isso evita duplicação quando o componente monta após login
-    };
 
-    // Check initial session
-    checkAndSetUser();
-
-    // Listen for auth state changes (login/logout)
+    // Listen for auth state changes (login/logout/refresh)
+    // onAuthStateChange fires INITIAL_SESSION on page load/refresh — use it
+    // instead of getUser() (which requires a network round-trip and can fail).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[UserStatsProvider] Auth state changed:', event, session?.user?.id);
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+        // Page refresh / session restored from storage — set userId immediately
+        const uid = session?.user?.id || null;
+        if (!cancelled) setUserId(uid);
+      } else if (event === 'SIGNED_IN') {
         const uid = session?.user?.id || null;
         if (!cancelled && uid) {
           setUserId(uid);
-          // Only claim daily XP on SIGNED_IN (not on token refresh)
-          if (event === 'SIGNED_IN') {
-            try {
-              const { data: claimRes, error: claimErr } = await supabase.rpc('claim_daily_xp');
-              const row = Array.isArray(claimRes) ? claimRes[0] : claimRes;
-              if (!claimErr && row?.awarded_xp > 0) {
-                setDailyLoginResult(row);
-              }
-            } catch (e) {
-              console.warn('[DailyLogin] claim_daily_xp exception on auth change:', e);
+          // Claim daily XP only on explicit sign-in (not on page refresh)
+          try {
+            const { data: claimRes, error: claimErr } = await supabase.rpc('claim_daily_xp');
+            const row = Array.isArray(claimRes) ? claimRes[0] : claimRes;
+            if (!claimErr && row?.awarded_xp > 0) {
+              setDailyLoginResult(row);
             }
+          } catch (e) {
+            console.warn('[DailyLogin] claim_daily_xp exception on auth change:', e);
           }
         }
       } else if (event === 'SIGNED_OUT') {
