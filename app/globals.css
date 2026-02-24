@@ -335,12 +335,16 @@ button, .mode-btn, .end-btn {
 
 html {
   background: #000010;
+  height: -webkit-fill-available;
   min-height: 100dvh;
 }
 body {
   background: #000010;
-  min-height: 100dvh;
+  min-height: 100vh;
   min-height: -webkit-fill-available;
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── Mobile: content starts below transparent header (logo ~334px + row2 ~90px) ── */
