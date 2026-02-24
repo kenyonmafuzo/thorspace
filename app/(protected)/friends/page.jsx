@@ -897,7 +897,7 @@ if (typeof window !== "undefined") {
   }
 
   return (
-    <div style={pageContainerStyle} className="mobile-cpad">
+    <div style={pageContainerStyle} className="friends-page">
       {galaxyBg}
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet" />
       <style>{`

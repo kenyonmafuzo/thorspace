@@ -155,7 +155,7 @@ export default function SettingsPage() {
           .lang-flag-btn { width: 36px !important; height: 36px !important; font-size: 20px !important; }
         }
       `}</style>
-      <main style={{ maxWidth: 680, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
+      <main style={{ maxWidth: 680, margin: "80px auto 0", position: "relative", zIndex: 1 }} className="settings-main-inner">
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 40, fontFamily: "'Orbitron', sans-serif" }}>{t("settings.title")}</h1>
 
         {/* ÁUDIO */}

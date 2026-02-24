@@ -209,7 +209,7 @@ export default function VIPPage() {
   };
 
   return (
-    <div style={pageStyle} className="mobile-cpad">
+    <div style={pageStyle} className="vip-page-wrap">
       <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
       {/* VIP Activation Modal */}

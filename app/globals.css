@@ -374,6 +374,21 @@ body::before {
   main.mobile-page-content { margin-top: 0 !important; }
   /* Pages that render their own padding (outside ProtectedClientLayout) */
   .mobile-cpad { padding-top: calc(220px + env(safe-area-inset-top, 0px)) !important; }
+
+  /* ── Per-page vertical alignment fixes ───────────────────────────────────
+     PROTECTED pages (inside ProtectedClientLayout → already get 220px from
+     .mobile-page-content). Any extra inline paddingTop/marginTop must be zeroed. */
+  .friends-page       { padding-top: 0 !important; }
+  .vip-page-wrap      { padding-top: 0 !important; }
+  .settings-main-inner { margin-top:  0 !important; }
+
+  /* STANDALONE pages (own MobileHeader, NO layout wrapper).
+     Outer wrapper padding-top → 0; inner <main> → 220px to match ranking. */
+  .profile-outer  { padding-top:  0   !important; }
+  .profile-main   { margin-top:   220px !important; }
+  .badges-outer   { padding-top:  0   !important; }
+  .badges-main    { margin-top:   220px !important; }
+
   /* Bottom: home indicator */
   body {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
