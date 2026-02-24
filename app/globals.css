@@ -333,11 +333,11 @@ button, .mode-btn, .end-btn {
   }
 }
 
-/* ── Mobile: compensate for fixed 80px header ── */
+/* ── Mobile: compensate for fixed 88px header ── */
 @media (max-width: 768px) {
   /* Push all protected page content below the mobile header */
   body > div > main,
   body > div [data-nextjs-scroll-focus-boundary] > *:not([class*="mobile-header"]) {
-    padding-top: 88px;
+    padding-top: 96px;
   }
 }

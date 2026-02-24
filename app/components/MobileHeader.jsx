@@ -150,102 +150,112 @@ export default function MobileHeader() {
         @media (max-width: 768px) { .mobile-header { display: flex; } }
       `}</style>
 
-      {/* ── TOP BAR ── */}
+      {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
-        position: "fixed", top: 0, left: 0, right: 0, height: 56,
-        background: "rgba(4,6,20,0.92)",
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: 88,
+        background: "rgba(4,6,20,0.97)",
         backdropFilter: "blur(12px)",
         borderBottom: "1px solid rgba(0,229,255,0.1)",
         zIndex: 10020,
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 12px",
+        flexDirection: "column",
+        alignItems: "stretch",
+        overflow: "hidden",
       }}>
 
-        {/* LEFT — Tier + Username pill */}
-        <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 6 }}>
-          {progress && <RankBadge totalXp={progress.totalXp} size={44} />}
-          <button
-            onClick={() => setProfileOpen((o) => !o)}
+        {/* Row 1 — Logo centered */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          height: 52, width: "100%",
+        }}>
+          <img
+            src="/game/images/thorspace.png"
+            alt="ThorSpace"
+            onClick={() => nav("/mode")}
             style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: isVipActive ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.06)",
-              border: isVipActive ? `1px solid ${vipFrameColor}66` : "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 50,
-              padding: "6px 10px",
-              cursor: "pointer",
-              color: "#fff",
-              fontFamily: "'Orbitron',sans-serif",
-              fontSize: 11,
-              fontWeight: 700,
+              height: 46, width: "auto", cursor: "pointer",
+              objectFit: "contain",
+              filter: "drop-shadow(0 0 8px rgba(0,229,255,0.45))",
             }}
-          >
-            <img
-              src={isVipActive && vipAvatarUrl ? vipAvatarUrl : getAvatarSrc(userStats?.avatar_preset || "normal")}
-              alt="nave"
-              style={{ width: 18, height: "auto" }}
-            />
-            <span style={{ color: isVipActive ? vipNameColor : "#fff", display: "flex", alignItems: "center", gap: 3 }}>
-              {isVipActive && <span style={{ fontSize: 10 }}>💎</span>}
-              {displayUsername || "..."}
-            </span>
-          </button>
-
-          {/* Profile dropdown */}
-          {profileOpen && (
-            <div style={{
-              position: "absolute", top: "calc(100% + 8px)", left: 0,
-              background: "#1a1a2e",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 10, overflow: "hidden",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-              minWidth: 160, zIndex: 10100,
-            }}>
-              {[
-                { label: t("nav.profile") || "Perfil", path: "/profile" },
-                { label: t("nav.badges") || "Badges", path: "/badges" },
-                { label: t("nav.settings") || "Configurações", path: "/settings" },
-              ].map((item) => (
-                <button key={item.path} onClick={() => nav(item.path)} style={ddStyle}>{item.label}</button>
-              ))}
-              <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }} />
-              <button onClick={handleLogout} style={{ ...ddStyle, color: "#FFB3B3" }}>{t("nav.logout") || "Sair"}</button>
-            </div>
-          )}
+          />
         </div>
 
-        {/* CENTER — Logo */}
-        <img
-          src="/game/images/thorspace.png"
-          alt="ThorSpace"
-          onClick={() => nav("/mode")}
-          style={{
-            position: "absolute", left: "50%", transform: "translateX(-50%)",
-            height: 50, width: "auto", cursor: "pointer",
-            objectFit: "contain",
-            filter: "drop-shadow(0 0 6px rgba(0,229,255,0.35))",
-          }}
-        />
+        {/* Row 2 — Tier + Pill | Hamburger */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          height: 36, paddingLeft: 10, paddingRight: 10,
+        }}>
+          {/* LEFT — Tier + Username pill */}
+          <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 5 }}>
+            {progress && <RankBadge totalXp={progress.totalXp} size={36} />}
+            <button
+              onClick={() => setProfileOpen((o) => !o)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: isVipActive ? "rgba(255,215,0,0.08)" : "rgba(255,255,255,0.06)",
+                border: isVipActive ? `1px solid ${vipFrameColor}66` : "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 50,
+                padding: "5px 10px",
+                cursor: "pointer",
+                color: "#fff",
+                fontFamily: "'Orbitron',sans-serif",
+                fontSize: 10,
+                fontWeight: 700,
+              }}
+            >
+              <img
+                src={isVipActive && vipAvatarUrl ? vipAvatarUrl : getAvatarSrc(userStats?.avatar_preset || "normal")}
+                alt="nave"
+                style={{ width: 16, height: "auto" }}
+              />
+              <span style={{ color: isVipActive ? vipNameColor : "#fff", display: "flex", alignItems: "center", gap: 3 }}>
+                {isVipActive && <span style={{ fontSize: 9 }}>💎</span>}
+                {displayUsername || "..."}
+              </span>
+            </button>
 
-        {/* RIGHT — Hamburger */}
-        <button
-          data-hamburger="true"
-          onClick={() => setDrawerOpen((o) => !o)}
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 8,
-            width: 36, height: 36,
-            display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", gap: 4,
-            cursor: "pointer",
-            position: "relative", zIndex: 1,
-          }}
-        >
-          <span style={{ width: 18, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
-          <span style={{ width: 18, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
-          <span style={{ width: 18, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
-        </button>
+            {/* Profile dropdown */}
+            {profileOpen && (
+              <div style={{
+                position: "absolute", top: "calc(100% + 6px)", left: 0,
+                background: "#1a1a2e",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 10, overflow: "hidden",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+                minWidth: 160, zIndex: 10100,
+              }}>
+                {[
+                  { label: t("nav.profile") || "Perfil", path: "/profile" },
+                  { label: t("nav.badges") || "Badges", path: "/badges" },
+                  { label: t("nav.settings") || "Configurações", path: "/settings" },
+                ].map((item) => (
+                  <button key={item.path} onClick={() => nav(item.path)} style={ddStyle}>{item.label}</button>
+                ))}
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)" }} />
+                <button onClick={handleLogout} style={{ ...ddStyle, color: "#FFB3B3" }}>{t("nav.logout") || "Sair"}</button>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT — Hamburger */}
+          <button
+            data-hamburger="true"
+            onClick={() => setDrawerOpen((o) => !o)}
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8,
+              width: 34, height: 34,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 4,
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
+            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
+            <span style={{ width: 16, height: 2, background: "#9FF6FF", borderRadius: 2 }} />
+          </button>
+        </div>
       </div>
 
       {/* ── DRAWER OVERLAY ── */}

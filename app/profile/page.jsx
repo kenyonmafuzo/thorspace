@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AVATAR_OPTIONS, getAvatarSrc } from "@/app/lib/avatarOptions";
 import { useRouter } from "next/navigation";
 import UserHeader from "@/app/components/UserHeader";
+import MobileHeader from "@/app/components/MobileHeader";
 import { supabase } from "@/lib/supabase";
 import { getLevelFromTotalXp, formatRankDisplay, getRankAssetKey, getLevelProgressFromTotalXp } from "@/lib/xpSystem";
 
@@ -411,6 +412,7 @@ export default function ProfilePage() {
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
         </div>
+        <MobileHeader />
         <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
           <p>Carregando perfil...</p>
         </main>
@@ -425,6 +427,7 @@ export default function ProfilePage() {
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
         </div>
+        <MobileHeader />
         <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
           <p>Erro ao carregar perfil. Tente novamente.</p>
         </main>
@@ -441,6 +444,7 @@ export default function ProfilePage() {
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
         <UserHeader />
       </div>
+      <MobileHeader />
 
       <main style={{ maxWidth: 700, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 40, fontFamily: "'Orbitron', sans-serif" }}>Perfil</h1>

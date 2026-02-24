@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import UserHeader from "@/app/components/UserHeader";
+import MobileHeader from "@/app/components/MobileHeader";
 import { supabase } from "@/lib/supabase";
 import { BADGES_CONFIG, checkUnlockedBadges } from "@/lib/badgesSystem";
 import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
@@ -172,6 +173,7 @@ export default function BadgesPage() {
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
         <UserHeader />
       </div>
+      <MobileHeader />
 
       <main style={{ maxWidth: 1200, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <div style={{

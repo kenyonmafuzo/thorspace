@@ -116,11 +116,14 @@ export default function ModePage() {
       `}</style>
       <div className="mobile-only-notice" style={{
         position: "fixed", inset: 0, zIndex: 9998,
-        background: "radial-gradient(ellipse at bottom, #01030a 0%, #000016 60%, #000 100%)",
+        backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 60%, #000 100%)",
+        backgroundSize: "cover, cover",
+        backgroundRepeat: "no-repeat, no-repeat",
+        backgroundPosition: "center center, center center",
         flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         textAlign: "center", padding: "32px 24px",
-        paddingTop: 80,
+        paddingTop: 100,
         fontFamily: "'Orbitron', sans-serif",
       }}>
         <div style={{ fontSize: 64, marginBottom: 20 }}>🖥️</div>

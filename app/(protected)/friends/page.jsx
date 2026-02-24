@@ -902,16 +902,18 @@ if (typeof window !== "undefined") {
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet" />
       <style>{`
         @media (max-width: 768px) {
-          .friends-search { max-width: none !important; width: 100% !important; }
-          .friends-tabs-row { padding-left: 12px !important; padding-right: 12px !important; gap: 4px !important; }
-          .friends-tab-btn { flex: 1 !important; padding: 7px 4px !important; font-size: 10px !important; }
-          .friends-top-row { flex-wrap: wrap !important; }
-          .friends-search-wrap { width: 100%; }
+          .friends-top-row { flex-direction: column !important; align-items: stretch !important; padding: 16px 16px 0 16px !important; gap: 8px !important; }
+          .friends-flex-spacer { display: none !important; }
+          .friends-search { max-width: none !important; width: 100% !important; box-sizing: border-box !important; }
+          .friends-tabs-row { padding-left: 16px !important; padding-right: 16px !important; gap: 6px !important; flex-wrap: nowrap !important; }
+          .friends-tab-btn { flex: 1 !important; padding: 8px 2px !important; font-size: 10px !important; text-align: center; }
+          .friends-grid { grid-template-columns: 1fr !important; max-width: none !important; }
+          .friends-list-wrap { padding-left: 16px !important; padding-right: 16px !important; box-sizing: border-box !important; }
         }
       `}</style>
       <div style={topRowStyle} className="friends-top-row">
         <h2 style={titleStyle}>{t("friends.title")}</h2>
-        <div style={{ flex: 1 }} />
+        <div className="friends-flex-spacer" style={{ flex: 1 }} />
         <input
           type="text"
           value={search}
@@ -956,11 +958,11 @@ if (typeof window !== "undefined") {
           {searchLoading ? <div style={{ color: '#aaa' }}>{t("friends.searching")}</div> :
             (!Array.isArray(searchResults) || searchResults.length === 0)
               ? <div style={{ color: '#aaa' }}>{t("friends.no_results")}</div>
-              : <div style={gridContainerStyle}><div style={gridStyle}>{searchResults.map(renderSearchResult)}</div></div>}
+              : <div style={gridContainerStyle}><div style={gridStyle} className="friends-grid">{searchResults.map(renderSearchResult)}</div></div>}
         </div>
       )}
       {!search && (
-        <div style={{ width: "100%", maxWidth: 1100, minHeight: 220, marginTop: 24, boxSizing: 'border-box' }}>
+        <div className="friends-list-wrap" style={{ width: "100%", maxWidth: 1100, minHeight: 220, marginTop: 24, boxSizing: 'border-box' }}>
           {loading ? <div style={{ color: '#aaa' }}>{t("friends.loading")}</div> :
             list.length === 0 ? (
               <div style={{ color: '#aaa', textAlign: 'center', maxWidth: 400, margin: '0 auto' }}>
@@ -985,7 +987,7 @@ if (typeof window !== "undefined") {
               </div>
             ) :
               <div style={gridContainerStyle}>
-                <div style={gridStyle}>
+                <div style={gridStyle} className="friends-grid">
                   {list
                     .filter(row => tab !== "Sent" || row.status === "pending")
                     .map(row => {
