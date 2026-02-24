@@ -134,7 +134,7 @@ export default function RankingPage() {
   }, [router]);
 
   return (
-    <div style={{ minHeight: "100vh" }}>
+    <div>
       <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <style>{`
@@ -212,7 +212,7 @@ export default function RankingPage() {
           </div>
         </div>
       )}
-      <div className="rank-main-container" style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px', position: 'relative', zIndex: 1 }}>
+      <div className="rank-main-container" style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px 60px', position: 'relative', zIndex: 1 }}>
         <div style={{
           display: "flex",
           alignItems: "center",
