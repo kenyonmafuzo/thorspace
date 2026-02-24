@@ -15,6 +15,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [infoMessage, setInfoMessage] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetError, setResetError] = useState("");
 
   useEffect(() => {
     // Verificar se veio do signup com parâmetro msg=confirm_email
@@ -137,6 +142,28 @@ export default function LoginPage() {
       setError("Erro desconhecido ao autenticar");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e) {
+    e.preventDefault();
+    setResetError("");
+    setResetLoading(true);
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(
+        resetEmail.trim(),
+        { redirectTo: `${window.location.origin}/reset-password` }
+      );
+      if (err) {
+        setResetError(err.message || "Erro ao enviar email");
+      } else {
+        setResetSent(true);
+      }
+    } catch (e) {
+      console.error(e);
+      setResetError("Erro desconhecido");
+    } finally {
+      setResetLoading(false);
     }
   }
 
@@ -344,6 +371,47 @@ export default function LoginPage() {
             </div>
           )}
           
+          {showForgotPassword ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetError(""); setResetEmail(""); }}
+                style={{ background: 'none', border: 'none', color: '#9FF6FF', cursor: 'pointer', fontSize: 13, padding: 0, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                ← Voltar ao login
+              </button>
+              <p style={{ fontSize: 14, color: '#E6FBFF', marginBottom: 16, lineHeight: 1.5 }}>
+                Digite seu email e enviaremos um link para resetar sua senha.
+              </p>
+              {resetSent ? (
+                <div style={{ padding: '14px', borderRadius: 10, background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.3)', color: '#00E5FF', fontSize: 14, textAlign: 'center', lineHeight: 1.6 }}>
+                  ✉️ Link enviado!<br />
+                  <span style={{ fontSize: 12, color: 'rgba(230,251,255,0.7)' }}>Verifique sua caixa de entrada (e spam).</span>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword}>
+                  <label style={{ display: 'block', fontSize: 13, marginBottom: 6 }}>Email</label>
+                  <input
+                    style={input}
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="seu@email.com"
+                  />
+                  {resetError && <div style={{ color: '#FFB3B3', fontSize: 13, marginBottom: 8 }}>{resetError}</div>}
+                  <button
+                    style={{ ...primaryBtn, opacity: resetLoading ? 0.75 : 1 }}
+                    type="submit"
+                    disabled={resetLoading}
+                  >
+                    {resetLoading ? 'Enviando...' : 'ENVIAR LINK'}
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : (
           <form onSubmit={handleSubmit}>
             <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
               Email ou Username
@@ -361,6 +429,15 @@ export default function LoginPage() {
             <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
               Senha
             </label>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(true); setError(""); }}
+                style={{ background: 'none', border: 'none', color: '#9FF6FF', cursor: 'pointer', fontSize: 12, padding: 0, opacity: 0.85 }}
+              >
+                Esqueceu sua senha?
+              </button>
+            </div>
             <div style={passwordWrapper}>
               <input
                 style={passwordInput}
@@ -412,6 +489,7 @@ export default function LoginPage() {
               {loading ? "Entrando..." : "ENTRAR"}
             </button>
           </form>
+          )}
 
           <button style={googleBtn} onClick={signInWithGoogle} type="button">
             <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
