@@ -407,7 +407,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "transparent" }}>
         <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
@@ -422,7 +422,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+      <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "transparent" }}>
         <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
         <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>
           <UserHeader />
@@ -438,7 +438,7 @@ export default function ProfilePage() {
 
 
   return (
-    <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
+    <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "transparent" }}>
       <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ position: "fixed", top: 12, right: 12, zIndex: 10 }}>

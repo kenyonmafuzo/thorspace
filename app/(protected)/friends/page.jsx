@@ -30,7 +30,7 @@ const galaxyBg = (
 const pageContainerStyle = {
   width: "100%",
   minHeight: "100vh",
-  background: "#000010",
+  background: "transparent",
   display: "flex",
   flexDirection: "column",
   paddingTop: 100,
