@@ -152,7 +152,7 @@ export default function MobileHeader() {
 
       {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
-        position: "fixed", top: 0, left: 0, right: 0,
+        position: "fixed", top: "-115px", left: 0, right: 0,
         background: "transparent",
         zIndex: 10020,
         flexDirection: "column",
@@ -172,6 +172,7 @@ export default function MobileHeader() {
               height: 282, width: "auto", cursor: "pointer",
               objectFit: "contain",
               filter: "drop-shadow(0 0 16px rgba(0,229,255,0.65))",
+              marginBottom: "-100px",
             }}
           />
         </div>
