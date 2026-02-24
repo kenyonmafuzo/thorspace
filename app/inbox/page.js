@@ -85,7 +85,7 @@ export default function InboxPage() {
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <style>{`
         @media (max-width: 768px) {
-          .inbox-layout { flex-direction: column !important; padding-top: 128px !important; gap: 0 !important; }
+          .inbox-layout { flex-direction: column !important; padding-top: 148px !important; gap: 0 !important; }
           .inbox-sidebar { flex-direction: row !important; min-width: 0 !important; max-width: none !important; width: 100% !important; margin-top: 0 !important; gap: 0 !important; border-bottom: 1px solid rgba(0,229,255,0.15); }
           .inbox-sidebar button { flex: 1 !important; border-radius: 0 !important; border-bottom: none !important; font-size: 11px !important; padding: 10px 4px !important; }
           .inbox-content { margin-top: 12px !important; }

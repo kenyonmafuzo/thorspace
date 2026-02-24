@@ -153,11 +153,8 @@ export default function MobileHeader() {
       {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
         position: "fixed", top: 0, left: 0, right: 0,
-        height: 120,
-        background: "rgba(1,3,10,0.60)",
-        backdropFilter: "blur(18px)",
-        WebkitBackdropFilter: "blur(18px)",
-        borderBottom: "1px solid rgba(0,229,255,0.12)",
+        height: 140,
+        background: "transparent",
         zIndex: 10020,
         flexDirection: "column",
         alignItems: "stretch",
@@ -166,16 +163,16 @@ export default function MobileHeader() {
         {/* Row 1 — Logo centered */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          height: 82, width: "100%",
+          height: 102, width: "100%",
         }}>
           <img
             src="/game/images/thorspace.png"
             alt="ThorSpace"
             onClick={() => nav("/mode")}
             style={{
-              height: 74, width: "auto", cursor: "pointer",
+              height: 92, width: "auto", cursor: "pointer",
               objectFit: "contain",
-              filter: "drop-shadow(0 0 10px rgba(0,229,255,0.55))",
+              filter: "drop-shadow(0 0 12px rgba(0,229,255,0.6))",
             }}
           />
         </div>
@@ -263,7 +260,9 @@ export default function MobileHeader() {
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 10050,
-            background: "rgba(0,0,0,0.5)",
+            background: "rgba(0,0,0,0.45)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
           }}
           onClick={() => setDrawerOpen(false)}
         />
