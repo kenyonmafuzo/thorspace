@@ -181,6 +181,7 @@ export default function MobileHeader() {
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           paddingBottom: 16, paddingLeft: 14, paddingRight: 14,
+          position: "relative", zIndex: 10,
         }}>
           {/* LEFT — Tier + Username pill */}
           <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>

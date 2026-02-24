@@ -70,8 +70,8 @@ export default function RankBadge({ totalXp = null, size = 70 }) {
           style={{
             position: "absolute",
             top: "100%",
-            left: "50%",
-            transform: "translateX(-50%)",
+            left: 0,
+            transform: "none",
             marginTop: "-5px",
             backgroundColor: "rgba(0, 0, 0, 0.95)",
             color: "#fff",
