@@ -245,7 +245,7 @@ export default function RankingPage() {
           {multiplayerData.length > 0 && (
             <>
             {/* ── MOBILE CARDS ── */}
-            <div className="rank-cards-mobile">
+            <div className="rank-cards-mobile" style={{ display: 'none' }}>
               {[...multiplayerData.slice(0, 10), ...( (() => { const idx = multiplayerData.findIndex(p => p.user_id === currentUserId); return (idx >= 10) ? [{ ...multiplayerData[idx], _extraRank: idx + 1 }] : []; })() )].map((player, loopIdx) => {
                 const realIndex = player._extraRank ? player._extraRank - 1 : loopIdx;
                 const isCurrentUser = player.user_id === currentUserId;

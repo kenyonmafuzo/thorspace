@@ -227,6 +227,13 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Seed userId immediately from local storage (no network) so the first
+    // render already has it. getSession() reads only from storage — instant.
+    supabase.auth.getSession().then(({ data }) => {
+      const uid = data?.session?.user?.id || null;
+      if (!cancelled && uid) setUserId(uid);
+    });
+
     // Listen for auth state changes (login/logout/refresh)
     // onAuthStateChange fires INITIAL_SESSION on page load/refresh — use it
     // instead of getUser() (which requires a network round-trip and can fail).
