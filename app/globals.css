@@ -333,18 +333,26 @@ button, .mode-btn, .end-btn {
   }
 }
 
-html {
+html, body {
+  height: 100%;
+  margin: 0;
   background: #000010;
-  height: -webkit-fill-available;
-  min-height: 100dvh;
 }
-body {
+
+/* iOS Safari: fixed pseudo-element always paints behind notch + home bar during
+   overscroll bounce. Direct child of body = no filter/transform ancestor to
+   break position:fixed (unlike galaxy background divs). Safe on Android/desktop. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   background: #000010;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+}
+
+body {
+  min-height: 100svh;
   min-height: 100dvh;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ── Mobile: content starts below transparent header (logo ~334px + row2 ~90px) ── */
