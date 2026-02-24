@@ -362,17 +362,19 @@ body::before {
   pointer-events: none;
 }
 
-/* ── Mobile: content starts below transparent header ── */
+/* ── Mobile: content starts below transparent fixed header ── */
 @media (max-width: 768px) {
-  /* 220px clears the MobileHeader (logo overflow + row2).
-     The header itself compensates for safe-area-inset-top via calc() in its top value. */
-  body > div > main,
-  body > div [data-nextjs-scroll-focus-boundary] > *:not([class*="mobile-header"]) {
-    padding-top: 220px;
+  /* .mobile-page-content is the explicit <main> wrapper in ProtectedClientLayout.
+     220px clears MobileHeader (logo overflow + row2).
+     env(safe-area-inset-top) adds notch height when viewport-fit=cover is active.
+     Selectors do NOT touch body / #__next / [data-nextjs-scroll-focus-boundary]. */
+  .mobile-page-content {
+    padding-top: calc(220px + env(safe-area-inset-top, 0px));
   }
-  main { margin-top: 0 !important; }
-  .mobile-cpad { padding-top: 220px !important; }
-  /* Bottom: home indicator + small buffer so last card isn't flush with bottom bar */
+  main.mobile-page-content { margin-top: 0 !important; }
+  /* Pages that render their own padding (outside ProtectedClientLayout) */
+  .mobile-cpad { padding-top: calc(220px + env(safe-area-inset-top, 0px)) !important; }
+  /* Bottom: home indicator */
   body {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
   }

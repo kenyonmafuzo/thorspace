@@ -26,18 +26,7 @@ export default function ProtectedClientLayout({ children }) {
         <UserHeader />
         {/* Mobile header — only visible on ≤768px via CSS */}
         <MobileHeader />
-        {/* Add top padding on mobile so content doesn't hide under fixed header */}
-        <style>{`
-          @media (max-width: 768px) {
-            body > div, #__next, [data-nextjs-scroll-focus-boundary] {
-              padding-top: 0;
-            }
-            .mobile-page-content {
-              padding-top: 64px !important;
-            }
-          }
-        `}</style>
-        {children}
+        <main className="mobile-page-content">{children}</main>
       </NotificationsClientRoot>
     </NotificationProvider>
   );
