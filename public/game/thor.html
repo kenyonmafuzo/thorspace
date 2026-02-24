@@ -2036,6 +2036,11 @@ let myActionSubmitted = false; // se eu já enviei minha ação
 let myPendingAction = null; // ação que estou montando localmente
 let turnWindowActive = false; // se a janela de 15s está ativa
 let waitingForTurnResolution = false; // se estou aguardando resolução após enviar
+// AAA SYNC BARRIER: garante que ambos os clientes animam simultaneamente
+let pendingAnimActions = null;   // acoes pendentes ate ambos ACKarem
+let selfAnimReady = false;        // eu ja recebi turn_resolved_at
+let opponentAnimReady = false;    // oponente ja enviou ANIM_READY
+let animReadyTimeout = null;      // fallback se oponente nao responde
 
 // ========================================
 // AAA MULTIPLAYER: Event Sourcing System
@@ -2178,6 +2183,11 @@ function startTurnWindow(deadlineISO) {
   myActionSubmitted = false;
   waitingForTurnResolution = false;
   window.__lastAppliedTurnKey = null; // Limpar guard de aplicação
+  // Resetar barreira de animacao sincronizada
+  selfAnimReady = false;
+  opponentAnimReady = false;
+  pendingAnimActions = null;
+  if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
   
   
   // Parse deadline do servidor
@@ -4235,8 +4245,32 @@ async function handleMatchUpdate(payload) {
     const action_red = row.last_action_red || { type: 'idle' };
     
     
-    // Aplicar as ações
-    applyResolvedTurn({ action_blue, action_red });
+    // AAA SYNC BARRIER: sinalizar que recebi os dados e aguardar oponente
+    pendingAnimActions = { action_blue, action_red };
+    selfAnimReady = true;
+
+    // Broadcast para o oponente que estou pronto para animar
+    if (syncChannel) {
+      try {
+        syncChannel.send({ type: 'broadcast', event: 'ANIM_READY', payload: { userId: myUserId, turnKey: turn_resolved_at } });
+      } catch (e) { console.warn('[SYNC] Erro ao enviar ANIM_READY:', e); }
+    }
+
+    // Se oponente já enviou ANIM_READY antes de mim
+    if (opponentAnimReady) {
+      if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
+      applyResolvedTurn(pendingAnimActions);
+    } else {
+      // Fallback: se oponente não responder em 1.5s, animar de qualquer jeito
+      if (animReadyTimeout) clearTimeout(animReadyTimeout);
+      animReadyTimeout = setTimeout(() => {
+        if (pendingAnimActions && !window.__lastAppliedTurnKey) {
+          console.warn('[SYNC] ⏰ Fallback: oponente não respondeu ANIM_READY, animando sozinho');
+          applyResolvedTurn(pendingAnimActions);
+        }
+        animReadyTimeout = null;
+      }, 1500);
+    }
     
     // Atualizar turno local APÓS aplicar as ações
     currentTurnNumber = turn_number_db;
@@ -5201,6 +5235,17 @@ function setupMultiplayerSync(matchId) {
       }
     });
     
+    // AAA SYNC BARRIER: ouvir ACK de animação do oponente
+    syncChannel.on('broadcast', { event: 'ANIM_READY' }, ({ payload }) => {
+      if (!payload || payload.userId === myUserId) return;
+      opponentAnimReady = true;
+      // Se eu já estou pronto, acionar animação imediatamente
+      if (selfAnimReady && pendingAnimActions) {
+        if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
+        applyResolvedTurn(pendingAnimActions);
+      }
+    });
+
     syncChannel.subscribe((status) => {
       debug.pvp('[PVP] syncChannel status:', status);
       
