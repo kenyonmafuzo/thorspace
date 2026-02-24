@@ -3692,8 +3692,9 @@ const SNAPSHOT_INTERVAL_MS = 3000; // 3 segundos
 // Enviar snapshot completo do estado do jogo
 async function sendSnapshot() {
   if (!isPlayer1Host || !multiplayerMode) return;
-  // ⚠️ Durante combate, posições são determinísticas em ambos os clientes — snapshots causariam jitter
-  if (phase === 'wait') return;
+  // 🔒 Posições são determinísticas via applyResolvedTurn — snapshots durante planejamento
+  // causam ghost/drift no oponente. Desabilitado: posições canônicas vêm do payload do turno.
+  return;
   
   try {
     const snapshot = {
@@ -6279,7 +6280,7 @@ function handleCanvasClick(event) {
         document.getElementById("legendArea").textContent = t('waitingOpponentShort');
       } else {
         // Algumas naves configuradas, continuar
-        broadcastRealtimeState();
+        // broadcastRealtimeState() removido: não vazar posições de planejamento ao oponente
         selectedNave = null;
         // Manter phase = "select" em multiplayer
         document.getElementById("legendArea").textContent = t('selectAnotherShip');
@@ -8483,27 +8484,9 @@ function gameLoop() {
     applyDeadReckoning();
   }
   
-  // 🎯 AAA: Interpolação suave para posições do oponente (anti-jitter)
-  // ⚠️ Durante combate (phase='wait') o movimento é 100% local via moveTowards() — lerp remoto causaria jitter
-  if (multiplayerMode && phase !== 'wait') {
-    cpuNaves.forEach(nave => {
-      if (nave.targetX !== undefined && nave.targetY !== undefined) {
-        // Interpolar suavemente 15% por frame (60fps = ~100ms para 90% da distância)
-        nave.x = lerp(nave.x, nave.targetX, 0.15);
-        nave.y = lerp(nave.y, nave.targetY, 0.15);
-        
-        // Snap se chegou muito perto (evitar drift infinito)
-        const diffX = Math.abs(nave.x - nave.targetX);
-        const diffY = Math.abs(nave.y - nave.targetY);
-        if (diffX < 0.5 && diffY < 0.5) {
-          nave.x = nave.targetX;
-          nave.y = nave.targetY;
-          nave.targetX = undefined;
-          nave.targetY = undefined;
-        }
-      }
-    });
-  }
+  // Lerp de posição removido: nenhum broadcast de posição ocorre durante planejamento.
+  // Posições canônicas chegam via applyResolvedTurn (payload do turno resolvido).
+  // Resultado: sem ghost, sem drift, sem jitter — animação 100% determinística.
   
   // 📸 AAA PHASE 2: P1 envia snapshots periódicos
   if (multiplayerMode && isPlayer1Host) {
