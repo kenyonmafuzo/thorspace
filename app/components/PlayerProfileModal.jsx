@@ -1,7 +1,7 @@
 "use client";
 
-
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { getAvatarSrc } from "@/app/lib/avatarOptions";
 import TierInfo from "./TierInfo";
 import { supabase } from "@/lib/supabase";
@@ -77,9 +77,9 @@ export default function PlayerProfileModal({ open, onClose, player, currentUserI
   const ships_destroyed = stats?.ships_destroyed ?? player?.ships_destroyed ?? 0;
   const ships_lost = stats?.ships_lost ?? player?.ships_lost ?? 0;
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  // Overlay e modal: estilos modernos
-  return (
+  return createPortal((
     <>
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet" />
       <div style={{
@@ -224,7 +224,7 @@ export default function PlayerProfileModal({ open, onClose, player, currentUserI
       </div>
     </div>
     </>
-  );
+  ), document.body);
 }
 
 function StatCard({ label, value }) {
