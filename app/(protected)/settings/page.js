@@ -150,6 +150,11 @@ export default function SettingsPage() {
     <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "#000010" }}>
       <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <style>{`
+        @media (max-width: 768px) {
+          .lang-flag-btn { width: 36px !important; height: 36px !important; font-size: 20px !important; }
+        }
+      `}</style>
       <main style={{ maxWidth: 680, margin: "80px auto 0", position: "relative", zIndex: 1 }}>
         <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 40, fontFamily: "'Orbitron', sans-serif" }}>{t("settings.title")}</h1>
 
@@ -203,6 +208,7 @@ export default function SettingsPage() {
             <div style={{ display: "flex", gap: 12 }}>
               <div
                 onClick={() => updateSetting("ui.language", "pt")}
+                className="lang-flag-btn"
                 style={{
                   width: 50,
                   height: 50,
@@ -221,6 +227,7 @@ export default function SettingsPage() {
               </div>
               <div
                 onClick={() => updateSetting("ui.language", "en")}
+                className="lang-flag-btn"
                 style={{
                   width: 50,
                   height: 50,
@@ -239,6 +246,7 @@ export default function SettingsPage() {
               </div>
               <div
                 onClick={() => updateSetting("ui.language", "es")}
+                className="lang-flag-btn"
                 style={{
                   width: 50,
                   height: 50,

@@ -900,7 +900,16 @@ if (typeof window !== "undefined") {
     <div style={pageContainerStyle}>
       {galaxyBg}
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet" />
-      <div style={topRowStyle}>
+      <style>{`
+        @media (max-width: 768px) {
+          .friends-search { max-width: none !important; width: 100% !important; }
+          .friends-tabs-row { padding-left: 12px !important; padding-right: 12px !important; gap: 4px !important; }
+          .friends-tab-btn { flex: 1 !important; padding: 7px 4px !important; font-size: 10px !important; }
+          .friends-top-row { flex-wrap: wrap !important; }
+          .friends-search-wrap { width: 100%; }
+        }
+      `}</style>
+      <div style={topRowStyle} className="friends-top-row">
         <h2 style={titleStyle}>{t("friends.title")}</h2>
         <div style={{ flex: 1 }} />
         <input
@@ -909,9 +918,10 @@ if (typeof window !== "undefined") {
           onChange={e => setSearch(e.target.value)}
           placeholder={t("friends.search_placeholder")}
           style={searchInputStyle}
+          className="friends-search"
         />
       </div>
-      <div style={tabsRowStyle}>
+      <div style={tabsRowStyle} className="friends-tabs-row">
         {TABS.map(tabKey => {
           const selected = !search || search.length < 2 ? tab === tabKey : false;
           const TAB_LABEL = { Friends: t("friends.tab_friends"), Requests: t("friends.tab_requests"), Sent: t("friends.tab_sent") };
@@ -922,6 +932,7 @@ if (typeof window !== "undefined") {
                 setTab(tabKey);
                 setSearch("");
               }}
+              className="friends-tab-btn"
               style={{
                 background: selected ? 'linear-gradient(90deg,#00E5FF,#46B3FF)' : 'rgba(0,229,255,0.10)',
                 color: selected ? '#181c24' : '#00E5FF',

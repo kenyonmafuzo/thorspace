@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import UserHeader from "@/app/components/UserHeader";
+import MobileHeader from "@/app/components/MobileHeader";
 import { useI18n } from "@/src/hooks/useI18n";
 
 
@@ -82,7 +83,16 @@ export default function InboxPage() {
     <div style={{ minHeight: "100vh", background: "#000010", position: "relative" }}>
       <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <style>{`
+        @media (max-width: 768px) {
+          .inbox-layout { flex-direction: column !important; padding-top: 92px !important; gap: 0 !important; }
+          .inbox-sidebar { flex-direction: row !important; min-width: 0 !important; max-width: none !important; width: 100% !important; margin-top: 0 !important; gap: 0 !important; border-bottom: 1px solid rgba(0,229,255,0.15); }
+          .inbox-sidebar button { flex: 1 !important; border-radius: 0 !important; border-bottom: none !important; font-size: 11px !important; padding: 10px 4px !important; }
+          .inbox-content { margin-top: 12px !important; }
+        }
+      `}</style>
       <UserHeader />
+      <MobileHeader />
       <div style={{
         maxWidth: 960,
         margin: "0 auto",
@@ -94,7 +104,7 @@ export default function InboxPage() {
         position: "relative",
         zIndex: 1,
         paddingTop: 90
-      }}>
+      }} className="inbox-layout">
         {/* Sombra no topo ao rolar */}
         <div id="inbox-shadow-top" style={{
           position: "fixed",
@@ -109,12 +119,12 @@ export default function InboxPage() {
           opacity: 0
         }} />
         {/* Sidebar / Tabs */}
-        <div style={{ minWidth: 180, maxWidth: 220, width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: 32 }}>
+        <div className="inbox-sidebar" style={{ minWidth: 180, maxWidth: 220, width: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: 32 }}>
           <SidebarTab label={t("inbox.notificationsTab") || "Notifications"} active={tab === "notifications"} onClick={() => setTab("notifications")}/>
           <SidebarTab label={t("inbox.updatesTab") || "Game Updates"} active={tab === "updates"} onClick={() => setTab("updates")}/>
         </div>
         {/* Content */}
-        <div style={{ flex: 1, minWidth: 0, marginTop: 32, position: "relative", zIndex: 2 }}>
+        <div className="inbox-content" style={{ flex: 1, minWidth: 0, marginTop: 32, position: "relative", zIndex: 2 }}>
           {tab === "notifications" ? (
               <div>
                 <h2 style={{ fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 2 }}>{t("inbox.notificationsTitle") || "Notifications"}</h2>
