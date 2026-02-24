@@ -210,7 +210,7 @@ export default function VIPPage() {
 
   return (
     <div style={pageStyle} className="mobile-cpad">
-      <div style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }} />
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
       {/* VIP Activation Modal */}
       {vipActivatedModal && (

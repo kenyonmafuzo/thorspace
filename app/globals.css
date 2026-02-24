@@ -365,13 +365,12 @@ body::before {
 @media (max-width: 768px) {
   /* 220px clears the MobileHeader (logo overflow + row2).
      The header itself compensates for safe-area-inset-top via calc() in its top value. */
-  /* TEMP TEST — padding zero to see edge-to-edge */
   body > div > main,
   body > div [data-nextjs-scroll-focus-boundary] > *:not([class*="mobile-header"]) {
-    padding-top: 0 !important;
+    padding-top: 220px;
   }
   main { margin-top: 0 !important; }
-  .mobile-cpad { padding-top: 0 !important; }
+  .mobile-cpad { padding-top: 220px !important; }
   /* Bottom: home indicator + small buffer so last card isn't flush with bottom bar */
   body {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
