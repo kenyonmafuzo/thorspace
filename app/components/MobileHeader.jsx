@@ -148,7 +148,24 @@ export default function MobileHeader() {
       <style>{`
         .mobile-header { display: none; }
         @media (max-width: 768px) { .mobile-header { display: flex; } }
+        .mobile-header-gradient { display: none; }
+        @media (max-width: 768px) { .mobile-header-gradient { display: block; } }
       `}</style>
+
+      {/* ── GRADIENT FADE: preto → transparente cobrindo a área do header ── */}
+      <div
+        className="mobile-header-gradient"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 220,
+          background: 'linear-gradient(to bottom, #000010 0%, #000010 45%, rgba(0,0,16,0) 100%)',
+          zIndex: 10015,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* ── TOP BAR (2 rows) ── */}
       {/* top: calc(-115px + env(safe-area-inset-top)) compensates for viewport-fit=cover
