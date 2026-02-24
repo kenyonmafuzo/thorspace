@@ -2117,6 +2117,12 @@ function startTurnWindow(deadlineISO) {
   // AAA: Garantir fase interativa no multiplayer
   ensurePvpInteractivePhase('startTurnWindow');
 
+  // 🔥 Bug fix: limpar "⟳ Sync..." logo que o round for iniciar (antes de qualquer guard)
+  const _legReset = document.getElementById('legendArea');
+  if (_legReset) {
+    _legReset.textContent = t('nextTurn');
+    _legReset.style.color = '';
+  }
 
   if (!multiplayerMode) {
     return;
@@ -2546,6 +2552,11 @@ function applyResolvedTurn(actions) {
         if (shipData.angle !== undefined) {
           nave.angle = shipData.angle;
         }
+        // 🔥 AAA: Snap posição canônica — garante animação determinística em ambas as telas
+        // Sem isso, o lerp do realtime_state pode deixar posições divergentes em cada cliente
+        // resultando em colisões diferentes (P1 vê acerto, P2 vê erro)
+        if (shipData.x !== undefined) nave.x = shipData.x;
+        if (shipData.y !== undefined) nave.y = shipData.y;
       } else {
         console.warn('[TURN]   - ⚠️ cpuNave #' + shipData.index + ' não existe ou HP=0');
       }
@@ -6247,6 +6258,8 @@ function handleCanvasClick(event) {
         // Coletar ações de todas as naves
         const ships = playerNaves.map((n, idx) => ({
           index: idx,
+          x: n.x,  // posição canônica para animação determinística
+          y: n.y,  // posição canônica para animação determinística
           target: n.target ? { x: n.target.x, y: n.target.y } : null,
           shot: n.shot ? { x: n.shot.x, y: n.shot.y } : null,
           hp: n.hp,
