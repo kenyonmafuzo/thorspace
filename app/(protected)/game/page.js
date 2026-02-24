@@ -377,7 +377,7 @@ export default function GamePage() {
 
   return (
     <>
-      <div style={{ width: "100vw", height: "100%", overflow: "hidden" }}>
+      <div style={{ width: "100vw", height: "100dvh", overflow: "hidden" }}>
         <iframe
           ref={iframeRef}
           onLoad={handleIframeLoad}
