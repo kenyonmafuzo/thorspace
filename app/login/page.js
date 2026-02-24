@@ -429,15 +429,6 @@ export default function LoginPage() {
             <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
               Senha
             </label>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
-              <button
-                type="button"
-                onClick={() => { setShowForgotPassword(true); setError(""); }}
-                style={{ background: 'none', border: 'none', color: '#9FF6FF', cursor: 'pointer', fontSize: 12, padding: 0, opacity: 0.85 }}
-              >
-                Esqueceu sua senha?
-              </button>
-            </div>
             <div style={passwordWrapper}>
               <input
                 style={passwordInput}
@@ -471,6 +462,16 @@ export default function LoginPage() {
               </button>
             </div>
 
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4, marginTop: 2 }}>
+              <button
+                type="button"
+                onClick={() => { setShowForgotPassword(true); setError(""); }}
+                style={{ background: 'none', border: 'none', color: '#9FF6FF', cursor: 'pointer', fontSize: 12, padding: 0, opacity: 0.85 }}
+              >
+                Esqueceu sua senha?
+              </button>
+            </div>
+
             <button 
               style={primaryBtn} 
               type="submit" 
@@ -491,6 +492,7 @@ export default function LoginPage() {
           </form>
           )}
 
+          {!showForgotPassword && (
           <button style={googleBtn} onClick={signInWithGoogle} type="button">
             <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -501,6 +503,7 @@ export default function LoginPage() {
             </svg>
             <span>ENTRAR COM GOOGLE</span>
           </button>
+          )}
 
           {error ? <div style={errorStyle}>{error}</div> : null}
 
