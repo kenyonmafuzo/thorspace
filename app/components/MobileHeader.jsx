@@ -150,6 +150,16 @@ export default function MobileHeader() {
         @media (max-width: 768px) { .mobile-header { display: flex; } }
       `}</style>
 
+      {/* Notch scrim — covers the status bar zone with the app background so
+           scrolled content doesn't look "cut" against system UI on iOS */}
+      <div className="mobile-header" style={{
+        position: "fixed", top: 0, left: 0, right: 0,
+        height: "env(safe-area-inset-top, 44px)",
+        background: "#000010",
+        zIndex: 10021,
+        pointerEvents: "none",
+      }} />
+
       {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
         position: "fixed", top: "-115px", left: 0, right: 0,

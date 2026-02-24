@@ -372,9 +372,10 @@ body::before {
   main { margin-top: 0 !important; }
   /* Pages inside (protected) layout that need explicit mobile top padding */
   .mobile-cpad { padding-top: 220px !important; }
-  /* iOS safe areas */
+  /* Bottom padding: env(safe-area-inset-bottom) covers the home indicator,
+     but NOT the Safari browser bar (~50px). 90px clears both. */
   body {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 90px);
   }
 }
 
