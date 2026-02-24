@@ -2041,6 +2041,13 @@ let pendingAnimActions = null;   // acoes pendentes ate ambos ACKarem
 let selfAnimReady = false;        // eu ja recebi turn_resolved_at
 let opponentAnimReady = false;    // oponente ja enviou ANIM_READY
 let animReadyTimeout = null;      // fallback se oponente nao responde
+// AAA BARRIER 2: ROUND_READY — ambos terminaram animação antes do próximo round
+let roundReadySent = false;       // eu já enviei ROUND_READY neste cleanup
+let roundReadyReceived = false;   // oponente já enviou ROUND_READY
+let roundReadyTimeout = null;     // fallback 3s se oponente não responde
+let roundReadyPending = null;     // deadline guardada até sync completar
+// Early-submit buffer: guard para não agendar múltiplos resolve
+let earlySubmitBufferScheduled = false;
 
 // ========================================
 // AAA MULTIPLAYER: Event Sourcing System
@@ -2188,10 +2195,16 @@ function startTurnWindow(deadlineISO) {
   opponentAnimReady = false;
   pendingAnimActions = null;
   if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
+  // Resetar barreira ROUND_READY
+  roundReadySent = false;
+  roundReadyReceived = false;
+  roundReadyPending = null;
+  earlySubmitBufferScheduled = false;
+  if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
   
   
   // Parse deadline do servidor
-  turnDeadline = deadlineISO ? new Date(deadlineISO) : new Date(Date.now() + 15000);
+  turnDeadline = deadlineISO ? new Date(deadlineISO) : new Date(Date.now() + 20000);
   turnWindowActive = true;
   myActionSubmitted = false;
   myPendingAction = null;
@@ -2413,6 +2426,18 @@ async function maybeResolveTurn() {
       isResolvingTurn = false;
       return;
     }
+
+    // Early-submit buffer: se ambos enviaram ANTES do deadline com >2.5s restantes,
+    // aguardar 2.5s para sincronização de rede antes de resolver
+    if (bothSubmitted && !deadlinePassed && deadline) {
+      const msRemaining = deadline.getTime() - Date.now();
+      if (msRemaining > 2500 && !earlySubmitBufferScheduled) {
+        earlySubmitBufferScheduled = true;
+        isResolvingTurn = false;
+        setTimeout(() => { earlySubmitBufferScheduled = false; maybeResolveTurn(); }, 2500);
+        return;
+      }
+    }
     
     
     // Usar ações diretamente ou idle se não submetido
@@ -2422,7 +2447,7 @@ async function maybeResolveTurn() {
     
     // Marcar como resolvido e avançar turno
     const nextTurnNumber = currentTurnInDb + 1;
-    const newDeadline = new Date(Date.now() + 15000).toISOString();
+    const newDeadline = new Date(Date.now() + 20000).toISOString();
     
     // IMPORTANTE: Salvar as ações em last_action_* ANTES de limpar
     // para que o Realtime UPDATE possa ler elas
@@ -4847,7 +4872,7 @@ function startBattleFromSelection() {
       // turn_user_id é null, vou tentar setar (optimistic update)
       debug.pvp('[PVP] turn_user_id é null, configurando primeiro turno...');
       
-      const firstDeadline = new Date(Date.now() + 15000).toISOString();
+      const firstDeadline = new Date(Date.now() + 20000).toISOString();
       const now = new Date().toISOString();
       
       // Update com condição: só setar se turn_user_id ainda for null (evita race)
@@ -5235,7 +5260,7 @@ function setupMultiplayerSync(matchId) {
       }
     });
     
-    // AAA SYNC BARRIER: ouvir ACK de animação do oponente
+    // AAA SYNC BARRIER 1: ouvir ACK de animação do oponente (ANIM_READY)
     syncChannel.on('broadcast', { event: 'ANIM_READY' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
       opponentAnimReady = true;
@@ -5243,6 +5268,18 @@ function setupMultiplayerSync(matchId) {
       if (selfAnimReady && pendingAnimActions) {
         if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
         applyResolvedTurn(pendingAnimActions);
+      }
+    });
+
+    // AAA SYNC BARRIER 2: ouvir ROUND_READY do oponente (ambos finalizaram animação)
+    syncChannel.on('broadcast', { event: 'ROUND_READY' }, ({ payload }) => {
+      if (!payload || payload.userId === myUserId) return;
+      roundReadyReceived = true;
+      // Se eu já enviei meu ROUND_READY, iniciar próximo round agora
+      if (roundReadySent && roundReadyPending) {
+        if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
+        const d = roundReadyPending; roundReadyPending = null;
+        startTurnWindow(d);
       }
     });
 
@@ -7131,9 +7168,41 @@ function updateGame() {
           // Resetar flag de ação enviada
           myActionSubmitted = false;
           
-          // Iniciar nova janela de turno
+          // AAA BARRIER 2: esperar opponent confirmar fim da animação antes do próximo round
           if (matchData && matchData.turn_deadline_at) {
-            startTurnWindow(matchData.turn_deadline_at);
+            roundReadySent = false;
+            roundReadyReceived = false;
+            roundReadyPending = matchData.turn_deadline_at;
+
+            // Mostrar indicador de sync no HUD
+            const legSync = document.getElementById('legendArea');
+            if (legSync) {
+              legSync.textContent = '⟳ Sync...';
+              legSync.style.color = '#00D4FF';
+            }
+
+            // Broadcast: terminei animação, pronto para próximo round
+            if (syncChannel) {
+              try {
+                syncChannel.send({ type: 'broadcast', event: 'ROUND_READY', payload: { userId: myUserId } });
+                roundReadySent = true;
+              } catch (e) { console.warn('[SYNC] Erro ao enviar ROUND_READY:', e); }
+            }
+
+            // Se oponente já sinalizou, iniciar agora
+            if (roundReadyReceived) {
+              if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
+              const d = roundReadyPending; roundReadyPending = null;
+              startTurnWindow(d);
+            } else {
+              // Fallback: 3s se oponente não responder (conexão lenta/queda)
+              if (roundReadyTimeout) clearTimeout(roundReadyTimeout);
+              roundReadyTimeout = setTimeout(() => {
+                console.warn('[SYNC] ⏰ Fallback ROUND_READY: iniciando round sem confirmação do oponente');
+                const d = roundReadyPending; roundReadyPending = null; roundReadyTimeout = null;
+                if (d) startTurnWindow(d);
+              }, 3000);
+            }
           } else {
             console.warn('[TURN] ⚠️ Sem deadline para novo turno!');
           }
