@@ -1,6 +1,5 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #ededed;
 }
 
 @font-face {
@@ -34,7 +33,7 @@ body {
 
 body {
   color: var(--foreground);
-  background: var(--background);
+  /* background intentionally NOT set here — controlled by iOS-safe rule below */
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
