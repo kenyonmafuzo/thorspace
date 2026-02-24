@@ -333,26 +333,32 @@ button, .mode-btn, .end-btn {
   }
 }
 
-html, body {
-  height: 100%;
-  margin: 0;
+/* iOS Safari overscroll fix:
+   - html background paints the bounce areas (above/below scroll) on iOS Safari
+   - body transparent lets html show through during bounce
+   - body::before (fixed, full viewport) covers notch + home bar via viewport-fit=cover
+   - overscroll-behavior-y:none prevents bounce from revealing "behind" content (Safari 16+)
+   Safe on Android/desktop — no overflow wrappers, scroll is on body. */
+html {
   background: #000010;
+  height: 100%;
+  overscroll-behavior-y: none;
 }
 
-/* iOS Safari: fixed pseudo-element always paints behind notch + home bar during
-   overscroll bounce. Direct child of body = no filter/transform ancestor to
-   break position:fixed (unlike galaxy background divs). Safe on Android/desktop. */
+body {
+  background: transparent;
+  min-height: 100%;
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
   background: #000010;
-}
-
-body {
-  min-height: 100svh;
-  min-height: 100dvh;
+  pointer-events: none;
 }
 
 /* ── Mobile: content starts below transparent header (logo ~334px + row2 ~90px) ── */
