@@ -134,7 +134,7 @@ export default function RankingPage() {
   }, [router]);
 
   return (
-    <div>
+    <div style={{ overflowX: 'hidden' }}>
       <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <style>{`
@@ -344,7 +344,8 @@ export default function RankingPage() {
                         <td style={{ ...cellStyle, fontSize: 24, fontWeight: 900, color: index === 0 ? "#FFD700" : index === 1 ? "#C0C0C0" : index === 2 ? "#CD7F32" : "#FFF", textShadow: "0 2px 8px rgba(0,0,0,0.25)", fontFamily: "'Orbitron', sans-serif" }}>
                           {index + 1}
                         </td>
-                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: isCurrentUser ? 600 : 400, display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Orbitron', sans-serif" }}>
+                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: isCurrentUser ? 600 : 400, fontFamily: "'Orbitron', sans-serif" }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ position: 'relative', display: 'inline-block' }}>
                             <img 
                               src={tierUrl} 
@@ -388,6 +389,7 @@ export default function RankingPage() {
                             {player.username || "Player"}
                           </span>
                           {isCurrentUser && <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>}
+                          </div>
                         </td>
                         <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
                           {player.level ?? 1}
@@ -447,7 +449,8 @@ export default function RankingPage() {
                         <td style={{ ...cellStyle, fontSize: 24, fontWeight: 900, color: "#00E5FF", textShadow: "0 2px 8px rgba(0,0,0,0.25)" }}>
                           {foundIndex + 1}
                         </td>
-                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <td style={{ ...cellStyle, textAlign: "left", fontWeight: 600 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: "'Orbitron', sans-serif" }}>
                           <div style={{ position: 'relative', display: 'inline-block' }}>
                             <img 
                               src={tierUrl} 
@@ -491,6 +494,7 @@ export default function RankingPage() {
                             {player.username || "Você"}
                           </span>
                           <span style={{ color: "#00E5FF", marginLeft: 8 }}>({t('multiplayer.you')})</span>
+                          </div>
                         </td>
                         <td style={{ ...cellStyle, color: "#FFD700", fontWeight: 600 }}>
                           {player.level ?? 1}

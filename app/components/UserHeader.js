@@ -114,7 +114,7 @@ export default function UserHeader() {
   
   if (isLoading && !hasMinimalData) {
     return (
-      <div style={{ width: 180, height: 58, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, padding: '12px 18px', backdropFilter: 'blur(6px)' }}>
+      <div style={{ position: 'fixed', top: 0, right: 12, height: 58, width: 180, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, padding: '12px 18px', backdropFilter: 'blur(6px)', zIndex: 10020 }}>
         <span style={{ width: 80, height: 18, borderRadius: 6, background: 'rgba(0,229,255,0.10)', display: 'inline-block', marginBottom: 4, animation: 'pulse 1.2s infinite alternate' }} />
       </div>
     );
