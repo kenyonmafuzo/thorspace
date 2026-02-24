@@ -161,8 +161,11 @@ export default function MobileHeader() {
       }} />
 
       {/* ── TOP BAR (2 rows) ── */}
+      {/* top: calc(-115px + env(safe-area-inset-top)) compensates for viewport-fit=cover
+          shifting y=0 to physical screen top. This keeps Row 2 (tier/pill) visually
+          at the same position relative to the safe content area. */}
       <div className="mobile-header" style={{
-        position: "fixed", top: "-115px", left: 0, right: 0,
+        position: "fixed", top: "calc(-115px + env(safe-area-inset-top, 0px))", left: 0, right: 0,
         background: "transparent",
         zIndex: 10020,
         flexDirection: "column",
