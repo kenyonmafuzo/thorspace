@@ -361,21 +361,21 @@ body::before {
   pointer-events: none;
 }
 
-/* ── Mobile: content starts below transparent header (logo ~334px + row2 ~90px) ── */
+/* ── Mobile: content starts below transparent header + notch ── */
 @media (max-width: 768px) {
-  /* Push all protected page content below the mobile header */
+  /* viewport-fit=cover means top:0 is behind the notch.
+     padding-top must add env(safe-area-inset-top) so content clears notch + header. */
   body > div > main,
   body > div [data-nextjs-scroll-focus-boundary] > *:not([class*="mobile-header"]) {
-    padding-top: 220px;
+    padding-top: calc(220px + env(safe-area-inset-top, 0px));
   }
-  /* Remove extra <main> top-margin on pages that already get 220px from parent */
+  /* Remove extra <main> top-margin on pages that already get padding from parent */
   main { margin-top: 0 !important; }
   /* Pages inside (protected) layout that need explicit mobile top padding */
-  .mobile-cpad { padding-top: 220px !important; }
-  /* Bottom: only cover the home indicator. Safari's browser bar hides on scroll
-     automatically — no extra padding needed for it. */
+  .mobile-cpad { padding-top: calc(220px + env(safe-area-inset-top, 0px)) !important; }
+  /* Bottom: home indicator + small buffer so last card isn't flush with bottom bar */
   body {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
   }
 }
 
