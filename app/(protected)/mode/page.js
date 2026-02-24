@@ -123,7 +123,7 @@ export default function ModePage() {
         flexDirection: "column",
         alignItems: "center", justifyContent: "center",
         textAlign: "center", padding: "32px 24px",
-        paddingTop: 100,
+        paddingTop: 128,
         fontFamily: "'Orbitron', sans-serif",
       }}>
         <div style={{ fontSize: 64, marginBottom: 20 }}>🖥️</div>

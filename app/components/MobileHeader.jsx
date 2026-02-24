@@ -153,29 +153,29 @@ export default function MobileHeader() {
       {/* ── TOP BAR (2 rows) ── */}
       <div className="mobile-header" style={{
         position: "fixed", top: 0, left: 0, right: 0,
-        height: 88,
-        background: "rgba(4,6,20,0.97)",
-        backdropFilter: "blur(12px)",
-        borderBottom: "1px solid rgba(0,229,255,0.1)",
+        height: 120,
+        background: "rgba(1,3,10,0.60)",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        borderBottom: "1px solid rgba(0,229,255,0.12)",
         zIndex: 10020,
         flexDirection: "column",
         alignItems: "stretch",
-        overflow: "hidden",
       }}>
 
         {/* Row 1 — Logo centered */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "center",
-          height: 52, width: "100%",
+          height: 82, width: "100%",
         }}>
           <img
             src="/game/images/thorspace.png"
             alt="ThorSpace"
             onClick={() => nav("/mode")}
             style={{
-              height: 46, width: "auto", cursor: "pointer",
+              height: 74, width: "auto", cursor: "pointer",
               objectFit: "contain",
-              filter: "drop-shadow(0 0 8px rgba(0,229,255,0.45))",
+              filter: "drop-shadow(0 0 10px rgba(0,229,255,0.55))",
             }}
           />
         </div>
@@ -183,7 +183,7 @@ export default function MobileHeader() {
         {/* Row 2 — Tier + Pill | Hamburger */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          height: 36, paddingLeft: 10, paddingRight: 10,
+          height: 38, paddingLeft: 10, paddingRight: 10,
         }}>
           {/* LEFT — Tier + Username pill */}
           <div ref={profileRef} style={{ position: "relative", display: "flex", alignItems: "center", gap: 5 }}>

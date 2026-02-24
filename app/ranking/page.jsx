@@ -139,7 +139,7 @@ export default function RankingPage() {
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <style>{`
         @media (max-width: 768px) {
-          .rank-main-container { margin-top: 92px !important; }
+          .rank-main-container { margin-top: 128px !important; }
           .rank-table-wrap { display: none !important; }
           .rank-cards-mobile { display: block !important; }
         }
@@ -286,8 +286,8 @@ export default function RankingPage() {
                       </span>
                     </div>
                     {/* Line 2: stats */}
-                    <div style={{ display: 'flex', gap: 10, fontSize: 11, paddingLeft: 34, flexWrap: 'wrap' }}>
-                      <span style={{ color: '#FFD700', fontFamily: "'Orbitron',sans-serif" }}>Lv {player.level}</span>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 11, paddingLeft: 34, flexWrap: 'wrap', alignItems: 'center', fontFamily: "'Orbitron',sans-serif" }}>
+                      <span style={{ color: '#FFD700' }}>Lv {player.level}</span>
                       <span style={{ color: '#00E5FF' }}>{(displayXp ?? 0).toLocaleString('pt-BR')} XP</span>
                       <span style={{ color: '#00FF00' }}>▲ {player.wins ?? 0}</span>
                       <span style={{ color: '#FF4444' }}>▼ {player.losses ?? 0}</span>
