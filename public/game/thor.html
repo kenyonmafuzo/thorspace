@@ -1635,12 +1635,9 @@ function startSelectionTimer() {
     }, 15000);
     return;
   }
-  // Multiplayer: usar countdown_started_at do banco
-  const startedAt = matchData.countdown_started_at ? new Date(matchData.countdown_started_at).getTime() : null;
-  const now = Date.now();
-  let secondsElapsed = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
-  let secondsLeft = 15 - secondsElapsed;
-  if (secondsLeft < 0) secondsLeft = 0;
+  // Multiplayer: sempre iniciar 15s local ao receber evento.
+  // Não usar Date.now() vs timestamp do servidor — relógios de Windows/Mac podem diferir.
+  const secondsLeft = 15;
   cancelSelectionTimer();
   selectionTimerStarted = true;
   selectionTimeRemaining = secondsLeft;
@@ -3408,11 +3405,7 @@ function startHeartbeat() {
   heartbeatInterval = setInterval(() => {
     sendHeartbeat();
   }, 3000);
-  
-  // Verificar último heartbeat do oponente a cada 5s
-  opponentLastSeenCheck = setInterval(() => {
-    checkOpponentHeartbeat();
-  }, 5000);
+  // NOTA: WO via heartbeat removido. WO só ocorre via presence leave (ao sair da página).
 }
 
 // Enviar meu heartbeat
@@ -3434,46 +3427,9 @@ async function sendHeartbeat() {
   }
 }
 
-// Verificar se oponente está desconectado
-async function checkOpponentHeartbeat() {
-  if (!supabaseClient || !matchData || currentPhase === 'finished') return;
-  
-  try {
-    const { data, error } = await supabaseClient
-      .from('matches')
-      .select('player1_last_seen, player2_last_seen, phase')
-      .eq('id', matchData.id)
-      .single();
-    
-    if (error || !data) return;
-    
-    // Só verificar se match ainda está ativo
-    if (data.phase === 'finished') {
-      stopHeartbeat();
-      return;
-    }
-    
-    const isPlayer1 = myUserId === matchData.player1_id;
-    const opponentLastSeen = isPlayer1 ? data.player2_last_seen : data.player1_last_seen;
-    
-    if (!opponentLastSeen) return;
-    
-    const lastSeenTime = new Date(opponentLastSeen).getTime();
-    const now = Date.now();
-    const secondsSinceLastSeen = (now - lastSeenTime) / 1000;
-    
-    debug.log('[HEARTBEAT] Oponente visto há', Math.floor(secondsSinceLastSeen), 's');
-    
-    // Se não vejo o oponente há mais de 10s, aplicar WO
-    if (secondsSinceLastSeen > 10) {
-      debug.log('[HEARTBEAT] 🚨 Oponente desconectado! Aplicando WO...');
-      stopHeartbeat();
-      await applyWalkover();
-    }
-  } catch (err) {
-    console.error('[HEARTBEAT] Erro ao verificar:', err);
-  }
-}
+// checkOpponentHeartbeat desativado — WO só ocorre quando o oponente sai da página (beforeunload / presence leave).
+// Manter função stub para evitar erros de referência em outros lugares.
+function checkOpponentHeartbeat() {}
 
 // Parar heartbeat
 function stopHeartbeat() {
@@ -4089,15 +4045,10 @@ async function handleMatchUpdate(payload) {
   // --- TIMER DE SELEÇÃO MULTIPLAYER SYNC ---
   // Se estamos na fase de seleção e countdown_started_at foi definido, iniciar timer sincronizado
   if (phase === 'select' && multiplayerMode && row.countdown_started_at) {
-    // Calcular segundos restantes a partir do timestamp do banco
-    const startedAt = new Date(row.countdown_started_at).getTime();
-    const now = Date.now();
-    let secondsElapsed = Math.floor((now - startedAt) / 1000);
-    let secondsLeft = 15 - secondsElapsed;
-    // Give P2 at least 5 s even if they load after the countdown has already expired
-    if (secondsLeft < 5) secondsLeft = 5;
-    if (!selectionTimerStarted || selectionTimeRemaining !== secondsLeft) {
-      debug.timer('[TIMER][SYNC] Iniciando timer sincronizado para seleção de naves:', { secondsLeft, startedAt, now });
+    // Sempre dar 15s locais ao receber countdown_started_at — evita clock skew entre plataformas.
+    const secondsLeft = 15;
+    if (!selectionTimerStarted) {
+      debug.timer('[TIMER][SYNC] Iniciando timer local 15s para seleção de naves (multiplayer):', { secondsLeft });
       cancelSelectionTimer();
       selectionTimeRemaining = secondsLeft;
       selectionTimerStarted = true;
