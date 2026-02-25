@@ -1748,38 +1748,6 @@ function hideSelectionTimer() {
   }
 }
 
-function startSelectionTimer() {
-  debug.timer('[TIMER] startSelectionTimer called');
-  cancelSelectionTimer();
-  selectionTimerStarted = true;
-  selectionTimeRemaining = 15;
-  showSelectionTimer(selectionTimeRemaining);
-
-  selectionTimerInterval = setInterval(() => {
-    selectionTimeRemaining--;
-    debug.timer('[TIMER] Interval tick, time remaining:', selectionTimeRemaining);
-    showSelectionTimer(selectionTimeRemaining);
-    if (selectionTimeRemaining <= 0) {
-      debug.timer('[TIMER] Timer chegou a zero, limpando intervalo');
-      clearInterval(selectionTimerInterval);
-      selectionTimerInterval = null;
-    }
-  }, 1000);
-
-  selectionTimer = setTimeout(async () => {
-    debug.timer('[TIMER] Timeout de 15s atingido');
-    // Sempre auto-selecionar naves se não houver 3
-    if (!selectedNaves || selectedNaves.length < 3) {
-      debug.timer('[TIMER] Menos de 3 naves, selecionando padrão [1,1,1]');
-      window.selectedNaves = [1, 1, 1];
-      updatePreviews();
-    }
-    await saveShipSelection();
-    // Após salvar, força transição para o jogo
-    updatePhaseAndStartBattle();
-  }, 15000);
-}
-
 function cancelSelectionTimer() {
   debug.timer('[TIMER] cancelSelectionTimer called');
   if (selectionTimer) {
@@ -1851,7 +1819,7 @@ window.showOnly = function(screenName) {
           if (badge) badge.style.display = 'none';
         }
       });
-      if (multiplayerMode && currentPhase === 'select') {
+      if (!multiplayerMode) {
         startSelectionTimer();
       } else {
         cancelSelectionTimer();
@@ -9504,12 +9472,8 @@ function startMatchmakingSlot() {
       document.getElementById("naveSelectScreen").style.display = "flex";
       window.selectedNaves = [];
       updatePreviews();
-      // AAA: Sempre iniciar timer de seleção ao abrir naveSelectScreen
+      // AAA: Re-adiciona handler de clique nas nave-card após DOM update
       setTimeout(() => {
-        if (multiplayerMode && typeof startSelectionTimer === 'function') {
-          startSelectionTimer();
-        }
-        // Re-adiciona handler de clique nas nave-card após DOM update
         document.querySelectorAll(".nave-card").forEach(el => {
           el.onclick = null;
           el.addEventListener("click", (e) => {
