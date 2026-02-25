@@ -1796,6 +1796,26 @@ function cancelSelectionTimer() {
   selectionTimerStarted = false;
 }
 
+// Atualizar estado do botão Pronto baseado na presença do oponente
+function updateReadyBtnState() {
+  if (!multiplayerMode) return;
+  const btn = document.getElementById('startGameBtn');
+  if (!btn) return;
+  const has3Ships = window.selectedNaves && window.selectedNaves.length === 3;
+  if (!has3Ships) return; // botão ainda oculto, nada a fazer
+  if (opponentInGame && !PVP.hasSavedSelection) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.textContent = t('ready');
+  } else if (!opponentInGame && !PVP.hasSavedSelection) {
+    btn.disabled = true;
+    btn.style.opacity = '0.55';
+    btn.style.cursor = 'default';
+    btn.textContent = t('waitingOpponentShort');
+  }
+}
+
 // Atualizar traduções e iniciar/cancelar timer ao mostrar/esconder seleção
 const originalShowNaveSelect = showOnly;
 window.showOnly = function(screenName) {
@@ -2002,6 +2022,7 @@ let multiplayerMode = false; // true se for PVP real
 let myTeam = null; // 'blue' ou 'red'
 let myUserId = null;
 let opponentUserId = null;
+let opponentInGame = false; // true quando oponente já entrou no jogo (presença confirmada)
 let opponentUsername = "Oponente";
 let opponentShotPreferences = {}; // Shot preferences do oponente (ex: {"1": "pulse", "2": "energy", "3": "plasma"})
 let matchData = null;
@@ -3506,25 +3527,29 @@ function setupMatchStateSync(matchId) {
         const onlineUsers = Object.keys(presenceState);
         debug.log('[PRESENCE] Jogadores online:', onlineUsers.length, onlineUsers);
         
-        // Se estou no jogo e só eu estou online (oponente desconectou)
-        if (multiplayerMode && matchData && currentPhase !== 'finished') {
+        // Verificar presença do oponente e atualizar botão Pronto
+        if (multiplayerMode && matchData) {
           const amIOnline = onlineUsers.includes(myUserId);
           const isOpponentOnline = onlineUsers.includes(opponentUserId);
           
           debug.log('[PRESENCE] Eu online?', amIOnline);
           debug.log('[PRESENCE] Oponente online?', isOpponentOnline);
-          
-          // Se eu estou online mas oponente não está
-          if (amIOnline && !isOpponentOnline && onlineUsers.length === 1) {
-            debug.log('[PRESENCE] 🚪 Oponente desconectou! Aplicando WO em 3s...');
-            // Delay de 3s para garantir que não é falso positivo
+
+          // Detectar entrada do oponente para habilitar botão Pronto
+          if (isOpponentOnline && !opponentInGame) {
+            opponentInGame = true;
+            debug.log('[PRESENCE] ✅ Oponente entrou no jogo! Habilitando botão Pronto.');
+            updateReadyBtnState();
+          }
+
+          // WO apenas durante batalha — nunca durante seleção/loading
+          if (currentPhase === 'battle' && amIOnline && !isOpponentOnline && onlineUsers.length === 1) {
+            debug.log('[PRESENCE] 🚪 Oponente desconectou durante batalha! Aplicando WO em 3s...');
             setTimeout(() => {
-              // Verificar novamente após delay
               const stateAfterDelay = matchStateChannel.presenceState();
               const usersAfterDelay = Object.keys(stateAfterDelay);
               const opponentStillOffline = !usersAfterDelay.includes(opponentUserId);
-              
-              if (opponentStillOffline && currentPhase !== 'finished') {
+              if (opponentStillOffline && currentPhase === 'battle') {
                 debug.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
                 applyWalkover();
               }
@@ -3534,19 +3559,28 @@ function setupMatchStateSync(matchId) {
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         debug.log('[PRESENCE] Jogador entrou:', key, newPresences);
+        // Quando oponente entra, habilitar botão Pronto se já tiver 3 naves
+        if (key === opponentUserId && multiplayerMode) {
+          opponentInGame = true;
+          debug.log('[PRESENCE] ✅ Oponente entrou! Habilitando botão Pronto.');
+          updateReadyBtnState();
+        }
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
-        // Se o oponente saiu durante a partida
-        if (key === opponentUserId && multiplayerMode && matchData && currentPhase !== 'finished') {
-          debug.log('[PRESENCE] 🚪 Oponente saiu! Aplicando WO em 2s...');
-          // Delay curto para evitar falso positivo de reconexão
-          setTimeout(() => {
-            if (currentPhase !== 'finished') {
-              applyWalkover();
-            }
-          }, 2000);
+        // Se o oponente saiu — WO apenas durante batalha, nunca durante seleção
+        if (key === opponentUserId && multiplayerMode && matchData) {
+          opponentInGame = false;
+          updateReadyBtnState();
+          if (currentPhase === 'battle') {
+            debug.log('[PRESENCE] 🚪 Oponente saiu durante batalha! Aplicando WO em 2s...');
+            setTimeout(() => {
+              if (currentPhase === 'battle') {
+                applyWalkover();
+              }
+            }, 2000);
+          }
         }
       })
       .subscribe(async (status) => {
@@ -7854,11 +7888,11 @@ function restartGame() {
   window.selectedNaves = [];
   updatePreviews();
   
-  // Iniciar timer de seleção se estiver em multiplayer
-  if (multiplayerMode && currentPhase === 'select') {
+  // Em multiplayer: resetar flags. O timer SÓ inicia quando o jogador clicar
+  // "Pronto!" (após oponente confirmar presença). Nunca começa automaticamente.
+  if (multiplayerMode) {
     PVP.hasSavedSelection = false;
-    startSelectionTimer();
-    debug.pvp('[PVP] ⏱️ Timer de seleção de 15s iniciado');
+    opponentInGame = false; // reset — será true quando oponente entrar na presença
   }
 
   // Reseta variáveis de rodada e estado (mantém os dados prontos para próxima partida)
@@ -8815,11 +8849,14 @@ function updatePreviews() {
     const has3Ships = (window.selectedNaves.length === 3);
     btn.style.display = has3Ships ? "block" : "none";
     
-    // Alterar texto do botão no modo multiplayer
+    // Em multiplayer: estado do botão depende da presença do oponente
     if (multiplayerMode && !PVP.hasSavedSelection) {
-      btn.textContent = t('ready');
+      updateReadyBtnState();
     } else {
       btn.textContent = t('startGame');
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      btn.style.cursor = 'pointer';
     }
   }
 }
