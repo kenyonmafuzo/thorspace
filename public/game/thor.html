@@ -1612,26 +1612,9 @@ function hideSelectionTimer() {
 // Fluxo de ROUND_READY: chamado tanto por cleanupAfterRound (animação concluída)
 // quanto por handleMatchUpdate (novo deadline chegou depois da animação).
 // Só startTurnWindow desbloqueia os inputs — ships ficam locked até aqui completar.
-// _doRoundReadyFlow: inicia o próximo round após a animação terminar.
-// Funciona igual ao round 1 — fonte de verdade é o deadline do DB (sem broadcast barrier).
-// Mostra o banner do round e só libera o timer/ships depois que o banner fechar.
-function _doRoundReadyFlow(deadline) {
-  // Limpar qualquer timeout órfão de tentativa anterior
-  if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
-
-  // Mostrar banner do round (apenas se ainda não foi mostrado para este round)
-  if (roundBannerForRound !== currentTurnNumber && typeof showRoundBanner === 'function') {
-    showRoundBanner(currentTurnNumber);
-  }
-
-  // Legenda mostra sync por baixo do banner enquanto ele está visível
-  const legSync = document.getElementById('legendArea');
-  if (legSync) { legSync.textContent = '⟳ Sync...'; legSync.style.color = '#00D4FF'; }
-
-  // Aguardar o banner fechar antes de iniciar o round (mesmo padrão do round 1)
-  const wait = getRoundBannerRemainingMs();
-  setTimeout(() => startTurnWindow(deadline), Math.max(wait, 50));
-}
+// _doRoundReadyFlow foi removido — round 2+ chama startTurnWindow(deadline) direto,
+// idêntico ao round 1 via startBattleFromSelection. startTurnWindow já cuida de:
+//   banner condicional por round, delay até banner fechar, timer 20s, reset de estado.
 
 function startSelectionTimer() {
   if (!multiplayerMode || !matchData) {
@@ -2275,8 +2258,6 @@ function startTurnWindow(deadlineISO) {
   waitingForTurnResolution = false;
 
   // Exibir banner de round somente se ainda não foi mostrado para este round.
-  // Para round 2+ o banner já foi mostrado em _doRoundReadyFlow.
-  // Para round 1 (chamada direta sem _doRoundReadyFlow) mostramos aqui.
   if (roundBannerForRound !== currentTurnNumber) {
     if (typeof showRoundBanner === 'function') {
       showRoundBanner(currentTurnNumber);
@@ -4385,7 +4366,7 @@ async function handleMatchUpdate(payload) {
     // Se turn_number mudou, guardar novo deadline para quando a animação terminar
     if (turnNumberChanged && turn_deadline_at) {
       currentTurnNumber = turn_number;
-      // Guardar deadline — o game loop (cleanup) vai consumir via _doRoundReadyFlow
+      // Guardar deadline — o game loop (cleanup) vai consumir via startTurnWindow
       // NUNCA chamar startTurnWindow aqui: a animação pode ainda estar rodando.
       pendingTurnDeadline = turn_deadline_at;
       roundLocked = true;
@@ -4393,7 +4374,7 @@ async function handleMatchUpdate(payload) {
       if (awaitingRoundReady) {
         awaitingRoundReady = false;
         const d = pendingTurnDeadline; pendingTurnDeadline = null;
-        _doRoundReadyFlow(d);
+        startTurnWindow(d);  // mesmo fluxo do round 1
       }
     }
     
@@ -7210,38 +7191,31 @@ function updateGame() {
       
       if (!winner) {
         if (multiplayerMode) {
-          // Em multiplayer, voltar para seleção (próximo turno via Realtime)
+          // Em multiplayer, aguardar próximo turno via Realtime (mesmo fluxo do round 1)
           phase = "selectMove";
-          isInteracting = false; // Garantir que não está mais interagindo
-          
-          document.getElementById("legendArea").textContent = t('nextTurn');
-          
-          // Resetar flag de ação enviada
+          isInteracting = false;
           myActionSubmitted = false;
-          
-          // DB-driven: aguardar o deadline do próximo turno chegado via Realtime.
-          // Mesmo fluxo do round 1 — sem broadcast barrier.
+
+          // DB-driven: mesmo fluxo do round 1 — deadline do DB via Realtime.
           if (pendingTurnDeadline) {
             const _d = pendingTurnDeadline; pendingTurnDeadline = null;
-            _doRoundReadyFlow(_d);
+            startTurnWindow(_d);  // idêntico ao round 1
           } else {
-            // Realtime ainda não trouxe o novo deadline.
-            // NÃO mostrar banner aqui: currentTurnNumber ainda é o round anterior.
-            // _doRoundReadyFlow mostrará o banner correto quando o deadline chegar.
-            const legSync = document.getElementById('legendArea');
-            if (legSync) { legSync.textContent = '⟳ Sync...'; legSync.style.color = '#00D4FF'; }
+            // Realtime ainda não trouxe o novo deadline — aguardar.
             awaitingRoundReady = true;
             // Fallback: se Realtime não chegar em 5s, buscar do DB diretamente
-            setTimeout(async () => {
+            if (roundReadyTimeout) clearTimeout(roundReadyTimeout);
+            roundReadyTimeout = setTimeout(async () => {
+              roundReadyTimeout = null;
               if (!awaitingRoundReady) return;
               console.warn('[SYNC] ⏰ Fallback: Realtime não chegou, buscando deadline do DB...');
               try {
                 const { data: freshRow } = await supabaseClient
                   .from('matches').select('turn_number, turn_deadline_at').eq('id', matchData.id).single();
-                if (freshRow && freshRow.turn_deadline_at && freshRow.turn_number !== currentTurnNumber) {
+                if (freshRow && freshRow.turn_deadline_at) {
                   awaitingRoundReady = false;
-                  currentTurnNumber = freshRow.turn_number;
-                  _doRoundReadyFlow(freshRow.turn_deadline_at);
+                  if (freshRow.turn_number) currentTurnNumber = freshRow.turn_number;
+                  startTurnWindow(freshRow.turn_deadline_at);
                 }
               } catch(e) { console.error('[SYNC] Erro no fallback DB:', e); }
             }, 5000);
