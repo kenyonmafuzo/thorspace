@@ -4426,20 +4426,33 @@ async function handleMatchUpdate(payload) {
       if (isApplyingTurnTransition) {
         return;
       }
-      
-      isApplyingTurnTransition = true;
-      lastAppliedTurnIndex = turn_index;
-      lastAppliedTurnUserId = turn_user_id;
-      
-      turnUserId = turn_user_id;
-      isMyTurn = currentIsMyTurn;
-      
-      // SÓ resetar UI quando for novo round (turn_index mudou)
-      applyTurnTransition(currentIsMyTurn);
-      
-      setTimeout(() => {
-        isApplyingTurnTransition = false;
-      }, 50);
+
+      // CRÍTICO: NÃO chamar applyTurnTransition durante animação ou sync ROUND_READY.
+      // Quando Realtime traz turn_index novo enquanto a animação ainda roda (ou logo depois),
+      // applyTurnTransition → resetTurnUI zera roundLocked/timers e abre a UI antes do sync,
+      // sabotando o barrier do ROUND_READY e causando o travamento no "⟳ Sync...".
+      // Basta rastrear os índices; startTurnWindow cuidará da UI após o sync.
+      if (mpPhase === 'ANIMATING' || mpPhase === 'ROUND_BANNER' || roundLocked || awaitingRoundReady) {
+        lastAppliedTurnIndex = turn_index;
+        lastAppliedTurnUserId = turn_user_id;
+        turnUserId = turn_user_id;
+        isMyTurn = currentIsMyTurn;
+        // Não tocar na UI — startTurnWindow fará isso após sincronizar
+      } else {
+        isApplyingTurnTransition = true;
+        lastAppliedTurnIndex = turn_index;
+        lastAppliedTurnUserId = turn_user_id;
+
+        turnUserId = turn_user_id;
+        isMyTurn = currentIsMyTurn;
+
+        // SÓ resetar UI quando for novo round (turn_index mudou) e NÃO estamos em animação/sync
+        applyTurnTransition(currentIsMyTurn);
+
+        setTimeout(() => {
+          isApplyingTurnTransition = false;
+        }, 50);
+      }
     } else if (turnUserChanged) {
       // Apenas atualizar quem é o turno, SEM resetar UI
       lastAppliedTurnUserId = turn_user_id;
