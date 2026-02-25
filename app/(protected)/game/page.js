@@ -8,9 +8,9 @@ import { useProgress } from "@/lib/ProgressContext";
 
 export default function GamePage() {
   const router = useRouter();
-  const { addXp, setTotalXp } = useProgress(); // Get context functions
-  const finalizedRef = useRef(false); // Guard para executar finalização apenas uma vez
-  const [authChecked, setAuthChecked] = useState(false);
+  const { addXp, setTotalXp } = useProgress();
+  const finalizedRef = useRef(false);
+  const [iframeUrl, setIframeUrl] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -28,63 +28,56 @@ export default function GamePage() {
         return;
       }
 
-      setAuthChecked(true);
+      // Construir URL correta uma única vez — evita double-load do iframe
+      const mode = localStorage.getItem("thor_selected_mode") || "practice";
+      const matchId = localStorage.getItem("thor_match_id");
+
+      if (mode === "multiplayer" && matchId) {
+        const supabaseUrl = encodeURIComponent(process.env.NEXT_PUBLIC_SUPABASE_URL || '');
+        const supabaseKey = encodeURIComponent(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
+        const accessToken = encodeURIComponent(session?.access_token || '');
+        const refreshToken = encodeURIComponent(session?.refresh_token || '');
+        const userId = encodeURIComponent(session?.user?.id || '');
+        setIframeUrl(`/game/thor.html?mode=multiplayer&matchId=${matchId}&supabaseUrl=${supabaseUrl}&supabaseKey=${supabaseKey}&access_token=${accessToken}&refresh_token=${refreshToken}&userId=${userId}`);
+      } else {
+        setIframeUrl("/game/thor.html");
+      }
     })();
   }, [router]);
 
   const iframeRef = useRef(null);
 
   function handleIframeLoad() {
-    // Reset finalized flag for new match
     finalizedRef.current = false;
-    console.log("[GamePage] Iframe loaded, reset finalizedRef to false");
-    
+    console.log("[GamePage] Iframe loaded");
+
     (async () => {
       try {
         const username = localStorage.getItem("thor_username") || "";
         const matchId = localStorage.getItem("thor_match_id") || null;
-        
-        // Buscar userId e tokens da sessão
         const { data } = await supabase.auth.getSession();
         const userId = data?.session?.user?.id || null;
-        
         const win = iframeRef.current && iframeRef.current.contentWindow;
-        
-        if (win) {
-          // Detectar se está em modo multiplayer
-          const mode = localStorage.getItem("thor_selected_mode") || "practice";
-          const isMultiplayer = mode === "multiplayer" && matchId;
-          
-          if (isMultiplayer) {
-            // Construir URL completa com tokens
-            const thorUrl = await buildThorUrl();
-            
-            // Atualizar src do iframe se necessário
-            if (iframeRef.current && !iframeRef.current.src.includes('matchId=')) {
-              iframeRef.current.src = thorUrl;
-              return; // Aguardar próximo onLoad
-            }
-            
-            // Em multiplayer, enviar userId, username, matchId via postMessage
-            win.postMessage(
-              { 
-                type: "THOR:INIT", 
-                payload: { userId, username, matchId } 
-              },
-              window.location.origin
-            );
-            console.log("[GamePage] Multiplayer - enviando userId:", userId, "matchId:", matchId);
-          } else {
-            // Em solo, enviar username, userId e mode
-            win.postMessage(
-              { type: "THOR:INIT", payload: { userId, username, mode } },
-              window.location.origin
-            );
-            console.log("[GamePage] Solo mode -", mode, "userId:", userId);
-          }
+        if (!win) return;
+
+        const mode = localStorage.getItem("thor_selected_mode") || "practice";
+        const isMultiplayer = mode === "multiplayer" && matchId;
+
+        if (isMultiplayer) {
+          win.postMessage(
+            { type: "THOR:INIT", payload: { userId, username, matchId } },
+            window.location.origin
+          );
+          console.log("[GamePage] Multiplayer INIT — userId:", userId, "matchId:", matchId);
+        } else {
+          win.postMessage(
+            { type: "THOR:INIT", payload: { userId, username, mode } },
+            window.location.origin
+          );
+          console.log("[GamePage] Solo INIT —", mode);
         }
       } catch (e) {
-        console.warn("Erro ao enviar THOR:INIT ao iframe:", e);
+        console.warn("Erro ao enviar THOR:INIT:", e);
       }
     })();
   }
@@ -338,29 +331,8 @@ export default function GamePage() {
 }, [router]);
 
 
-  // Construir URL do thor.html com parâmetros
-  const buildThorUrl = async () => {
-    const mode = localStorage.getItem("thor_selected_mode") || "practice";
-    const matchId = localStorage.getItem("thor_match_id");
-    
-    if (mode === "multiplayer" && matchId) {
-      // Obter sessão completa para passar tokens
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
-      
-      const supabaseUrl = encodeURIComponent(process.env.NEXT_PUBLIC_SUPABASE_URL || '');
-      const supabaseKey = encodeURIComponent(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
-      const accessToken = encodeURIComponent(session?.access_token || '');
-      const refreshToken = encodeURIComponent(session?.refresh_token || '');
-      const userId = encodeURIComponent(session?.user?.id || '');
-      
-      return `/game/thor.html?mode=multiplayer&matchId=${matchId}&supabaseUrl=${supabaseUrl}&supabaseKey=${supabaseKey}&access_token=${accessToken}&refresh_token=${refreshToken}&userId=${userId}`;
-    }
-    return "/game/thor.html";
-  };
-
-  // Não renderiza até verificar autenticação
-  if (!authChecked) {
+  // Não renderiza até a URL estar pronta
+  if (!iframeUrl) {
     return (
       <div style={{
         minHeight: '100dvh',
@@ -381,8 +353,7 @@ export default function GamePage() {
         <iframe
           ref={iframeRef}
           onLoad={handleIframeLoad}
-          src="/game/thor.html"
-          data-build-url-async={true}
+          src={iframeUrl}
           style={{
             width: "100%",
             height: "100%",

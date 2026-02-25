@@ -1764,6 +1764,14 @@ function cancelSelectionTimer() {
   selectionTimerStarted = false;
 }
 
+// Helper: verificar se um userId está presente no canal.
+// presenceState() retorna { "chave-aleatória": [{ user_id, ... }], ... }
+// Os VALORES (arrays de objetos) contêm o user_id que foi passado no track().
+function isUserInPresence(state, userId) {
+  if (!state || !userId) return false;
+  return Object.values(state).flat().some(p => p.user_id === userId);
+}
+
 // Atualizar estado do botão Pronto baseado na presença do oponente
 function updateReadyBtnState() {
   if (!multiplayerMode) return;
@@ -1772,12 +1780,11 @@ function updateReadyBtnState() {
   const has3Ships = window.selectedNaves && window.selectedNaves.length === 3;
   if (!has3Ships) return; // botão ainda oculto, nada a fazer
 
-  // Consulta presença ao vivo: o evento join/sync pode ter disparado antes
-  // de opponentUserId estar definido, então nunca confiamos só no flag.
+  // Consulta presença ao vivo usando helper correto
   if (!opponentInGame && matchStateChannel && opponentUserId) {
     try {
       const presenceState = matchStateChannel.presenceState();
-      if (presenceState && Object.keys(presenceState).includes(opponentUserId)) {
+      if (isUserInPresence(presenceState, opponentUserId)) {
         opponentInGame = true;
       }
     } catch(e) {}
@@ -3514,14 +3521,10 @@ function setupMatchStateSync(matchId) {
         const presenceState = matchStateChannel.presenceState();
         debug.log('[PRESENCE] Estado sincronizado:', presenceState);
         
-        // Contar jogadores online
-        const onlineUsers = Object.keys(presenceState);
-        debug.log('[PRESENCE] Jogadores online:', onlineUsers.length, onlineUsers);
-        
         // Verificar presença do oponente e atualizar botão Pronto
         if (multiplayerMode && matchData) {
-          const amIOnline = onlineUsers.includes(myUserId);
-          const isOpponentOnline = onlineUsers.includes(opponentUserId);
+          const amIOnline = isUserInPresence(presenceState, myUserId);
+          const isOpponentOnline = isUserInPresence(presenceState, opponentUserId);
           
           debug.log('[PRESENCE] Eu online?', amIOnline);
           debug.log('[PRESENCE] Oponente online?', isOpponentOnline);
@@ -3534,13 +3537,11 @@ function setupMatchStateSync(matchId) {
           }
 
           // WO apenas durante batalha — nunca durante seleção/loading
-          if (currentPhase === 'battle' && amIOnline && !isOpponentOnline && onlineUsers.length === 1) {
+          if (currentPhase === 'battle' && amIOnline && !isOpponentOnline) {
             debug.log('[PRESENCE] 🚪 Oponente desconectou durante batalha! Aplicando WO em 3s...');
             setTimeout(() => {
               const stateAfterDelay = matchStateChannel.presenceState();
-              const usersAfterDelay = Object.keys(stateAfterDelay);
-              const opponentStillOffline = !usersAfterDelay.includes(opponentUserId);
-              if (opponentStillOffline && currentPhase === 'battle') {
+              if (!isUserInPresence(stateAfterDelay, opponentUserId) && currentPhase === 'battle') {
                 debug.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
                 applyWalkover();
               }
@@ -3550,8 +3551,9 @@ function setupMatchStateSync(matchId) {
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         debug.log('[PRESENCE] Jogador entrou:', key, newPresences);
-        // Quando oponente entra, habilitar botão Pronto se já tiver 3 naves
-        if (key === opponentUserId && multiplayerMode) {
+        // newPresences é array de objetos com user_id
+        const joinedUserId = newPresences && newPresences[0]?.user_id;
+        if (joinedUserId === opponentUserId && multiplayerMode) {
           opponentInGame = true;
           debug.log('[PRESENCE] ✅ Oponente entrou! Habilitando botão Pronto.');
           updateReadyBtnState();
@@ -3561,7 +3563,8 @@ function setupMatchStateSync(matchId) {
         debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
         // Se o oponente saiu — WO apenas durante batalha, nunca durante seleção
-        if (key === opponentUserId && multiplayerMode && matchData) {
+        const leftUserId = leftPresences && leftPresences[0]?.user_id;
+        if (leftUserId === opponentUserId && multiplayerMode && matchData) {
           opponentInGame = false;
           updateReadyBtnState();
           if (currentPhase === 'battle') {
