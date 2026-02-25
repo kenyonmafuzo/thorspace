@@ -1614,9 +1614,19 @@ function hideSelectionTimer() {
 // Só startTurnWindow desbloqueia os inputs — ships ficam locked até aqui completar.
 function _doRoundReadyFlow(deadline) {
   roundReadySent = false;
-  roundReadyReceived = false;
+  // IMPORTANTE: NÃO resetar roundReadyReceived aqui.
+  // O oponente pode ter enviado ROUND_READY enquanto a animação local ainda
+  // estava rodando — o handler já setou roundReadyReceived = true antes de
+  // _doRoundReadyFlow ser chamado. Resetar aqui causaria travamento eterno
+  // no "⟳ Sync...". A flag é limpa corretamente em startTurnWindow().
   roundReadyPending = deadline;
 
+  // Mostrar banner do round durante o sync (fica na tela enquanto aguarda oponente)
+  if (typeof showRoundBanner === 'function') {
+    showRoundBanner(currentTurnNumber);
+  }
+
+  // Legenda mostra sync por baixo do banner
   const legSync = document.getElementById('legendArea');
   if (legSync) { legSync.textContent = '⟳ Sync...'; legSync.style.color = '#00D4FF'; }
 
@@ -1628,16 +1638,21 @@ function _doRoundReadyFlow(deadline) {
   }
 
   if (roundReadyReceived) {
+    // Oponente já respondeu (chegou antes ou durante a animação) — aguardar só o banner
     if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
     const d = roundReadyPending; roundReadyPending = null;
-    startTurnWindow(d);
+    const wait = getRoundBannerRemainingMs();
+    setTimeout(() => startTurnWindow(d), wait);
   } else {
     if (roundReadyTimeout) clearTimeout(roundReadyTimeout);
     roundReadyTimeout = setTimeout(() => {
       console.warn('[SYNC] ⏰ Fallback ROUND_READY: iniciando round sem confirmação do oponente');
       const d = roundReadyPending; roundReadyPending = null; roundReadyTimeout = null;
-      if (d) startTurnWindow(d);
-    }, 8000);
+      if (d) {
+        const wait = getRoundBannerRemainingMs();
+        setTimeout(() => startTurnWindow(d), wait);
+      }
+    }, 5000);
   }
 }
 
@@ -1750,9 +1765,10 @@ function showRoundBanner(roundNumber) {
   bannerText.style.textStroke = '4px #0ff';
 
   bannerText.innerHTML = `Round ${roundNumber}`;
+  roundBannerShownAt = Date.now();
   setTimeout(() => {
     banner.style.display = 'none';
-  }, 1200);
+  }, ROUND_BANNER_MS);
 }
 
 function showSelectionTimer(seconds) {
@@ -2097,6 +2113,13 @@ let roundReadyTimeout = null;     // fallback se oponente não responde
 let roundReadyPending = null;     // deadline guardada até sync completar
 let pendingTurnDeadline = null;   // deadline do próximo turno chegado via Realtime (handleMatchUpdate)
 let awaitingRoundReady = false;   // animação já terminou mas deadline ainda não chegou
+// Round banner tracking — para delay do unlock de ships até banner fechar
+let roundBannerShownAt = 0;
+const ROUND_BANNER_MS = 2500;
+function getRoundBannerRemainingMs() {
+  if (!roundBannerShownAt) return 0;
+  return Math.max(0, ROUND_BANNER_MS - (Date.now() - roundBannerShownAt));
+}
 // Early-submit buffer: guard para não agendar múltiplos resolve
 let earlySubmitBufferScheduled = false;
 
@@ -2177,33 +2200,21 @@ function startTurnWindow(deadlineISO) {
   // AAA: Garantir fase interativa no multiplayer
   ensurePvpInteractivePhase('startTurnWindow');
 
-  // 🔥 Bug fix: limpar "⟳ Sync..." logo que o round for iniciar (antes de qualquer guard)
-  const _legReset = document.getElementById('legendArea');
-  if (_legReset) {
-    _legReset.textContent = t('nextTurn');
-    _legReset.style.color = '';
-  }
-
   if (!multiplayerMode) {
     return;
   }
 
-  // Exibir banner de round sempre que iniciar um novo turno (incluindo Round 1)
-  if (typeof showRoundBanner === 'function') {
-    showRoundBanner(currentTurnNumber);
-  }
-  
   // GUARD: Se é o mesmo deadline, ignorar (já está rodando)
   if (window.__currentTurnDeadline === deadlineISO) {
     return;
   }
   
   // GUARD FORTE: Prevenir múltiplas chamadas simultâneas com debounce
-  const now = Date.now();
-  if (window.__lastTurnWindowStart && (now - window.__lastTurnWindowStart) < 1000) {
+  const _stw_now = Date.now();
+  if (window.__lastTurnWindowStart && (_stw_now - window.__lastTurnWindowStart) < 1000) {
     return;
   }
-  window.__lastTurnWindowStart = now;
+  window.__lastTurnWindowStart = _stw_now;
   
   // Armazenar deadline atual
   window.__currentTurnDeadline = deadlineISO;
@@ -2277,106 +2288,124 @@ function startTurnWindow(deadlineISO) {
   // Canonical state: entering planning window
   mpPhase = 'PLANNING';
   
-  
   // Parse deadline do servidor (mantido para referência, mas NÃO usado para calcular tempo do cliente)
   turnDeadline = deadlineISO ? new Date(deadlineISO) : new Date(Date.now() + 20000);
   turnWindowActive = true;
   myActionSubmitted = false;
   myPendingAction = null;
   waitingForTurnResolution = false;
-  
-  // ⚠️ CLOCK SKEW FIX: Nunca calcular tempo restante de Date.now() vs deadline do servidor.
-  // Relógios de Windows/Mac podem diferir fazendo P2 receber 0s ou 67s.
-  // Ambos os clientes sempre recebem 20s locais a partir do momento que recebem o evento.
-  const TURN_DURATION_S = 20;
-  turnTimeRemaining = TURN_DURATION_S;
-  
-  
-  // Mostrar timer visual
-  const timerText = document.getElementById('timerText');
-  const legendArea = document.getElementById('legendArea');
-  const hudTop = document.getElementById('hudTop');
-  
-  if (timerText && hudTop) {
-    hudTop.style.display = 'flex';
-    hudTop.style.visibility = 'visible';
-    hudTop.style.opacity = '1';
-    timerText.textContent = turnTimeRemaining;
-    timerText.style.color = '#00D4FF';
+
+  // Exibir banner de round somente se não estiver já sendo exibido.
+  // Para round 2+ o banner já foi mostrado em _doRoundReadyFlow durante o sync.
+  // Para round 1 (chamada direta sem _doRoundReadyFlow) mostramos aqui.
+  if (getRoundBannerRemainingMs() <= 100) {
+    if (typeof showRoundBanner === 'function') {
+      showRoundBanner(currentTurnNumber);
+    }
   }
-  
-  // GUARD FORTE: Garantir que só um interval está ativo por vez
-  if (window.__activeTurnTimer) {
-    clearInterval(window.__activeTurnTimer);
-    window.__activeTurnTimer = null;
-  }
-  
-  // Countdown visual: decrementar localmente (sem recalcular de Date.now() — evita clock skew)
-  turnTimerInterval = setInterval(() => {
-    turnTimeRemaining = Math.max(0, turnTimeRemaining - 1);
+
+  // Aguardar o banner fechar antes de ativar o timer e liberar as naves.
+  // Garante que: "Round N" aparece → banner some → legenda mostra "Selecione uma nave".
+  const _bannerWait = getRoundBannerRemainingMs();
+  setTimeout(() => {
+    // ⚠️ CLOCK SKEW FIX: Nunca calcular tempo restante de Date.now() vs deadline do servidor.
+    // Relógios de Windows/Mac podem diferir fazendo P2 receber 0s ou 67s.
+    // Ambos os clientes sempre recebem 20s locais a partir do momento que recebem o evento.
+    const TURN_DURATION_S = 20;
+    turnTimeRemaining = TURN_DURATION_S;
     
-    if (timerText) {
-      timerText.textContent = turnTimeRemaining;
-      
-      // Mudar cor nos últimos 5s
-      if (turnTimeRemaining <= 5) {
-        timerText.style.color = '#FF4444';
-      }
+    // Mostrar timer visual
+    const timerText = document.getElementById('timerText');
+    const legendArea = document.getElementById('legendArea');
+    const hudTop = document.getElementById('hudTop');
+
+    // Limpar "⟳ Sync..." e mostrar instrução agora que o banner fechou
+    if (legendArea) {
+      legendArea.textContent = t('nextTurn');
+      legendArea.style.color = '';
     }
     
-    if (turnTimeRemaining <= 0) {
-      clearInterval(turnTimerInterval);
-      turnTimerInterval = null;
+    if (timerText && hudTop) {
+      hudTop.style.display = 'flex';
+      hudTop.style.visibility = 'visible';
+      hudTop.style.opacity = '1';
+      timerText.textContent = turnTimeRemaining;
+      timerText.style.color = '#00D4FF';
+    }
+    
+    // GUARD FORTE: Garantir que só um interval está ativo por vez
+    if (window.__activeTurnTimer) {
+      clearInterval(window.__activeTurnTimer);
       window.__activeTurnTimer = null;
     }
-  }, 1000);
-  
-  // Registrar o timer globalmente
-  window.__activeTurnTimer = turnTimerInterval;
-  
-  // Timer principal: sempre 20s locais — evita clock skew de zerar o turno do P2
-  const timeoutMs = TURN_DURATION_S * 1000;
-  turnTimer = setTimeout(() => {
-    const isPlayer1 = myUserId === matchData?.player1_id;
     
-    // Limpar seleção de nave quando tempo acaba
-    selectedNave = null;
-    isInteracting = false;
-    // Se ainda não enviei, submeter: naves configuradas mantêm ordens,
-    // naves sem ordens recebem NOOP (target=null, shot=null → ficam paradas).
-    if (!myActionSubmitted) {
-      const timerShips = playerNaves.map((n, idx) => ({
-        index: idx,
-        x: n.x,
-        y: n.y,
-        target: n.target ? { x: n.target.x, y: n.target.y } : null,
-        shot:   n.shot   ? { x: n.shot.x,   y: n.shot.y   } : null,
-        hp:     n.hp,
-        angle:  n.angle,
-        shotType: (typeof ShotTypeManager !== 'undefined')
-          ? ShotTypeManager.getShotType(n.tipo)
-          : 'plasma'
-      }));
-      submitMyAction({ type: 'play', ships: timerShips });
-    }
-    // Tentar resolver turno repetidamente até sucesso (máx 5 tentativas)
-    // APENAS Player 1 (host) resolve turnos (variável já declarada acima)
-    if (isPlayer1) {
-      let resolveAttempts = 0;
-      function tryResolveLoop() {
-        resolveAttempts++;
-        maybeResolveTurn();
-        if (resolveAttempts < 5 && phase !== 'wait') {
-          setTimeout(tryResolveLoop, 700);
-        } else if (phase === 'wait') {
-          // Turno já foi resolvido
-        } else {
-          console.warn('[TURN] [TIMEOUT] Player 1 não conseguiu resolver turno após 5 tentativas.');
+    // Countdown visual: decrementar localmente (sem recalcular de Date.now() — evita clock skew)
+    turnTimerInterval = setInterval(() => {
+      turnTimeRemaining = Math.max(0, turnTimeRemaining - 1);
+      
+      if (timerText) {
+        timerText.textContent = turnTimeRemaining;
+        
+        // Mudar cor nos últimos 5s
+        if (turnTimeRemaining <= 5) {
+          timerText.style.color = '#FF4444';
         }
       }
-      tryResolveLoop();
-    }
-  }, timeoutMs + 500);
+      
+      if (turnTimeRemaining <= 0) {
+        clearInterval(turnTimerInterval);
+        turnTimerInterval = null;
+        window.__activeTurnTimer = null;
+      }
+    }, 1000);
+    
+    // Registrar o timer globalmente
+    window.__activeTurnTimer = turnTimerInterval;
+    
+    // Timer principal: sempre 20s locais — evita clock skew de zerar o turno do P2
+    const timeoutMs = TURN_DURATION_S * 1000;
+    turnTimer = setTimeout(() => {
+      const isPlayer1 = myUserId === matchData?.player1_id;
+      
+      // Limpar seleção de nave quando tempo acaba
+      selectedNave = null;
+      isInteracting = false;
+      // Se ainda não enviei, submeter: naves configuradas mantêm ordens,
+      // naves sem ordens recebem NOOP (target=null, shot=null → ficam paradas).
+      if (!myActionSubmitted) {
+        const timerShips = playerNaves.map((n, idx) => ({
+          index: idx,
+          x: n.x,
+          y: n.y,
+          target: n.target ? { x: n.target.x, y: n.target.y } : null,
+          shot:   n.shot   ? { x: n.shot.x,   y: n.shot.y   } : null,
+          hp:     n.hp,
+          angle:  n.angle,
+          shotType: (typeof ShotTypeManager !== 'undefined')
+            ? ShotTypeManager.getShotType(n.tipo)
+            : 'plasma'
+        }));
+        submitMyAction({ type: 'play', ships: timerShips });
+      }
+      // Tentar resolver turno repetidamente até sucesso (máx 5 tentativas)
+      // APENAS Player 1 (host) resolve turnos (variável já declarada acima)
+      if (isPlayer1) {
+        let resolveAttempts = 0;
+        function tryResolveLoop() {
+          resolveAttempts++;
+          maybeResolveTurn();
+          if (resolveAttempts < 5 && phase !== 'wait') {
+            setTimeout(tryResolveLoop, 700);
+          } else if (phase === 'wait') {
+            // Turno já foi resolvido
+          } else {
+            console.warn('[TURN] [TIMEOUT] Player 1 não conseguiu resolver turno após 5 tentativas.');
+          }
+        }
+        tryResolveLoop();
+      }
+    }, timeoutMs + 500);
+  }, _bannerWait + 50);
   
 }
 
@@ -5308,20 +5337,28 @@ function setupMultiplayerSync(matchId) {
     syncChannel.on('broadcast', { event: 'ROUND_READY' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
 
-      // turnKey guard: reject stale ROUND_READY events from a previous round.
-      // Without this, a delayed packet from round N unlocks round N+1.
-      if (payload.turnKey !== undefined && payload.turnKey !== currentTurnNumber) {
+      // turnKey guard: rejeitar apenas pacotes genuinamente stale (de rodada ANTERIOR).
+      // IMPORTANTE: aceitar turnKey > currentTurnNumber — o oponente pode ter recebido
+      // o Realtime (turn_number++) antes de nós, e seu ROUND_READY chega com o turno novo
+      // enquanto currentTurnNumber ainda não foi atualizado localmente. Rejeitar aqui
+      // causaria travamento eterno no "⟳ Sync...".
+      if (payload.turnKey !== undefined && payload.turnKey < currentTurnNumber) {
         console.warn('[SYNC] ⚠️ Ignorando ROUND_READY stale turnKey=', payload.turnKey,
-          'esperado=', currentTurnNumber);
+          'esperado≥', currentTurnNumber);
         return;
       }
 
       roundReadyReceived = true;
-      // Se eu já enviei meu ROUND_READY, iniciar próximo round agora
+      // Se eu já enviei meu ROUND_READY, iniciar próximo round agora (após banner)
       if (roundReadySent && roundReadyPending) {
         if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
         const d = roundReadyPending; roundReadyPending = null;
-        startTurnWindow(d);
+        const wait = getRoundBannerRemainingMs();
+        if (wait > 0) {
+          setTimeout(() => startTurnWindow(d), wait);
+        } else {
+          startTurnWindow(d);
+        }
       }
     });
 
