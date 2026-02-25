@@ -1660,8 +1660,9 @@ function startSelectionTimer() {
       window.selectedNaves = [1, 1, 1];
       updatePreviews();
     }
+    // saveShipSelection() already calls updatePhaseAndStartBattle() when both players are ready.
+    // Do NOT call it here unconditionally — that would force battle start before opponent is ready.
     await saveShipSelection();
-    updatePhaseAndStartBattle();
   }, secondsLeft * 1000);
 }
 
@@ -4039,7 +4040,8 @@ async function handleMatchUpdate(payload) {
     const now = Date.now();
     let secondsElapsed = Math.floor((now - startedAt) / 1000);
     let secondsLeft = 15 - secondsElapsed;
-    if (secondsLeft < 0) secondsLeft = 0;
+    // Give P2 at least 5 s even if they load after the countdown has already expired
+    if (secondsLeft < 5) secondsLeft = 5;
     if (!selectionTimerStarted || selectionTimeRemaining !== secondsLeft) {
       debug.timer('[TIMER][SYNC] Iniciando timer sincronizado para seleção de naves:', { secondsLeft, startedAt, now });
       cancelSelectionTimer();
@@ -4062,8 +4064,9 @@ async function handleMatchUpdate(payload) {
           window.selectedNaves = [1, 1, 1];
           updatePreviews();
         }
+        // saveShipSelection() already calls updatePhaseAndStartBattle() when both players are ready.
+        // Do NOT call it here unconditionally — that would force battle start before opponent is ready.
         await saveShipSelection();
-        updatePhaseAndStartBattle();
       }, secondsLeft * 1000);
     }
   }
@@ -6430,13 +6433,14 @@ function moveTowards(nave) {
   const dy = nave.target.y - nave.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
   
-  if (dist < SPEED) {
+  const scaledSpeed = SPEED * _frameDt;
+  if (dist < scaledSpeed) {
     nave.x = nave.target.x;
     nave.y = nave.target.y;
     nave.target = null;
   } else {
-    nave.x += SPEED * dx / dist;
-    nave.y += SPEED * dy / dist;
+    nave.x += scaledSpeed * dx / dist;
+    nave.y += scaledSpeed * dy / dist;
   }
   nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
   nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
@@ -6858,9 +6862,9 @@ function updateProjectiles() {
     // Salvar posição anterior ANTES de mover
     p.prevX = p.x;
     p.prevY = p.y;
-    // Aplicar movimento
-    p.x += p.dx;
-    p.y += p.dy;
+    // Aplicar movimento (delta-time normalised to 60 fps)
+    p.x += p.dx * _frameDt;
+    p.y += p.dy * _frameDt;
     let hit = false;
 
     // 🔥 AAA: AUTHORITATIVE COLLISION DETECTION
@@ -8447,13 +8451,20 @@ function lerp(start, end, factor) {
 }
 
 let selectPulseTime = 0;
+// Delta-time for frame-rate independent animations (normalised to 60 fps).
+let _frameDt = 1.0;
+let _lastFrameMs = 0;
 
-function gameLoop() {
+function gameLoop(now) {
   if (!gameActive) {
     window._gameLoopActive = false; // mark loop as stopped so it can restart next session
+    _lastFrameMs = 0;
     return;
   }
-  selectPulseTime += 0.07; // quanto menor, mais lento o pulso
+  // Compute dt: clamp between 0.5 and 2.0 so spiral-death on tab-wake is prevented.
+  _frameDt = (_lastFrameMs > 0) ? Math.min(Math.max((now - _lastFrameMs) / (1000 / 60), 0.5), 2.0) : 1.0;
+  _lastFrameMs = now;
+  selectPulseTime += 0.07 * _frameDt; // quanto menor, mais lento o pulso
   
   // 🔥 AAA: Processar fila de eventos no P2
   if (multiplayerMode && !isPlayer1Host) {
