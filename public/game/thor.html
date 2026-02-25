@@ -2241,17 +2241,18 @@ function startTurnWindow(deadlineISO) {
   mpPhase = 'PLANNING';
   
   
-  // Parse deadline do servidor
+  // Parse deadline do servidor (mantido para referência, mas NÃO usado para calcular tempo do cliente)
   turnDeadline = deadlineISO ? new Date(deadlineISO) : new Date(Date.now() + 20000);
   turnWindowActive = true;
   myActionSubmitted = false;
   myPendingAction = null;
   waitingForTurnResolution = false;
   
-  // Calcular tempo restante (reusar variável now do debounce)
-  const deadlineMs = turnDeadline.getTime();
-  const remainingMs = Math.max(0, deadlineMs - now);
-  turnTimeRemaining = Math.ceil(remainingMs / 1000);
+  // ⚠️ CLOCK SKEW FIX: Nunca calcular tempo restante de Date.now() vs deadline do servidor.
+  // Relógios de Windows/Mac podem diferir fazendo P2 receber 0s ou 67s.
+  // Ambos os clientes sempre recebem 20s locais a partir do momento que recebem o evento.
+  const TURN_DURATION_S = 20;
+  turnTimeRemaining = TURN_DURATION_S;
   
   
   // Mostrar timer visual
@@ -2267,24 +2268,15 @@ function startTurnWindow(deadlineISO) {
     timerText.style.color = '#00D4FF';
   }
   
-  // Countdown visual (atualiza a cada segundo)
-  // Armazenar o deadlineISO original para recalcular em cada iteração
-  const deadlineISOStored = deadlineISO;
-  
   // GUARD FORTE: Garantir que só um interval está ativo por vez
   if (window.__activeTurnTimer) {
     clearInterval(window.__activeTurnTimer);
     window.__activeTurnTimer = null;
   }
   
+  // Countdown visual: decrementar localmente (sem recalcular de Date.now() — evita clock skew)
   turnTimerInterval = setInterval(() => {
-    // Recalcular deadline a partir do ISO string em cada iteração
-    // para garantir que não haja problemas de sincronização
-    const now = Date.now();
-    const deadline = new Date(deadlineISOStored);
-    const deadlineMs = deadline.getTime();
-    const remainingMs = Math.max(0, deadlineMs - now);
-    turnTimeRemaining = Math.ceil(remainingMs / 1000);
+    turnTimeRemaining = Math.max(0, turnTimeRemaining - 1);
     
     if (timerText) {
       timerText.textContent = turnTimeRemaining;
@@ -2298,15 +2290,15 @@ function startTurnWindow(deadlineISO) {
     if (turnTimeRemaining <= 0) {
       clearInterval(turnTimerInterval);
       turnTimerInterval = null;
-      window.__activeTurnTimer = null; // Limpar referência global
+      window.__activeTurnTimer = null;
     }
   }, 1000);
   
   // Registrar o timer globalmente
   window.__activeTurnTimer = turnTimerInterval;
   
-  // Timer principal para deadline
-  const timeoutMs = Math.max(0, remainingMs);
+  // Timer principal: sempre 20s locais — evita clock skew de zerar o turno do P2
+  const timeoutMs = TURN_DURATION_S * 1000;
   turnTimer = setTimeout(() => {
     const isPlayer1 = myUserId === matchData?.player1_id;
     
@@ -7208,13 +7200,15 @@ function updateGame() {
               const d = roundReadyPending; roundReadyPending = null;
               startTurnWindow(d);
             } else {
-              // Fallback: 3s se oponente não responder (conexão lenta/queda)
+              // Fallback: 8s se oponente não responder (conexão lenta/queda)
+              // Aumentado de 3s → 8s para dar tempo ao broadcast chegar, especialmente entre
+              // plataformas diferentes (Windows ↔ Mac) com animações de durações variadas.
               if (roundReadyTimeout) clearTimeout(roundReadyTimeout);
               roundReadyTimeout = setTimeout(() => {
                 console.warn('[SYNC] ⏰ Fallback ROUND_READY: iniciando round sem confirmação do oponente');
                 const d = roundReadyPending; roundReadyPending = null; roundReadyTimeout = null;
                 if (d) startTurnWindow(d);
-              }, 3000);
+              }, 8000);
             }
           } else {
             console.warn('[TURN] ⚠️ Sem deadline para novo turno!');
