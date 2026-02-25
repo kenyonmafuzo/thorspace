@@ -1771,6 +1771,18 @@ function updateReadyBtnState() {
   if (!btn) return;
   const has3Ships = window.selectedNaves && window.selectedNaves.length === 3;
   if (!has3Ships) return; // botão ainda oculto, nada a fazer
+
+  // Consulta presença ao vivo: o evento join/sync pode ter disparado antes
+  // de opponentUserId estar definido, então nunca confiamos só no flag.
+  if (!opponentInGame && matchStateChannel && opponentUserId) {
+    try {
+      const presenceState = matchStateChannel.presenceState();
+      if (presenceState && Object.keys(presenceState).includes(opponentUserId)) {
+        opponentInGame = true;
+      }
+    } catch(e) {}
+  }
+
   if (opponentInGame && !PVP.hasSavedSelection) {
     btn.disabled = false;
     btn.style.opacity = '1';
@@ -1823,6 +1835,17 @@ window.showOnly = function(screenName) {
         startSelectionTimer();
       } else {
         cancelSelectionTimer();
+        // Poll presença a cada 500ms até confirmar oponente — cobre o caso em que
+        // ambos chegaram juntos e os eventos join/sync já dispararam antes de
+        // opponentUserId estar definido.
+        const presencePollInterval = setInterval(() => {
+          if (opponentInGame) { clearInterval(presencePollInterval); return; }
+          updateReadyBtnState();
+          // Para o poll assim que confirmar
+          if (opponentInGame) clearInterval(presencePollInterval);
+        }, 500);
+        // Limite de 2 minutos
+        setTimeout(() => clearInterval(presencePollInterval), 120000);
       }
       // Init carousel (applies team filter + arrow state)
       initNaveCarousel();
