@@ -2091,6 +2091,15 @@ const SYNC_INTERVAL = 100; // ms
 let remotePlayerLastSeen = 0;
 let remotePlayerConnected = true;
 
+// =====================================================================
+// AAA STATE MACHINE — canonical multiplayer phase tracker
+// Every client must advance through states in this exact order:
+//   SHIP_SELECT → ROUND_BANNER → PLANNING → RESOLVING → ANIMATING
+//                     ↑__________________________|  (loop)
+// Guards below use this variable to block cross-state leaks.
+// =====================================================================
+let mpPhase = 'SHIP_SELECT'; // SHIP_SELECT|ROUND_BANNER|PLANNING|RESOLVING|ANIMATING
+
 // ===============================
 // AAA: Multiplayer Interactive Phase Guard
 // ===============================
@@ -2211,6 +2220,9 @@ function startTurnWindow(deadlineISO) {
   roundReadyPending = null;
   earlySubmitBufferScheduled = false;
   if (roundReadyTimeout) { clearTimeout(roundReadyTimeout); roundReadyTimeout = null; }
+
+  // Canonical state: entering planning window
+  mpPhase = 'PLANNING';
   
   
   // Parse deadline do servidor
@@ -2285,9 +2297,22 @@ function startTurnWindow(deadlineISO) {
     // Limpar seleção de nave quando tempo acaba
     selectedNave = null;
     isInteracting = false;
-    // Se ainda não enviei, enviar ação idle
+    // Se ainda não enviei, submeter: naves configuradas mantêm ordens,
+    // naves sem ordens recebem NOOP (target=null, shot=null → ficam paradas).
     if (!myActionSubmitted) {
-      submitMyAction({ type: 'idle' });
+      const timerShips = playerNaves.map((n, idx) => ({
+        index: idx,
+        x: n.x,
+        y: n.y,
+        target: n.target ? { x: n.target.x, y: n.target.y } : null,
+        shot:   n.shot   ? { x: n.shot.x,   y: n.shot.y   } : null,
+        hp:     n.hp,
+        angle:  n.angle,
+        shotType: (typeof ShotTypeManager !== 'undefined')
+          ? ShotTypeManager.getShotType(n.tipo)
+          : 'plasma'
+      }));
+      submitMyAction({ type: 'play', ships: timerShips });
     }
     // Tentar resolver turno repetidamente até sucesso (máx 5 tentativas)
     // APENAS Player 1 (host) resolve turnos (variável já declarada acima)
@@ -2341,6 +2366,7 @@ async function submitMyAction(actionPayload) {
     
     myActionSubmitted = true;
     waitingForTurnResolution = true;
+    mpPhase = 'RESOLVING'; // canonical state: waiting for DB to resolve turn
 
     // Travar todas as naves até o próximo round
     if (playerNaves) playerNaves.forEach(n => n.locked = true);
@@ -2514,7 +2540,7 @@ function applyResolvedTurn(actions) {
     return;
   }
   window.__lastAppliedTurnKey = turnKey;
-  
+  mpPhase = 'ANIMATING'; // canonical state: deterministic playback in progress
   
   turnWindowActive = false;
   waitingForTurnResolution = false;
@@ -5213,43 +5239,44 @@ function setupMultiplayerSync(matchId) {
     // C2) Listener REALTIME_STATE: receber posicionamento/movimento em tempo real
     syncChannel.on('broadcast', { event: 'realtime_state' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
-      
+
+      // ─── AAA STATE MACHINE GUARD ───────────────────────────────────────
+      // During PLANNING / RESOLVING / ANIMATING, NEVER apply any incoming
+      // position or action data from the opponent.  The only canonical
+      // source of truth is pendingAnimActions (from applyResolvedTurn).
+      // This prevents all planning leaks, ghost moves, and desync.
+      if (mpPhase === 'PLANNING' || mpPhase === 'RESOLVING' || mpPhase === 'ANIMATING') {
+        debug.realtime('[REALTIME] 🔒 realtime_state bloqueado – mpPhase=' + mpPhase);
+        return;
+      }
+      // ───────────────────────────────────────────────────────────────────
+
       debug.realtime('[REALTIME] 📨 Estado em tempo real do oponente:', {
-        userId: payload.userId,
-        team: payload.team,
-        phase: payload.phase,
-        ships: payload.ships?.length,
-        isInteracting: isInteracting
+        userId: payload.userId, team: payload.team, ships: payload.ships?.length
       });
-      
+
       // Se usuário está interagindo, não aplicar
       if (isInteracting) {
         debug.realtime('[REALTIME] 🔒 Ignorando update - usuário interagindo');
         return;
       }
-      
-      // Aplicar posições do oponente em cpuNaves
+
+      // Aplicar posições do oponente em cpuNaves (apenas coordenadas — NUNCA shot/target)
       if (payload.ships && Array.isArray(payload.ships)) {
         payload.ships.forEach((shipData, idx) => {
           if (cpuNaves[idx] && shipData) {
-            // 🎯 AAA: Usar interpolação suave (lerp) ao invés de aplicar diretamente
             if (shipData.x !== undefined && shipData.y !== undefined) {
               cpuNaves[idx].targetX = shipData.x;
               cpuNaves[idx].targetY = shipData.y;
-              // Se é a primeira posição, aplicar diretamente (evitar lerp do 0,0)
               if (cpuNaves[idx].x === 0 && cpuNaves[idx].y === 0) {
                 cpuNaves[idx].x = shipData.x;
                 cpuNaves[idx].y = shipData.y;
               }
             }
-            // ⚠️ NÃO aplicar angle/target/hp em tempo real - só após execução do turno (vazamento visual + desync)
-            // if (shipData.angle !== undefined) cpuNaves[idx].angle = shipData.angle;
-            // if (shipData.target) cpuNaves[idx].target = shipData.target;
-            // if (shipData.hp !== undefined) cpuNaves[idx].hp = shipData.hp;
-            if (shipData.shot) cpuNaves[idx].shot = shipData.shot;
+            // ❌ NEVER apply shot/target/angle from realtime — these are planning secrets
+            // and would cause: ghost aims, position desync, and spoiled strategy.
           }
         });
-        debug.realtime('[REALTIME] ✅ Posições do oponente interpoladas (angle/target/hp bloqueados)');
       }
     });
     
@@ -5267,6 +5294,15 @@ function setupMultiplayerSync(matchId) {
     // AAA SYNC BARRIER 2: ouvir ROUND_READY do oponente (ambos finalizaram animação)
     syncChannel.on('broadcast', { event: 'ROUND_READY' }, ({ payload }) => {
       if (!payload || payload.userId === myUserId) return;
+
+      // turnKey guard: reject stale ROUND_READY events from a previous round.
+      // Without this, a delayed packet from round N unlocks round N+1.
+      if (payload.turnKey !== undefined && payload.turnKey !== currentTurnNumber) {
+        console.warn('[SYNC] ⚠️ Ignorando ROUND_READY stale turnKey=', payload.turnKey,
+          'esperado=', currentTurnNumber);
+        return;
+      }
+
       roundReadyReceived = true;
       // Se eu já enviei meu ROUND_READY, iniciar próximo round agora
       if (roundReadySent && roundReadyPending) {
@@ -7124,6 +7160,7 @@ function updateGame() {
     
     // Fase 3: CLEANUP - Finalizar turno
     if (combatPhase === 'cleanup' && movementComplete && shootingComplete) {
+      mpPhase = 'ROUND_BANNER'; // canonical state: animation done, banner + sync barrier next
       // ✅ XP: Processar eventos de round
       processRoundXPEvents();
       
@@ -7180,7 +7217,8 @@ function updateGame() {
             // Broadcast: terminei animação, pronto para próximo round
             if (syncChannel) {
               try {
-                syncChannel.send({ type: 'broadcast', event: 'ROUND_READY', payload: { userId: myUserId } });
+                // Include turnKey so the receiver can reject stale/out-of-order events
+                syncChannel.send({ type: 'broadcast', event: 'ROUND_READY', payload: { userId: myUserId, turnKey: currentTurnNumber } });
                 roundReadySent = true;
               } catch (e) { console.warn('[SYNC] Erro ao enviar ROUND_READY:', e); }
             }
