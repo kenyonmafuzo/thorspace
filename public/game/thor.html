@@ -1253,6 +1253,19 @@ background: rgba(0, 165, 242, 0.04);
 
 <!-- Tela de Seleção de Naves -->
 <div id="naveSelectScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0); backdrop-filter: blur(0px); z-index:3000; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:12vh;">
+
+  <!-- ===== Tutorial Modal: shown on first visit per session ===== -->
+  <div id="shipSelectTutorial" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:4000; align-items:center; justify-content:center; padding:20px;">
+    <div style="max-width:420px; width:100%; background:rgba(0,0,20,0.97); border:1px solid rgba(0,229,255,0.4); border-radius:20px; padding:36px 32px; text-align:center; box-shadow:0 0 40px rgba(0,229,255,0.15);">
+      <div style="font-size:36px; margin-bottom:12px;">🚀</div>
+      <h2 style="margin:0 0 14px; color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:20px; letter-spacing:1px;">Monte sua Esquadrilha</h2>
+      <p style="margin:0 0 10px; color:#ccc; font-size:15px; line-height:1.7;">Você precisa escolher <strong style="color:#00E5FF;">3 naves</strong> para entrar na batalha.</p>
+      <p style="margin:0 0 28px; color:#aaa; font-size:13px; line-height:1.6;">Clique nas naves que deseja adicionar à sua esquadrilha. Para remover uma nave, clique no preview acima.</p>
+      <button onclick="document.getElementById('shipSelectTutorial').style.display='none'; sessionStorage.setItem('shipTutorialSeen','1');" style="padding:14px 44px; border-radius:10px; background:transparent; border:2px solid #00E5FF; color:#00E5FF; font-size:16px; font-weight:700; font-family:'Orbitron',sans-serif; cursor:pointer; letter-spacing:1px;">Entendi!</button>
+    </div>
+  </div>
+  <!-- ============================================================ -->
+
   <div id="previewArea" style="display:flex; gap:38px; justify-content:center; margin-bottom:50px;">
     <div style="position:relative;" onclick="removeNave(0)">
       <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
@@ -1289,10 +1302,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Maya V1</strong><br>
               <span class="ship-desc-text" data-ship="1">Especialista em ataques de longa distância. Ideal para surpreender inimigos fora do alcance deles.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(1);" class="shot-type-btn" data-ship="1" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1308,10 +1318,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Aegis JK-05</strong><br>
               <span class="ship-desc-text" data-ship="2">Blindagem reforçada e resistência extrema. Perfeita para absorver dano e proteger sua frota.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(2);" class="shot-type-btn" data-ship="2" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1327,10 +1334,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Orion-7</strong><br>
               <span class="ship-desc-text" data-ship="3">Equilíbrio entre mobilidade e defesa. Versátil em qualquer situação de combate.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(3);" class="shot-type-btn" data-ship="3" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(0,229,255,0.1); color: #00E5FF; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(0,229,255,0.4); border-radius: 8px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(0,229,255,0.3); cursor: pointer; transition: all 0.3s; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1351,10 +1355,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Phoenix VIP</strong><br>
               <span>Nave VIP exclusiva. Alcance devastador.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(4);" class="shot-type-btn" data-ship="4" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1375,10 +1376,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Maya VIP</strong><br>
               <span>Nave VIP exclusiva. Alcance máximo.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(5);" class="shot-type-btn" data-ship="5" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1399,10 +1397,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Vanguard VIP</strong><br>
               <span>Nave VIP exclusiva. Proteção máxima.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(6);" class="shot-type-btn" data-ship="6" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1423,10 +1418,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Vanguard VIP</strong><br>
               <span>Nave VIP exclusiva. Proteção máxima.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(7);" class="shot-type-btn" data-ship="7" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1447,10 +1439,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Titan VIP</strong><br>
               <span>Nave VIP exclusiva. Equilíbrio perfeito.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(8);" class="shot-type-btn" data-ship="8" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1471,10 +1460,7 @@ background: rgba(0, 165, 242, 0.04);
               <strong>Titan VIP</strong><br>
               <span>Nave VIP exclusiva. Equilíbrio perfeito.</span>
             </div>
-            <button onclick="event.stopPropagation(); openShotTypeModal(9);" class="shot-type-btn" data-ship="9" style="margin-top:16px; width:100%; padding:10px 16px; background: rgba(255,215,0,0.1); color: #FFD700; font-family: 'Orbitron', sans-serif; font-size: 13px; border: 2px solid rgba(255,215,0,0.4); border-radius: 8px; letter-spacing: 1px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
-              <img class="shot-thumb" src="images/shots/plasma.png" style="width:20px; height:20px; object-fit:contain;">
-              Tipo de Tiro
-            </button>
+
           </div>
         </div>
 
@@ -1814,6 +1800,11 @@ const originalShowNaveSelect = showOnly;
 window.showOnly = function(screenName) {
   originalShowNaveSelect(screenName);
   if (screenName === 'naveSelectScreen') {
+    // Show ship selection tutorial on first visit per session
+    if (!sessionStorage.getItem('shipTutorialSeen')) {
+      const tut = document.getElementById('shipSelectTutorial');
+      if (tut) tut.style.display = 'flex';
+    }
     // AAA: Resetar locks/ready das naves do jogador ao mostrar seleção (sempre, inclusive round 1)
     if (Array.isArray(playerNaves)) {
       playerNaves.forEach((ship, i) => {
