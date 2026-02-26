@@ -1278,24 +1278,27 @@ background: rgba(0, 165, 242, 0.04);
     <div style="font-size:13px; color:#777; margin-top:5px; font-family:sans-serif;">Escolha 3 naves para o campo de batalha.</div>
   </div>
 
-  <div id="previewArea" style="display:flex; gap:38px; justify-content:center; align-items:center; margin-bottom:50px;">
-    <div style="position:relative;" onclick="removeNave(0)">
-      <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
-      <span class="remove-icon">✕</span>
-      <img id="shotIcon1" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
+  <!-- Wrapper: slots centered, tutorial button absolutely to the right -->
+  <div style="position:relative; display:flex; justify-content:center; align-items:center; margin-bottom:50px;">
+    <div id="previewArea" style="display:flex; gap:38px; justify-content:center; align-items:center;">
+      <div style="position:relative;" onclick="removeNave(0)">
+        <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <span class="remove-icon">✕</span>
+        <img id="shotIcon1" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
+      </div>
+      <div style="position:relative;" onclick="removeNave(1)">
+        <img id="preview2" src="images/placeholder_nave.png" alt="Posição 2" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <span class="remove-icon">✕</span>
+        <img id="shotIcon2" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
+      </div>
+      <div style="position:relative;" onclick="removeNave(2)">
+        <img id="preview3" src="images/placeholder_nave.png" alt="Posição 3" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <span class="remove-icon">✕</span>
+        <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
+      </div>
     </div>
-    <div style="position:relative;" onclick="removeNave(1)">
-      <img id="preview2" src="images/placeholder_nave.png" alt="Posição 2" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
-      <span class="remove-icon">✕</span>
-      <img id="shotIcon2" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
-    </div>
-    <div style="position:relative;" onclick="removeNave(2)">
-      <img id="preview3" src="images/placeholder_nave.png" alt="Posição 3" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
-      <span class="remove-icon">✕</span>
-      <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
-    </div>
-    <!-- Help button: re-open tutorial -->
-    <button onclick="openShipTutorial();" title="Como funciona?" style="margin-left:16px; width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
+    <!-- Help button: absolutely positioned to the right, does not shift slots -->
+    <button onclick="openShipTutorial();" title="Como funciona?" style="position:absolute; left:calc(50% + 160px); top:50%; transform:translateY(-50%); width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
   </div>
   <!-- Ship Selection Carousel -->
   <div id="naveCarouselOuter" style="display:flex; align-items:center; justify-content:center; gap:28px; width:100%; margin-bottom:16px;">
@@ -1938,7 +1941,7 @@ const translations = {
     returnToLobby: 'Retornar ao Lobby',
     buildYourTurn: 'Monte sua jogada! Você tem',
     seconds: 'segundos',
-    chooseDestination: 'Escolha o destino para mover esta nave.',
+    chooseDestination: 'Escolha o destino dentro da área para mover esta nave.',
     chooseTarget: 'Agora, clique para escolher o alvo do disparo.',
     attentionCommander: 'Atenção, comandante: batalha espacial em curso!',
     preparingNextRound: 'Preparando para o próximo round...',
@@ -1979,7 +1982,7 @@ const translations = {
     returnToLobby: 'Return to Lobby',
     buildYourTurn: 'Build your turn! You have',
     seconds: 'seconds',
-    chooseDestination: 'Choose the destination to move this ship.',
+    chooseDestination: 'Choose the destination within the area to move this ship.',
     chooseTarget: 'Now, click to choose the firing target.',
     attentionCommander: 'Attention, commander: space battle in progress!',
     preparingNextRound: 'Preparing for next round...',
@@ -2020,7 +2023,7 @@ const translations = {
     returnToLobby: 'Volver al Lobby',
     buildYourTurn: '¡Construye tu turno! Tienes',
     seconds: 'segundos',
-    chooseDestination: 'Elige el destino para mover esta nave.',
+    chooseDestination: 'Elige el destino dentro del área para mover esta nave.',
     chooseTarget: 'Ahora, haz clic para elegir el objetivo de disparo.',
     attentionCommander: '¡Atención, comandante: batalla espacial en curso!',
     preparingNextRound: 'Preparando para el próximo round...',
@@ -3574,12 +3577,12 @@ function setupMatchStateSync(matchId) {
             updateReadyBtnState();
           }
 
-          // WO apenas durante batalha — nunca durante seleção/loading
-          if (currentPhase === 'battle' && amIOnline && !isOpponentOnline) {
-            debug.log('[PRESENCE] 🚪 Oponente desconectou durante batalha! Aplicando WO em 3s...');
+          // WO durante qualquer fase ativa (seleção ou batalha)
+          if (currentPhase !== 'finished' && amIOnline && !isOpponentOnline) {
+            debug.log('[PRESENCE] 🚪 Oponente desconectou! Aplicando WO em 3s... (fase:', currentPhase, ')');
             setTimeout(() => {
               const stateAfterDelay = matchStateChannel.presenceState();
-              if (!isUserInPresence(stateAfterDelay, opponentUserId) && currentPhase === 'battle') {
+              if (!isUserInPresence(stateAfterDelay, opponentUserId) && currentPhase !== 'finished') {
                 debug.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
                 applyWalkover();
               }
@@ -3600,15 +3603,15 @@ function setupMatchStateSync(matchId) {
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
-        // Se o oponente saiu — WO apenas durante batalha, nunca durante seleção
+        // Se o oponente saiu — WO durante qualquer fase ativa (seleção ou batalha)
         const leftUserId = leftPresences && leftPresences[0]?.user_id;
         if (leftUserId === opponentUserId && multiplayerMode && matchData) {
           opponentInGame = false;
           updateReadyBtnState();
-          if (currentPhase === 'battle') {
-            debug.log('[PRESENCE] 🚪 Oponente saiu durante batalha! Aplicando WO em 2s...');
+          if (currentPhase !== 'finished') {
+            debug.log('[PRESENCE] 🚪 Oponente saiu! Aplicando WO em 2s... (fase:', currentPhase, ')');
             setTimeout(() => {
-              if (currentPhase === 'battle') {
+              if (currentPhase !== 'finished') {
                 applyWalkover();
               }
             }, 2000);
@@ -3652,7 +3655,8 @@ async function applyWalkover() {
   if (!supabaseClient || !matchData || currentPhase === 'finished') {
     return;
   }
-  
+  // Marcar localmente como finalizado imediatamente para evitar dupla chamada
+  currentPhase = 'finished';
   
   try {
     const { error } = await supabaseClient
@@ -3664,7 +3668,7 @@ async function applyWalkover() {
         finished_at: new Date().toISOString()
       })
       .eq('id', matchData.id)
-      .eq('phase', 'battle'); // Apenas se ainda estiver em battle
+      .in('phase', ['select', 'battle']); // Aplicar WO em qualquer fase ativa
     
     if (error) {
       console.error('[WO] Erro ao aplicar WO:', error);
