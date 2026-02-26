@@ -208,8 +208,8 @@ export default function InvitePopup({ currentUserId, currentUsername }) {
         localStorage.setItem("thor_match_source", "multiplayer");
         localStorage.setItem("thor_selected_mode", "multiplayer");
 
-        // Ir para seleção de naves antes do jogo
-        router.push(`/select-ships?match=${fakeMatchId}`);
+        // Navegar para a tela de jogo (que tem seleção de naves integrada)
+        router.push(`/game?mode=multiplayer&matchId=${fakeMatchId}`);
         setInvite(null);
       } else {
         // Convite real - atualizar match existente
@@ -278,8 +278,8 @@ export default function InvitePopup({ currentUserId, currentUsername }) {
         localStorage.setItem("thor_match_source", "multiplayer");
         localStorage.setItem("thor_selected_mode", "multiplayer");
 
-        // Ir para seleção de naves antes do jogo
-        router.push(`/select-ships?match=${invite.id}`);
+        // Navegar para a tela de jogo (que tem seleção de naves integrada)
+        router.push(`/game?mode=multiplayer&matchId=${invite.id}`);
         setInvite(null);
       }
     } catch (err) {
