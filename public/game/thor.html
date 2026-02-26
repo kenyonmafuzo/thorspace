@@ -546,6 +546,10 @@ background: rgba(0, 165, 242, 0.04);
   pointer-events: none;
 }
 
+.vip-nave-card .nave-description {
+  color: #FFD700;
+}
+
 .nave-card:hover .nave-description {
   opacity: 1;
   max-height: 120px;
@@ -4878,8 +4882,10 @@ function startBattleFromSelection() {
     playerNameDisplay.textContent = _p1IsVip ? ('💎 ' + player1Name) : player1Name;
     playerNameDisplay.style.color = _p1IsVip ? _p1VipColor : "#00E5FF"; // P1 color
     
-    opponentNameDisplay.textContent = player2Name;
-    opponentNameDisplay.style.color = "#FF4444"; // P2 sempre vermelho
+    const _p2IsVip = (myTeam === 'red') && localStorage.getItem('thor_is_vip') === 'true';
+    const _p2VipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    opponentNameDisplay.textContent = _p2IsVip ? ('� ' + player2Name) : player2Name;
+    opponentNameDisplay.style.color = _p2IsVip ? _p2VipColor : "#FF4444";
     
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
@@ -8784,6 +8790,7 @@ function selectNave(tipo) {
 function removeNave(index) {
   if (isSelectionLocked()) return;
   window.selectedNaves.splice(index, 1);
+  if (window.slotShotTypes) window.slotShotTypes.splice(index, 1);
   updatePreviews();
   // Se remover, destrava seleção
   if (window.selectedNaves.length < 3 && PVP.selectionComplete) {
@@ -8808,6 +8815,11 @@ function updatePreviews() {
     }
   }
 
+  // Reset per-slot shot type tracker when selection is cleared
+  if (!window.selectedNaves || window.selectedNaves.length === 0) {
+    window.slotShotTypes = [];
+  }
+
   // Validação de selectedNaves
   if (!Array.isArray(window.selectedNaves)) {
     console.error('[PREVIEWS] window.selectedNaves is not an array:', window.selectedNaves);
@@ -8829,7 +8841,10 @@ function updatePreviews() {
       // Atualizar ícone de shot type usando o tipo da nave como chave
       // Fallback seguro caso ShotTypeManager não esteja carregado ainda
       let shotType = 'plasma';
-      if (typeof ShotTypeManager !== 'undefined') {
+      // Use per-slot tracking first (immune to ShotTypeManager async overwrites)
+      if (window.slotShotTypes && window.slotShotTypes[slotIndex] !== undefined) {
+        shotType = window.slotShotTypes[slotIndex];
+      } else if (typeof ShotTypeManager !== 'undefined') {
         shotType = ShotTypeManager.getShotType(shipType);
       } else {
         // Fallback: ler do localStorage diretamente
@@ -9002,8 +9017,10 @@ function startGameAfterSelection() {
     playerNameDisplay.textContent = _p1IsVip2 ? ('💎 ' + player1Name) : player1Name;
     playerNameDisplay.style.color = _p1IsVip2 ? _p1VipColor2 : "#00E5FF"; // Sempre azul (P1)
     
-    opponentNameDisplay.textContent = player2Name;
-    opponentNameDisplay.style.color = "#FF4444"; // Sempre vermelho (P2)
+    const _p2IsVip2 = (myTeam === 'red') && localStorage.getItem('thor_is_vip') === 'true';
+    const _p2VipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    opponentNameDisplay.textContent = _p2IsVip2 ? ('� ' + player2Name) : player2Name;
+    opponentNameDisplay.style.color = _p2IsVip2 ? _p2VipColor2 : "#FF4444";
     
     
     matchupBanner.style.display = "block";
@@ -10029,6 +10046,10 @@ async function confirmShotType() {
   // If opened from ship selection screen, add the ship to the squad now
   if (pendingNaveSelection !== null) {
     const naveToAdd = pendingNaveSelection;
+    // Store chosen shot type per slot BEFORE selectNave increments selectedNaves
+    const nextSlot = window.selectedNaves ? window.selectedNaves.length : 0;
+    window.slotShotTypes = window.slotShotTypes || [];
+    window.slotShotTypes[nextSlot] = selectedShotType;
     pendingNaveSelection = null;
     selectNave(naveToAdd);
   }
