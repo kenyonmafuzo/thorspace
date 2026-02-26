@@ -2093,6 +2093,7 @@ let matchEndProcessed = false;
 let matchStateChannel = null;
 let matchEventsChannel = null; // Canal para eventos de ações (tiros/movimento)
 let currentPhase = 'select'; // select | battle | finished
+let battleStartedAt = null;  // timestamp local quando battle começa (fallback para WO heartbeat)
 let isMyTurn = false;
 let waitingForOpponent = false;
 let supabaseClient = null;
@@ -3544,10 +3545,13 @@ function checkOpponentHeartbeat() {
       const isPlayer1 = myUserId === matchData.player1_id;
       const oppLastSeen = isPlayer1 ? data.player2_last_seen : data.player1_last_seen;
 
-      if (!oppLastSeen) return; // oponente ainda não enviou nenhum heartbeat
+      // Fallback: se oponente nunca enviou heartbeat, usar battleStartedAt como referência
+      const referenceTime = oppLastSeen
+        ? new Date(oppLastSeen).getTime()
+        : (battleStartedAt || Date.now());
 
-      const elapsed = Date.now() - new Date(oppLastSeen).getTime();
-      debug.log('[HEARTBEAT] ⏱ Oponente last_seen há', Math.round(elapsed / 1000), 's');
+      const elapsed = Date.now() - referenceTime;
+      debug.log('[HEARTBEAT] ⏱ Oponente last_seen há', Math.round(elapsed / 1000), 's (oppLastSeen:', !!oppLastSeen, ')');
 
       if (elapsed > WO_THRESHOLD_MS && currentPhase === 'battle') {
         debug.log('[HEARTBEAT] 🚨 Oponente sem heartbeat por', Math.round(elapsed / 1000), 's. Aplicando WO...');
@@ -4587,6 +4591,10 @@ function applyTurnTransition(isMyTurn) {
 function applyMatchUpdate(newMatch, oldPhase, oldTurnNumber, oldTurnUserId, oldTurnDeadline, oldTurnResolved) {
   // MERGE de estado: atualizar campos críticos sem apagar interações locais
   matchData = { ...matchData, ...newMatch };
+  if (newMatch.phase === 'battle' && currentPhase !== 'battle') {
+    battleStartedAt = Date.now(); // registrar quando batalha começou
+    debug.pvp('[PHASE] battle iniciada, battleStartedAt registrado');
+  }
   currentPhase = newMatch.phase;
   
   // TURNOS: Reagir a mudanças de turno baseado em turn_user_id
@@ -8963,6 +8971,7 @@ function startGameAfterSelection() {
   // ✅ Resetar flags de finalização para nova partida
   finalScoreSaved = { myLost: 0, oppLost: 0 }; // Resetar placar salvo
   matchFinalizationProcessed = false;
+  battleStartedAt = null;
   statsUpdated = false;
   gameOverSent = false;
   window.__matchEndEventsProcessed = false; // 🔓 Resetar flag de eventos de fim
@@ -9673,12 +9682,8 @@ window.addEventListener('beforeunload', () => {
         finished_at: new Date().toISOString()
       });
       
-      const blob = new Blob([payload], { type: 'application/json' });
-      
-      // sendBeacon é síncrono e confiável para unload
-      navigator.sendBeacon(url, blob);
-      
-      // Também tentar com fetch keepalive como fallback
+      // fetch keepalive: envia headers de auth, continua mesmo após fechar página
+      // sendBeacon removido (não suporta headers customizados, RLS bloqueia)
       fetch(url, {
         method: 'PATCH',
         headers: {
@@ -9690,7 +9695,6 @@ window.addEventListener('beforeunload', () => {
         body: payload,
         keepalive: true
       }).catch(() => {});
-      
     }
   }
   
