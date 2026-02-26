@@ -2447,8 +2447,9 @@ function startTurnWindow(deadlineISO) {
               handleMatchUpdate({ new: row });
               return;
             }
-            // (B) Checar last_seen do Player1 (oponente do P2) no DB
-            const oppLastSeen = row.player1_last_seen; // P2 sempre joga contra P1
+            // (B) Checar last_seen do oponente no DB
+            const isP1 = myUserId === matchData.player1_id;
+            const oppLastSeen = isP1 ? row.player2_last_seen : row.player1_last_seen;
             const elapsed = oppLastSeen
               ? Date.now() - new Date(oppLastSeen).getTime()
               : 99999;
@@ -3761,7 +3762,31 @@ async function applyWalkover() {
   }
   // Marcar localmente como finalizado imediatamente para evitar dupla chamada
   currentPhase = 'finished';
-  
+
+  // Parar todos os timers do jogo imediatamente
+  gameActive = false;
+  if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+  if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+  stopHeartbeat();
+
+  // Forçar placar WO: eu ganhei 3x0
+  cpuNaves.forEach(nave => nave.hp = 0);
+  playerNaves.forEach(nave => nave.hp = nave.maxHp || 100);
+  finalScoreSaved = { myLost: 0, oppLost: 3 };
+  winner = 'VICTORY';
+
+  // Mostrar tela de vitória IMEDIATAMENTE — não esperar Realtime (pode falhar/demorar)
+  if (!matchFinalizationProcessed) {
+    matchFinalizationProcessed = true;
+    console.log('[WO] Mostrando vitória localmente...');
+    processMatchEndXPEvents('win');
+    applyMatchXP();
+    finalXpForChat = xpTotalMatch;
+    document.getElementById('gameCanvas').style.display = 'none';
+    showVictoryScreen();
+  }
+
+  // Tentar gravar no DB em paralelo (best-effort: oponente vai ver derrota via Realtime)
   try {
     const { error } = await supabaseClient
       .from('matches')
@@ -3775,8 +3800,9 @@ async function applyWalkover() {
       .eq('phase', 'battle'); // Apenas durante batalha
     
     if (error) {
-      console.error('[WO] Erro ao aplicar WO:', error);
+      console.error('[WO] Erro ao gravar WO no DB (vitória local já mostrada):', error);
     } else {
+      console.log('[WO] WO gravado no DB com sucesso.');
     }
   } catch (err) {
     console.error('[WO] Exceção ao aplicar WO:', err);
