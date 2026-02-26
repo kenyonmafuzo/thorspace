@@ -4877,15 +4877,16 @@ function startBattleFromSelection() {
       player2Name = currentPlayerName;
     }
     
-    const _p1IsVip = localStorage.getItem('thor_is_vip') === 'true';
-    const _p1VipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    playerNameDisplay.textContent = _p1IsVip ? ('💎 ' + player1Name) : player1Name;
-    playerNameDisplay.style.color = _p1IsVip ? _p1VipColor : "#00E5FF"; // P1 color
-    
-    const _p2IsVip = (myTeam === 'red') && localStorage.getItem('thor_is_vip') === 'true';
-    const _p2VipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    opponentNameDisplay.textContent = _p2IsVip ? ('� ' + player2Name) : player2Name;
-    opponentNameDisplay.style.color = _p2IsVip ? _p2VipColor : "#FF4444";
+    const _localIsVip = localStorage.getItem('thor_is_vip') === 'true';
+    const _localVipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    // P1 slot (blue): VIP only if local player is blue/solo
+    const _p1VipApply = (!multiplayerMode || myTeam === 'blue') && _localIsVip;
+    playerNameDisplay.textContent = _p1VipApply ? ('💎 ' + player1Name) : player1Name;
+    playerNameDisplay.style.color = _p1VipApply ? _localVipColor : "#00E5FF";
+    // P2 slot (red): VIP only if local player is red
+    const _p2VipApply = (myTeam === 'red') && _localIsVip;
+    opponentNameDisplay.textContent = _p2VipApply ? ('💎 ' + player2Name) : player2Name;
+    opponentNameDisplay.style.color = _p2VipApply ? _localVipColor : "#FF4444";
     
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
@@ -9012,15 +9013,16 @@ function startGameAfterSelection() {
     }
     
     // Exibir sempre P1 (azul) x P2 (vermelho)
-    const _p1IsVip2 = localStorage.getItem('thor_is_vip') === 'true';
-    const _p1VipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    playerNameDisplay.textContent = _p1IsVip2 ? ('💎 ' + player1Name) : player1Name;
-    playerNameDisplay.style.color = _p1IsVip2 ? _p1VipColor2 : "#00E5FF"; // Sempre azul (P1)
-    
-    const _p2IsVip2 = (myTeam === 'red') && localStorage.getItem('thor_is_vip') === 'true';
-    const _p2VipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    opponentNameDisplay.textContent = _p2IsVip2 ? ('� ' + player2Name) : player2Name;
-    opponentNameDisplay.style.color = _p2IsVip2 ? _p2VipColor2 : "#FF4444";
+    const _localIsVip2 = localStorage.getItem('thor_is_vip') === 'true';
+    const _localVipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
+    // P1 slot (blue): VIP only if local player is blue/solo
+    const _p1VipApply2 = (!multiplayerMode || myTeam === 'blue') && _localIsVip2;
+    playerNameDisplay.textContent = _p1VipApply2 ? ('💎 ' + player1Name) : player1Name;
+    playerNameDisplay.style.color = _p1VipApply2 ? _localVipColor2 : "#00E5FF";
+    // P2 slot (red): VIP only if local player is red
+    const _p2VipApply2 = (myTeam === 'red') && _localIsVip2;
+    opponentNameDisplay.textContent = _p2VipApply2 ? ('💎 ' + player2Name) : player2Name;
+    opponentNameDisplay.style.color = _p2VipApply2 ? _localVipColor2 : "#FF4444";
     
     
     matchupBanner.style.display = "block";
@@ -10056,7 +10058,7 @@ async function confirmShotType() {
 
   // Update UI immediately
   updateButtonThumbnails();
-  updatePreviewIcon(shipType, selectedShotType);
+  // Note: preview icons already updated by updatePreviews() inside selectNave above
   
   // Save to Supabase async (não bloqueia)
   ShotTypeManager.saveToSupabase().catch(err => {
