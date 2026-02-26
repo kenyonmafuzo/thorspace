@@ -1958,7 +1958,9 @@ const translations = {
     logout: 'Sair',
     searchingOpponent: 'Procurando oponente...',
     opponentFound: 'Oponente encontrado, prepare-se para a batalha!',
-    won: 'Venceu!'
+    won: 'Venceu!',
+    teamBlue: 'TIME AZUL',
+    teamRed: 'TIME VERMELHO'
   },
   en: {
     selectShips: 'Select your ships:',
@@ -1997,7 +1999,9 @@ const translations = {
     logout: 'Logout',
     searchingOpponent: 'Searching for opponent...',
     opponentFound: 'Opponent found, prepare for battle!',
-    won: 'Won!'
+    won: 'Won!',
+    teamBlue: 'TEAM BLUE',
+    teamRed: 'TEAM RED'
   },
   es: {
     selectShips: 'Elige tus naves:',
@@ -2037,7 +2041,9 @@ const translations = {
     logout: 'Cerrar sesión',
     searchingOpponent: 'Buscando oponente...',
     opponentFound: '¡Oponente encontrado, prepárate para la batalla!',
-    won: '¡Ganó!'
+    won: '¡Ganó!',
+    teamBlue: 'EQUIPO AZUL',
+    teamRed: 'EQUIPO ROJO'
   }
 };
 
@@ -2072,6 +2078,8 @@ let myUserId = null;
 let opponentUserId = null;
 let opponentInGame = false; // true quando oponente já entrou no jogo (presença confirmada)
 let opponentUsername = "Oponente";
+let opponentIsVip = false; // VIP status do oponente
+let opponentVipColor = '#FF4444'; // Cor VIP do oponente
 let opponentShotPreferences = {}; // Shot preferences do oponente (ex: {"1": "pulse", "2": "energy", "3": "plasma"})
 let matchData = null;
 
@@ -3113,7 +3121,7 @@ async function getOpponentUsername(opponentId) {
   try {
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('username')
+      .select('username, is_vip, vip_name_color')
       .eq('id', opponentId)
       .maybeSingle();
     
@@ -3128,7 +3136,10 @@ async function getOpponentUsername(opponentId) {
     }
     
     const username = data?.username ?? 'Opponent';
+    opponentIsVip = data?.is_vip ?? false;
+    opponentVipColor = data?.vip_name_color || '#FF4444';
     usernameCache.set(opponentId, username);
+    debug.pvp('[PVP] ✓ Oponente VIP:', opponentIsVip, 'Cor:', opponentVipColor);
     return username;
   } catch (err) {
     if (!usernameErrorLogged.has(opponentId)) {
@@ -4879,14 +4890,20 @@ function startBattleFromSelection() {
     
     const _localIsVip = localStorage.getItem('thor_is_vip') === 'true';
     const _localVipColor = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    // P1 slot (blue): VIP only if local player is blue/solo
-    const _p1VipApply = (!multiplayerMode || myTeam === 'blue') && _localIsVip;
-    playerNameDisplay.textContent = _p1VipApply ? ('💎 ' + player1Name) : player1Name;
-    playerNameDisplay.style.color = _p1VipApply ? _localVipColor : "#00E5FF";
-    // P2 slot (red): VIP only if local player is red
-    const _p2VipApply = (myTeam === 'red') && _localIsVip;
-    opponentNameDisplay.textContent = _p2VipApply ? ('💎 ' + player2Name) : player2Name;
-    opponentNameDisplay.style.color = _p2VipApply ? _localVipColor : "#FF4444";
+    // P1 slot (blue): local player if blue/solo, else opponent
+    const _p1IsLocal = (!multiplayerMode || myTeam === 'blue');
+    const _p1IsVip = _p1IsLocal ? _localIsVip : opponentIsVip;
+    const _p1VipColor = _p1IsLocal ? _localVipColor : opponentVipColor;
+    const _teamBlueLabel = `<span style="font-size:10px; color:#00E5FF; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamBlue')}</span>`;
+    playerNameDisplay.innerHTML = _teamBlueLabel + (_p1IsVip ? '💎 ' : '') + player1Name;
+    playerNameDisplay.style.color = _p1IsVip ? _p1VipColor : "#00E5FF";
+    // P2 slot (red): local player if red, else opponent
+    const _p2IsLocal = (multiplayerMode && myTeam === 'red');
+    const _p2IsVip = _p2IsLocal ? _localIsVip : (multiplayerMode ? opponentIsVip : false);
+    const _p2VipColor = _p2IsLocal ? _localVipColor : opponentVipColor;
+    const _teamRedLabel = `<span style="font-size:10px; color:#FF4444; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamRed')}</span>`;
+    opponentNameDisplay.innerHTML = _teamRedLabel + (_p2IsVip ? '💎 ' : '') + player2Name;
+    opponentNameDisplay.style.color = _p2IsVip ? _p2VipColor : "#FF4444";
     
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
@@ -9015,14 +9032,20 @@ function startGameAfterSelection() {
     // Exibir sempre P1 (azul) x P2 (vermelho)
     const _localIsVip2 = localStorage.getItem('thor_is_vip') === 'true';
     const _localVipColor2 = localStorage.getItem('thor_vip_name_color') || '#FFD700';
-    // P1 slot (blue): VIP only if local player is blue/solo
-    const _p1VipApply2 = (!multiplayerMode || myTeam === 'blue') && _localIsVip2;
-    playerNameDisplay.textContent = _p1VipApply2 ? ('💎 ' + player1Name) : player1Name;
-    playerNameDisplay.style.color = _p1VipApply2 ? _localVipColor2 : "#00E5FF";
-    // P2 slot (red): VIP only if local player is red
-    const _p2VipApply2 = (myTeam === 'red') && _localIsVip2;
-    opponentNameDisplay.textContent = _p2VipApply2 ? ('💎 ' + player2Name) : player2Name;
-    opponentNameDisplay.style.color = _p2VipApply2 ? _localVipColor2 : "#FF4444";
+    // P1 slot (blue): local player if blue/solo, else opponent
+    const _p1IsLocal2 = (!multiplayerMode || myTeam === 'blue');
+    const _p1IsVip2 = _p1IsLocal2 ? _localIsVip2 : opponentIsVip;
+    const _p1VipColor2 = _p1IsLocal2 ? _localVipColor2 : opponentVipColor;
+    const _teamBlueLabel2 = `<span style="font-size:10px; color:#00E5FF; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamBlue')}</span>`;
+    playerNameDisplay.innerHTML = _teamBlueLabel2 + (_p1IsVip2 ? '💎 ' : '') + player1Name;
+    playerNameDisplay.style.color = _p1IsVip2 ? _p1VipColor2 : "#00E5FF";
+    // P2 slot (red): local player if red, else opponent
+    const _p2IsLocal2 = (multiplayerMode && myTeam === 'red');
+    const _p2IsVip2 = _p2IsLocal2 ? _localIsVip2 : (multiplayerMode ? opponentIsVip : false);
+    const _p2VipColor2 = _p2IsLocal2 ? _localVipColor2 : opponentVipColor;
+    const _teamRedLabel2 = `<span style="font-size:10px; color:#FF4444; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamRed')}</span>`;
+    opponentNameDisplay.innerHTML = _teamRedLabel2 + (_p2IsVip2 ? '💎 ' : '') + player2Name;
+    opponentNameDisplay.style.color = _p2IsVip2 ? _p2VipColor2 : "#FF4444";
     
     
     matchupBanner.style.display = "block";
