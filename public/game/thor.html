@@ -4894,16 +4894,24 @@ function startBattleFromSelection() {
     const _p1IsLocal = (!multiplayerMode || myTeam === 'blue');
     const _p1IsVip = _p1IsLocal ? _localIsVip : opponentIsVip;
     const _p1VipColor = _p1IsLocal ? _localVipColor : opponentVipColor;
-    const _teamBlueLabel = `<span style="font-size:10px; color:#00E5FF; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamBlue')}</span>`;
-    playerNameDisplay.innerHTML = _teamBlueLabel + (_p1IsVip ? '💎 ' : '') + player1Name;
-    playerNameDisplay.style.color = _p1IsVip ? _p1VipColor : "#00E5FF";
+    playerNameDisplay.style.display = 'flex';
+    playerNameDisplay.style.flexDirection = 'column';
+    playerNameDisplay.style.alignItems = 'center';
+    const _p1NameColor = _p1IsVip ? _p1VipColor : '#00E5FF';
+    playerNameDisplay.innerHTML =
+      `<span style="font-size:10px; font-weight:700; color:#00E5FF; letter-spacing:2px; font-family:'Orbitron',sans-serif; opacity:0.8; margin-bottom:2px;">${t('teamBlue')}</span>` +
+      `<span style="font-size:18px; font-weight:700; color:${_p1NameColor};">${(_p1IsVip ? '💎 ' : '') + player1Name}</span>`;
     // P2 slot (red): local player if red, else opponent
     const _p2IsLocal = (multiplayerMode && myTeam === 'red');
     const _p2IsVip = _p2IsLocal ? _localIsVip : (multiplayerMode ? opponentIsVip : false);
     const _p2VipColor = _p2IsLocal ? _localVipColor : opponentVipColor;
-    const _teamRedLabel = `<span style="font-size:10px; color:#FF4444; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamRed')}</span>`;
-    opponentNameDisplay.innerHTML = _teamRedLabel + (_p2IsVip ? '💎 ' : '') + player2Name;
-    opponentNameDisplay.style.color = _p2IsVip ? _p2VipColor : "#FF4444";
+    opponentNameDisplay.style.display = 'flex';
+    opponentNameDisplay.style.flexDirection = 'column';
+    opponentNameDisplay.style.alignItems = 'center';
+    const _p2NameColor = _p2IsVip ? _p2VipColor : '#FF4444';
+    opponentNameDisplay.innerHTML =
+      `<span style="font-size:10px; font-weight:700; color:#FF4444; letter-spacing:2px; font-family:'Orbitron',sans-serif; opacity:0.8; margin-bottom:2px;">${t('teamRed')}</span>` +
+      `<span style="font-size:18px; font-weight:700; color:${_p2NameColor};">${(_p2IsVip ? '💎 ' : '') + player2Name}</span>`;
     
     matchupBanner.style.display = "block";
     matchupBanner.style.visibility = "visible";
@@ -9036,16 +9044,24 @@ function startGameAfterSelection() {
     const _p1IsLocal2 = (!multiplayerMode || myTeam === 'blue');
     const _p1IsVip2 = _p1IsLocal2 ? _localIsVip2 : opponentIsVip;
     const _p1VipColor2 = _p1IsLocal2 ? _localVipColor2 : opponentVipColor;
-    const _teamBlueLabel2 = `<span style="font-size:10px; color:#00E5FF; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamBlue')}</span>`;
-    playerNameDisplay.innerHTML = _teamBlueLabel2 + (_p1IsVip2 ? '💎 ' : '') + player1Name;
-    playerNameDisplay.style.color = _p1IsVip2 ? _p1VipColor2 : "#00E5FF";
+    playerNameDisplay.style.display = 'flex';
+    playerNameDisplay.style.flexDirection = 'column';
+    playerNameDisplay.style.alignItems = 'center';
+    const _p1NameColor2 = _p1IsVip2 ? _p1VipColor2 : '#00E5FF';
+    playerNameDisplay.innerHTML =
+      `<span style="font-size:10px; font-weight:700; color:#00E5FF; letter-spacing:2px; font-family:'Orbitron',sans-serif; opacity:0.8; margin-bottom:2px;">${t('teamBlue')}</span>` +
+      `<span style="font-size:18px; font-weight:700; color:${_p1NameColor2};">${(_p1IsVip2 ? '💎 ' : '') + player1Name}</span>`;
     // P2 slot (red): local player if red, else opponent
     const _p2IsLocal2 = (multiplayerMode && myTeam === 'red');
     const _p2IsVip2 = _p2IsLocal2 ? _localIsVip2 : (multiplayerMode ? opponentIsVip : false);
     const _p2VipColor2 = _p2IsLocal2 ? _localVipColor2 : opponentVipColor;
-    const _teamRedLabel2 = `<span style="font-size:10px; color:#FF4444; letter-spacing:2px; display:block; margin-bottom:1px;">${t('teamRed')}</span>`;
-    opponentNameDisplay.innerHTML = _teamRedLabel2 + (_p2IsVip2 ? '💎 ' : '') + player2Name;
-    opponentNameDisplay.style.color = _p2IsVip2 ? _p2VipColor2 : "#FF4444";
+    opponentNameDisplay.style.display = 'flex';
+    opponentNameDisplay.style.flexDirection = 'column';
+    opponentNameDisplay.style.alignItems = 'center';
+    const _p2NameColor2 = _p2IsVip2 ? _p2VipColor2 : '#FF4444';
+    opponentNameDisplay.innerHTML =
+      `<span style="font-size:10px; font-weight:700; color:#FF4444; letter-spacing:2px; font-family:'Orbitron',sans-serif; opacity:0.8; margin-bottom:2px;">${t('teamRed')}</span>` +
+      `<span style="font-size:18px; font-weight:700; color:${_p2NameColor2};">${(_p2IsVip2 ? '💎 ' : '') + player2Name}</span>`;
     
     
     matchupBanner.style.display = "block";
