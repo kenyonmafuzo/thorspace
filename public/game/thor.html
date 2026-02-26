@@ -2422,6 +2422,17 @@ function startTurnWindow(deadlineISO) {
           }
         }
         tryResolveLoop();
+      } else {
+        // Player2 não pode resolver turnos — somente espera o Realtime avisar.
+        // Se Player1 saiu do jogo, o turno nunca será resolvido e o Player2 ficaria travado.
+        // Solução: 4s após deadline, se o turno_number não avançou → Player1 saiu → checar presence → WO.
+        const turnAtDeadline = currentTurnNumber;
+        setTimeout(() => {
+          if (currentPhase === 'battle' && currentTurnNumber === turnAtDeadline) {
+            console.log('[WO-ROUND] Player2: Turno não avançou 4s após deadline. Verificando presença do oponente (player1)...');
+            checkOpponentPresenceForWO();
+          }
+        }, 4000);
       }
     }, timeoutMs + 500);
   }, _bannerWait + 50);
