@@ -1900,6 +1900,7 @@ const translations = {
     chooseDestination: 'Escolha o destino para mover esta nave.',
     chooseTarget: 'Agora, clique para escolher o alvo do disparo.',
     attentionCommander: 'Atenção, comandante: batalha espacial em curso!',
+    preparingNextRound: 'Preparando para o próximo round...',
     enemyShips: 'Naves inimigas<br>neutralizadas',
     enemyCollision: 'Auto-colisão<br>inimiga',
     ownCollision: 'Colisão na<br>própria frota',
@@ -1938,6 +1939,7 @@ const translations = {
     chooseDestination: 'Choose the destination to move this ship.',
     chooseTarget: 'Now, click to choose the firing target.',
     attentionCommander: 'Attention, commander: space battle in progress!',
+    preparingNextRound: 'Preparing for next round...',
     enemyShips: 'Enemy ships<br>neutralized',
     enemyCollision: 'Enemy<br>self-collision',
     ownCollision: 'Collision in<br>own fleet',
@@ -1976,6 +1978,7 @@ const translations = {
     chooseDestination: 'Elige el destino para mover esta nave.',
     chooseTarget: 'Ahora, haz clic para elegir el objetivo de disparo.',
     attentionCommander: '¡Atención, comandante: batalla espacial en curso!',
+    preparingNextRound: 'Preparando para el próximo round...',
     enemyShips: 'Naves enemigas<br>neutralizadas',
     enemyCollision: 'Auto-colisión<br>enemiga',
     ownCollision: 'Colisión en<br>propia flota',
@@ -2641,13 +2644,17 @@ function applyResolvedTurn(actions) {
   // Disparar projéteis IMEDIATAMENTE
   fireProjectiles();
   
-  // Atualizar UI
+  // Ocultar timer durante animação — não faz sentido mostrar contagem enquanto as naves se movem
+  const _hudAnim = document.getElementById('hudTop');
+  if (_hudAnim) { _hudAnim.style.visibility = 'hidden'; _hudAnim.style.opacity = '0'; }
+
+  // Legenda durante animação
   const legendArea = document.getElementById('legendArea');
   if (legendArea) {
     legendArea.textContent = t('attentionCommander');
     legendArea.style.color = '#FFB84D';
   }
-  
+
 }
 
 // Sincronizar HP das naves no banco após combate
@@ -7191,7 +7198,18 @@ function updateGame() {
       
       if (!winner) {
         if (multiplayerMode) {
-          // Em multiplayer, aguardar próximo turno via Realtime (mesmo fluxo do round 1)
+          // Animação concluída: parar e ocultar o timer do round anterior imediatamente.
+          // startTurnWindow re-ativa o HUD depois que o banner do próximo round fechar.
+          if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; window.__activeTurnTimer = null; }
+          if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+          if (window.__activeTurnTimer) { clearInterval(window.__activeTurnTimer); window.__activeTurnTimer = null; }
+          const _hudCleanup = document.getElementById('hudTop');
+          if (_hudCleanup) { _hudCleanup.style.visibility = 'hidden'; _hudCleanup.style.opacity = '0'; }
+
+          // Legenda de transição entre rounds
+          const _legCleanup = document.getElementById('legendArea');
+          if (_legCleanup) { _legCleanup.textContent = t('preparingNextRound'); _legCleanup.style.color = '#00D4FF'; }
+
           phase = "selectMove";
           isInteracting = false;
           myActionSubmitted = false;
