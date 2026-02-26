@@ -2160,8 +2160,8 @@ function ensurePvpInteractivePhase(context) {
 
 // Iniciar janela de turno (15s simultâneos)
 function startTurnWindow(deadlineISO) {
-  // Garantir que roundLocked está destravado no início de cada round
-  roundLocked = false;
+  // roundLocked será desbloqueado APÓS o banner fechar (dentro do setTimeout abaixo).
+  // Não desbloquear aqui para manter naves bloqueadas durante o banner de round.
   // AAA: Garantir fase interativa no multiplayer
   ensurePvpInteractivePhase('startTurnWindow');
 
@@ -2282,12 +2282,15 @@ function startTurnWindow(deadlineISO) {
     const legendArea = document.getElementById('legendArea');
     const hudTop = document.getElementById('hudTop');
 
-    // Limpar "⟳ Sync..." e mostrar instrução agora que o banner fechou
+    // Banner fechou: desbloquear naves e mostrar instrução
+    roundLocked = false;
     if (legendArea) {
       legendArea.textContent = t('nextTurn');
       legendArea.style.color = '';
     }
     
+    const timerArea = document.getElementById('timerArea');
+    if (timerArea) { timerArea.style.visibility = 'visible'; }
     if (timerText && hudTop) {
       hudTop.style.display = 'flex';
       hudTop.style.visibility = 'visible';
@@ -2644,9 +2647,11 @@ function applyResolvedTurn(actions) {
   // Disparar projéteis IMEDIATAMENTE
   fireProjectiles();
   
-  // Ocultar timer durante animação — não faz sentido mostrar contagem enquanto as naves se movem
+  // Ocultar apenas o timerArea (não o hudTop inteiro) — legendArea precisa continuar visível durante animação
+  const _timerAnim = document.getElementById('timerArea');
+  if (_timerAnim) { _timerAnim.style.visibility = 'hidden'; }
   const _hudAnim = document.getElementById('hudTop');
-  if (_hudAnim) { _hudAnim.style.visibility = 'hidden'; _hudAnim.style.opacity = '0'; }
+  if (_hudAnim) { _hudAnim.style.visibility = 'visible'; _hudAnim.style.opacity = '1'; }
 
   // Legenda durante animação
   const legendArea = document.getElementById('legendArea');
@@ -7203,12 +7208,18 @@ function updateGame() {
           if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; window.__activeTurnTimer = null; }
           if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
           if (window.__activeTurnTimer) { clearInterval(window.__activeTurnTimer); window.__activeTurnTimer = null; }
+          // Ocultar apenas timerArea; manter hudTop visível para legenda aparecer
+          const _timerCleanup = document.getElementById('timerArea');
+          if (_timerCleanup) { _timerCleanup.style.visibility = 'hidden'; }
           const _hudCleanup = document.getElementById('hudTop');
-          if (_hudCleanup) { _hudCleanup.style.visibility = 'hidden'; _hudCleanup.style.opacity = '0'; }
+          if (_hudCleanup) { _hudCleanup.style.visibility = 'visible'; _hudCleanup.style.opacity = '1'; }
 
           // Legenda de transição entre rounds
           const _legCleanup = document.getElementById('legendArea');
           if (_legCleanup) { _legCleanup.textContent = t('preparingNextRound'); _legCleanup.style.color = '#00D4FF'; }
+
+          // Manter naves bloqueadas até o banner do próximo round fechar
+          roundLocked = true;
 
           phase = "selectMove";
           isInteracting = false;
