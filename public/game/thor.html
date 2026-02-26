@@ -1298,7 +1298,7 @@ background: rgba(0, 165, 242, 0.04);
       </div>
     </div>
     <!-- Help button: absolutely positioned to the right, does not shift slots -->
-    <button onclick="openShipTutorial();" title="Como funciona?" style="position:absolute; left:calc(50% + 160px); top:50%; transform:translateY(-50%); width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
+    <button onclick="openShipTutorial();" title="Como funciona?" style="position:absolute; left:calc(50% + 201px); top:50%; transform:translateY(-50%); width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
   </div>
   <!-- Ship Selection Carousel -->
   <div id="naveCarouselOuter" style="display:flex; align-items:center; justify-content:center; gap:28px; width:100%; margin-bottom:16px;">
@@ -4189,10 +4189,14 @@ async function handleMatchUpdate(payload) {
           // Eu ganhei por WO - oponente destruído 3x0
           cpuNaves.forEach(nave => nave.hp = 0);
           playerNaves.forEach(nave => nave.hp = nave.maxHp || 100);
+          finalScoreSaved = { myLost: 0, oppLost: 3 }; // WO: ganhei 3x0
+          debug.win('[WIN] 💾 WO - finalScoreSaved (vitória):', finalScoreSaved);
         } else {
           // Eu perdi por WO - minhas naves destruídas 3x0
           playerNaves.forEach(nave => nave.hp = 0);
           cpuNaves.forEach(nave => nave.hp = nave.maxHp || 100);
+          finalScoreSaved = { myLost: 3, oppLost: 0 }; // WO: perdi 0x3
+          debug.win('[WIN] 💾 WO - finalScoreSaved (derrota):', finalScoreSaved);
         }
       } else {
         // IMPORTANTE: Sincronizar HP do oponente ANTES de mostrar resultado
@@ -4251,11 +4255,14 @@ async function handleMatchUpdate(payload) {
       // Calcular finalScoreSaved a partir do HP autoritativo (DB já foi sincronizado acima).
       // checkWinCondition pode não ter rodado no P2 se o Realtime chegou antes do game loop terminar.
       // Aqui as cpuNaves já têm HP do banco (linhas acima), então o cálculo é correto.
-      finalScoreSaved = {
-        myLost: playerNaves.filter(n => n.hp <= 0).length,
-        oppLost: cpuNaves.filter(n => n.hp <= 0).length
-      };
-      debug.win('[WIN] 💾 finalScoreSaved calculado no handler Realtime (após HP sync do banco):', finalScoreSaved);
+      // Para WO, finalScoreSaved já foi definido hardcoded acima; não sobrescrever.
+      if (!isWO) {
+        finalScoreSaved = {
+          myLost: playerNaves.filter(n => n.hp <= 0).length,
+          oppLost: cpuNaves.filter(n => n.hp <= 0).length
+        };
+        debug.win('[WIN] 💾 finalScoreSaved calculado no handler Realtime (após HP sync do banco):', finalScoreSaved);
+      }
       
       // 🎮 ARQUITETURA AAA: Client-side apenas renderiza
       // Stats são atualizadas APENAS pelo HOST via updateMatchAsAuthority
