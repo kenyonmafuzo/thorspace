@@ -1252,10 +1252,10 @@ background: rgba(0, 165, 242, 0.04);
 
 
 <!-- Tela de Seleção de Naves -->
-<div id="naveSelectScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0); backdrop-filter: blur(0px); z-index:3000; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:12vh;">
+<div id="naveSelectScreen" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0); backdrop-filter: blur(0px); z-index:3000; flex-direction:column; align-items:center; justify-content:center;">
 
   <!-- ===== Tutorial Modal: shown on first visit per session ===== -->
-  <div id="shipSelectTutorial" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:4000; align-items:center; justify-content:center; padding:20px;">
+  <div id="shipSelectTutorial" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:4000; align-items:center; justify-content:center; padding:20px;">
     <div style="max-width:420px; width:100%; background:rgba(0,0,20,0.97); border:1px solid rgba(0,229,255,0.4); border-radius:20px; padding:36px 32px; text-align:center; box-shadow:0 0 40px rgba(0,229,255,0.15);">
       <div style="margin-bottom:16px;">
         <img src="images/spaceschip.png" style="width:64px; height:auto; filter:drop-shadow(0 0 12px rgba(0,229,255,0.55));">
@@ -1580,6 +1580,7 @@ let selectionTimer = null;
 let selectionTimerInterval = null;
 let selectionTimeRemaining = 15;
 let selectionTimerStarted = false;
+let pendingNaveSelection = null; // ship type waiting for shot-type confirmation
 
 function openShipTutorial() {
   const tut = document.getElementById('shipSelectTutorial');
@@ -9455,7 +9456,8 @@ window.naveCarouselMove = naveCarouselMove;
       const naveSelectScreen = document.getElementById('naveSelectScreen');
       if (naveSelectScreen && naveSelectScreen.style.display !== 'none') {
         const tipo = parseInt(el.dataset.nave, 10);
-        selectNave(tipo);
+        pendingNaveSelection = tipo;
+        openShotTypeModal(tipo);
         return;
       }
       // Fora da seleção de naves, aplicar guardas multiplayer
@@ -9523,7 +9525,8 @@ function startMatchmakingSlot() {
             const naveSelectScreen = document.getElementById('naveSelectScreen');
             if (naveSelectScreen && naveSelectScreen.style.display !== 'none') {
               const tipo = parseInt(el.dataset.nave, 10);
-              selectNave(tipo);
+              pendingNaveSelection = tipo;
+              openShotTypeModal(tipo);
               return;
             }
             if (multiplayerMode) {
@@ -9980,6 +9983,7 @@ function openShotTypeModal(shipType) {
 // Close modal
 function closeShotTypeModal() {
   document.getElementById('shotTypeModal').style.display = 'none';
+  pendingNaveSelection = null;
 }
 
 // Select shot type with validation
@@ -10022,6 +10026,13 @@ async function confirmShotType() {
   // Save to storage (both sync)
   ShotTypeManager.saveToLocalStorage();
   
+  // If opened from ship selection screen, add the ship to the squad now
+  if (pendingNaveSelection !== null) {
+    const naveToAdd = pendingNaveSelection;
+    pendingNaveSelection = null;
+    selectNave(naveToAdd);
+  }
+
   // Update UI immediately
   updateButtonThumbnails();
   updatePreviewIcon(shipType, selectedShotType);
