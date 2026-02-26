@@ -89,7 +89,8 @@ export default function SelectShipsClient() {
   const matchId = searchParams.get("match");
 
   const [loading, setLoading] = useState(true);
-  const [tutorialOpen, setTutorialOpen] = useState(false);
+  // Show tutorial on every page load (sessionStorage cleared on mount so it always fires)
+  const [tutorialOpen, setTutorialOpen] = useState(true);
   const [statsModalOpen, setStatsModalOpen] = useState(false);
   const [statsModalTabMode, setStatsModalTabMode] = useState(false);
 
@@ -111,16 +112,8 @@ export default function SelectShipsClient() {
   const userId = typeof window !== "undefined" ? localStorage.getItem("thor_user_id") : null;
   const username = typeof window !== "undefined" ? localStorage.getItem("thor_username") : "";
 
-  // Show tutorial once per session
-  useEffect(() => {
-    if (typeof window !== "undefined" && !sessionStorage.getItem("ships_tutorial_seen")) {
-      setTutorialOpen(true);
-    }
-  }, []);
-
   const handleCloseTutorial = () => {
     setTutorialOpen(false);
-    if (typeof window !== "undefined") sessionStorage.setItem("ships_tutorial_seen", "1");
   };
 
   useEffect(() => {
