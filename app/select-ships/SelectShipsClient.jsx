@@ -265,7 +265,7 @@ export default function SelectShipsClient() {
       await supabase.from("profiles").update({ shot_preferences: shotPreferences }).eq("id", userId);
     }
 
-    router.push(`/play/${matchId}`);
+    router.push(`/game?mode=multiplayer&matchId=${matchId}`);
   };
 
   const filledSlots = slots.filter(Boolean).length;

@@ -324,10 +324,10 @@ export default function MultiplayerPage() {
                 // 🚫 Prevenir processamento duplicado
                 sessionStorage.setItem('last_redirected_match', payload.new.id);
 
-                console.log("[MATCH SYNC] ✅ Navegando para /game com matchId:", payload.new.id);
+                console.log("[MATCH SYNC] ✅ Navegando para /select-ships com matchId:", payload.new.id);
                 
-                // 🎮 NAVEGAÇÃO: Redirecionar para tela de jogo
-                router.push(`/game?mode=multiplayer&matchId=${payload.new.id}`);
+                // 🎮 NAVEGAÇÃO: Redirecionar para seleção de naves
+                router.push(`/select-ships?match=${payload.new.id}`);
               } catch (error) {
                 console.error("[MATCH SYNC] ❌ Erro ao processar match aceito:", error);
               }
