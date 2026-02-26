@@ -1257,16 +1257,24 @@ background: rgba(0, 165, 242, 0.04);
   <!-- ===== Tutorial Modal: shown on first visit per session ===== -->
   <div id="shipSelectTutorial" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:4000; align-items:center; justify-content:center; padding:20px;">
     <div style="max-width:420px; width:100%; background:rgba(0,0,20,0.97); border:1px solid rgba(0,229,255,0.4); border-radius:20px; padding:36px 32px; text-align:center; box-shadow:0 0 40px rgba(0,229,255,0.15);">
-      <div style="font-size:36px; margin-bottom:12px;">🚀</div>
-      <h2 style="margin:0 0 14px; color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:20px; letter-spacing:1px;">Monte sua Esquadrilha</h2>
-      <p style="margin:0 0 10px; color:#ccc; font-size:15px; line-height:1.7;">Você precisa escolher <strong style="color:#00E5FF;">3 naves</strong> para entrar na batalha.</p>
-      <p style="margin:0 0 28px; color:#aaa; font-size:13px; line-height:1.6;">Clique nas naves que deseja adicionar à sua esquadrilha. Para remover uma nave, clique no preview acima.</p>
-      <button onclick="document.getElementById('shipSelectTutorial').style.display='none'; sessionStorage.setItem('shipTutorialSeen','1');" style="padding:14px 44px; border-radius:10px; background:transparent; border:2px solid #00E5FF; color:#00E5FF; font-size:16px; font-weight:700; font-family:'Orbitron',sans-serif; cursor:pointer; letter-spacing:1px;">Entendi!</button>
+      <div style="margin-bottom:16px;">
+        <img src="images/spaceschip.png" style="width:64px; height:auto; filter:drop-shadow(0 0 12px rgba(0,229,255,0.55));">
+      </div>
+      <h2 style="margin:0 0 14px; color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:20px; letter-spacing:1px; text-transform:uppercase;">Monte sua Esquadrilha</h2>
+      <p style="margin:0 0 10px; color:#ccc; font-size:15px; line-height:1.7; font-family:sans-serif;">Você precisa escolher <strong style="color:#00E5FF;">3 naves</strong> para entrar na batalha.</p>
+      <p style="margin:0 0 28px; color:#aaa; font-size:13px; line-height:1.6; font-family:sans-serif;">Clique nas naves que deseja adicionar à sua esquadrilha. Para remover uma nave, clique no preview acima.</p>
+      <button onclick="closeShipTutorial();" style="padding:14px 44px; border-radius:10px; background:transparent; border:2px solid #00E5FF; color:#00E5FF; font-size:16px; font-weight:700; font-family:'Orbitron',sans-serif; cursor:pointer; letter-spacing:1px;">Entendi!</button>
     </div>
   </div>
   <!-- ============================================================ -->
 
-  <div id="previewArea" style="display:flex; gap:38px; justify-content:center; margin-bottom:50px;">
+  <!-- Squad header: title + subtitle -->
+  <div style="text-align:center; margin-bottom:18px;">
+    <div style="font-family:'Orbitron',sans-serif; font-size:15px; color:#00E5FF; letter-spacing:3px; font-weight:700;">FORMAÇÃO DE ESQUADRÃO</div>
+    <div style="font-size:13px; color:#777; margin-top:5px; font-family:sans-serif;">Escolha 3 naves para o campo de batalha.</div>
+  </div>
+
+  <div id="previewArea" style="display:flex; gap:38px; justify-content:center; align-items:center; margin-bottom:50px;">
     <div style="position:relative;" onclick="removeNave(0)">
       <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
       <span class="remove-icon">✕</span>
@@ -1282,6 +1290,8 @@ background: rgba(0, 165, 242, 0.04);
       <span class="remove-icon">✕</span>
       <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
     </div>
+    <!-- Help button: re-open tutorial -->
+    <button onclick="openShipTutorial();" title="Como funciona?" style="margin-left:16px; width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
   </div>
   <!-- Ship Selection Carousel -->
   <div id="naveCarouselOuter" style="display:flex; align-items:center; justify-content:center; gap:28px; width:100%; margin-bottom:16px;">
@@ -1570,6 +1580,42 @@ let selectionTimer = null;
 let selectionTimerInterval = null;
 let selectionTimeRemaining = 15;
 let selectionTimerStarted = false;
+
+function openShipTutorial() {
+  const tut = document.getElementById('shipSelectTutorial');
+  if (tut) tut.style.display = 'flex';
+  // Pause solo selection timer while modal is open
+  if (!multiplayerMode && selectionTimerStarted) {
+    if (selectionTimerInterval) { clearInterval(selectionTimerInterval); selectionTimerInterval = null; }
+    if (selectionTimer) { clearTimeout(selectionTimer); selectionTimer = null; }
+  }
+}
+
+function closeShipTutorial() {
+  const tut = document.getElementById('shipSelectTutorial');
+  if (tut) tut.style.display = 'none';
+  sessionStorage.setItem('shipTutorialSeen', '1');
+  // Resume solo selection timer from remaining time
+  if (!multiplayerMode && selectionTimerStarted && selectionTimeRemaining > 0) {
+    showSelectionTimer(selectionTimeRemaining);
+    selectionTimerInterval = setInterval(() => {
+      selectionTimeRemaining--;
+      showSelectionTimer(selectionTimeRemaining);
+      if (selectionTimeRemaining <= 0) {
+        clearInterval(selectionTimerInterval);
+        selectionTimerInterval = null;
+      }
+    }, 1000);
+    selectionTimer = setTimeout(async () => {
+      if (!window.selectedNaves || window.selectedNaves.length < 3) {
+        window.selectedNaves = [1, 1, 1];
+        updatePreviews();
+      }
+      await saveShipSelection();
+      updatePhaseAndStartBattle();
+    }, selectionTimeRemaining * 1000);
+  }
+}
 // AAA: Sempre sincronizar timer multiplayer via handleMatchUpdate
 // O startSelectionTimer só é chamado localmente em modo solo
 
@@ -1802,8 +1848,7 @@ window.showOnly = function(screenName) {
   if (screenName === 'naveSelectScreen') {
     // Show ship selection tutorial on first visit per session
     if (!sessionStorage.getItem('shipTutorialSeen')) {
-      const tut = document.getElementById('shipSelectTutorial');
-      if (tut) tut.style.display = 'flex';
+      openShipTutorial();
     }
     // AAA: Resetar locks/ready das naves do jogador ao mostrar seleção (sempre, inclusive round 1)
     if (Array.isArray(playerNaves)) {
