@@ -199,6 +199,7 @@ export default function SelectShipsClient() {
   if (loading) {
     return (
       <div style={pageStyle}>
+        {tutorialOpen && <TutorialModal onClose={handleCloseTutorial} />}
         <div style={{ textAlign: "center", color: "#999" }}>Loading...</div>
         <PlayerStatsModal
           open={statsModalOpen}
