@@ -3301,6 +3301,8 @@ async function initMultiplayerMode(matchId) {
     // Guardar como globais para uso no beforeunload (que é síncrono)
     window._sbUrl = urlParams.supabaseUrl;
     window._sbKey = urlParams.supabaseKey;
+    // Salvar access_token ANTES de limpar a URL (necessário para beforeunload usar JWT)
+    window._accessToken = urlParams.access_token || null;
     debug.pvp('[PVP] ✓ Supabase client criado');
     
     // STEP 3: Autenticar via tokens (se disponíveis) - ANTES de qualquer query
@@ -3323,6 +3325,10 @@ async function initMultiplayerMode(matchId) {
           myUserId = urlParams.userId;
         } else {
           debug.pvp('[PVP] ✓ Sessão estabelecida');
+          // Atualizar token com o que Supabase pode ter renovado
+          if (sessionData.session?.access_token) {
+            window._accessToken = sessionData.session.access_token;
+          }
           
           const { data: userData, error: userError } = await supabaseClient.auth.getUser();
           
@@ -3513,8 +3519,9 @@ function startHeartbeat() {
     sendHeartbeat();
   }, 3000);
 
-  // Nota: WO agora é detectado por rounds (checkOpponentPresenceForWO),
-  // não mais por polling de heartbeat no DB. checkOpponentHeartbeat() desativado.
+  // Backup: verificar last_seen do oponente no DB a cada 5s (durante battle).
+  // Cobre casos onde beforeunload falha (mobile, Safari, kill de processo).
+  checkOpponentHeartbeat();
 }
 
 // Enviar meu heartbeat
@@ -9707,6 +9714,8 @@ window.addEventListener('beforeunload', () => {
     // Usar globais gravados no init (mais confiável que reler URL params)
     const sbUrl = window._sbUrl || new URLSearchParams(window.location.search).get('supabaseUrl');
     const sbKey = window._sbKey || new URLSearchParams(window.location.search).get('supabaseKey');
+    // Usar JWT do usuário (necessário para RLS). Fallback para anon key se não disponível.
+    const authToken = window._accessToken || sbKey;
     
     if (sbUrl && sbKey && matchData.id && opponentUserId) {
       const url = `${sbUrl}/rest/v1/matches?id=eq.${matchData.id}&phase=eq.battle`;
@@ -9718,13 +9727,13 @@ window.addEventListener('beforeunload', () => {
       });
       
       // fetch keepalive: envia headers de auth, continua mesmo após fechar página
-      // sendBeacon removido (não suporta headers customizados, RLS bloqueia)
+      // Authorization usa o JWT do usuário (não o anon key) para passar no RLS
       fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'apikey': sbKey,
-          'Authorization': `Bearer ${sbKey}`,
+          'Authorization': `Bearer ${authToken}`,
           'Prefer': 'return=minimal'
         },
         body: payload,
