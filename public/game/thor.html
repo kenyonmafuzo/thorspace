@@ -3577,17 +3577,8 @@ function setupMatchStateSync(matchId) {
             updateReadyBtnState();
           }
 
-          // WO durante qualquer fase ativa (seleção ou batalha)
-          if (currentPhase !== 'finished' && amIOnline && !isOpponentOnline) {
-            debug.log('[PRESENCE] 🚪 Oponente desconectou! Aplicando WO em 3s... (fase:', currentPhase, ')');
-            setTimeout(() => {
-              const stateAfterDelay = matchStateChannel.presenceState();
-              if (!isUserInPresence(stateAfterDelay, opponentUserId) && currentPhase !== 'finished') {
-                debug.log('[PRESENCE] Confirmado: oponente desconectado. Aplicando WO...');
-                applyWalkover();
-              }
-            }, 3000);
-          }
+          // WO via presence removido — instável (lentidão pode causar falso positivo).
+          // WO só ocorre via beforeunload (oponente fechou a página de verdade).
         }
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -3603,19 +3594,13 @@ function setupMatchStateSync(matchId) {
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
-        // Se o oponente saiu — WO durante qualquer fase ativa (seleção ou batalha)
+        // WO via presence removido — instável (lentidão pode causar falso positivo).
+        // WO só ocorre via beforeunload (oponente fechou a página de verdade).
         const leftUserId = leftPresences && leftPresences[0]?.user_id;
         if (leftUserId === opponentUserId && multiplayerMode && matchData) {
           opponentInGame = false;
           updateReadyBtnState();
-          if (currentPhase !== 'finished') {
-            debug.log('[PRESENCE] 🚪 Oponente saiu! Aplicando WO em 2s... (fase:', currentPhase, ')');
-            setTimeout(() => {
-              if (currentPhase !== 'finished') {
-                applyWalkover();
-              }
-            }, 2000);
-          }
+          debug.log('[PRESENCE] Oponente saiu da presença (pode ser lentidão). Sem WO automático.');
         }
       })
       .subscribe(async (status) => {
@@ -3668,7 +3653,7 @@ async function applyWalkover() {
         finished_at: new Date().toISOString()
       })
       .eq('id', matchData.id)
-      .in('phase', ['select', 'battle']); // Aplicar WO em qualquer fase ativa
+      .eq('phase', 'battle'); // Apenas durante batalha
     
     if (error) {
       console.error('[WO] Erro ao aplicar WO:', error);
@@ -9621,8 +9606,8 @@ window.addEventListener('beforeunload', () => {
   // Parar heartbeat ao sair
   stopHeartbeat();
   
-  // Se estiver em partida multiplayer em andamento, aplicar WO
-  if (multiplayerMode && matchData && currentPhase !== 'finished') {
+  // Se estiver em batalha multiplayer, aplicar WO ao sair da página
+  if (multiplayerMode && matchData && currentPhase === 'battle') {
     
     // Usar sendBeacon para enviar de forma síncrona (mais confiável no unload)
     const supabaseUrl = new URLSearchParams(window.location.search).get('supabaseUrl');
