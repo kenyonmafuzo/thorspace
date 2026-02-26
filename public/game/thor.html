@@ -2425,12 +2425,41 @@ function startTurnWindow(deadlineISO) {
       } else {
         // Player2 não pode resolver turnos — somente espera o Realtime avisar.
         // Se Player1 saiu do jogo, o turno nunca será resolvido e o Player2 ficaria travado.
-        // Solução: 4s após deadline, se o turno_number não avançou → Player1 saiu → checar presence → WO.
+        // Solução: 4s após deadline, consultar o DB diretamente para ver se:
+        //   (A) match já finalizou (beforeunload do P1 funcionou) → processar resultado
+        //   (B) last_seen do P1 está velho (>8s) → P1 saiu → aplicar WO
+        // NÃO usar presence: Supabase demora 30-60s para limpar presença após desconexão.
         const turnAtDeadline = currentTurnNumber;
-        setTimeout(() => {
-          if (currentPhase === 'battle' && currentTurnNumber === turnAtDeadline) {
-            console.log('[WO-ROUND] Player2: Turno não avançou 4s após deadline. Verificando presença do oponente (player1)...');
-            checkOpponentPresenceForWO();
+        setTimeout(async () => {
+          if (currentPhase !== 'battle' || !supabaseClient || !matchData) return;
+          if (currentTurnNumber !== turnAtDeadline) return; // turno avançou normalmente
+          console.log('[WO-P2] Deadline passou e turno não avançou. Consultando DB...');
+          try {
+            const { data: row, error } = await supabaseClient
+              .from('matches')
+              .select('phase, winner_id, wo, player1_last_seen, player2_last_seen, turn_number')
+              .eq('id', matchData.id)
+              .single();
+            if (error || !row) return;
+            // (A) Match já foi finalizado pelo beforeunload do P1
+            if (row.phase === 'finished') {
+              console.log('[WO-P2] Match já finalizado no DB. Disparando handleMatchUpdate...');
+              handleMatchUpdate({ new: row });
+              return;
+            }
+            // (B) Checar last_seen do Player1 (oponente do P2) no DB
+            const oppLastSeen = row.player1_last_seen; // P2 sempre joga contra P1
+            const elapsed = oppLastSeen
+              ? Date.now() - new Date(oppLastSeen).getTime()
+              : 99999;
+            console.log('[WO-P2] last_seen do P1 há', Math.round(elapsed / 1000), 's');
+            if (elapsed > 8000) {
+              console.log('[WO-P2] P1 ausente há', Math.round(elapsed/1000), 's → aplicando WO');
+              stopHeartbeat();
+              applyWalkover();
+            }
+          } catch (e) {
+            console.warn('[WO-P2] Erro ao consultar DB:', e);
           }
         }, 4000);
       }
