@@ -3279,6 +3279,9 @@ async function initMultiplayerMode(matchId) {
         autoRefreshToken: false
       }
     });
+    // Guardar como globais para uso no beforeunload (que é síncrono)
+    window._sbUrl = urlParams.supabaseUrl;
+    window._sbKey = urlParams.supabaseKey;
     debug.pvp('[PVP] ✓ Supabase client criado');
     
     // STEP 3: Autenticar via tokens (se disponíveis) - ANTES de qualquer query
@@ -3490,7 +3493,9 @@ function startHeartbeat() {
   heartbeatInterval = setInterval(() => {
     sendHeartbeat();
   }, 3000);
-  // NOTA: WO via heartbeat removido. WO só ocorre via presence leave (ao sair da página).
+
+  // Verificar heartbeat do oponente a cada 5s (só durante battle)
+  checkOpponentHeartbeat();
 }
 
 // Enviar meu heartbeat
@@ -3512,9 +3517,48 @@ async function sendHeartbeat() {
   }
 }
 
-// checkOpponentHeartbeat desativado — WO só ocorre quando o oponente sai da página (beforeunload / presence leave).
-// Manter função stub para evitar erros de referência em outros lugares.
-function checkOpponentHeartbeat() {}
+// Verificar periodicamente se o oponente parou de enviar heartbeat (só durante battle)
+// Tolerância de 15s: 5 heartbeats perdidos = oponente saiu, não é lentidão.
+function checkOpponentHeartbeat() {
+  if (!multiplayerMode || !supabaseClient || !matchData) return;
+
+  const WO_THRESHOLD_MS = 15000; // 15 segundos sem heartbeat = WO
+  const CHECK_INTERVAL_MS = 5000; // verificar a cada 5s
+
+  if (opponentLastSeenCheck) {
+    clearInterval(opponentLastSeenCheck);
+  }
+
+  opponentLastSeenCheck = setInterval(async () => {
+    if (currentPhase !== 'battle' || !matchData) return;
+
+    try {
+      const { data, error } = await supabaseClient
+        .from('matches')
+        .select('player1_last_seen, player2_last_seen')
+        .eq('id', matchData.id)
+        .single();
+
+      if (error || !data) return;
+
+      const isPlayer1 = myUserId === matchData.player1_id;
+      const oppLastSeen = isPlayer1 ? data.player2_last_seen : data.player1_last_seen;
+
+      if (!oppLastSeen) return; // oponente ainda não enviou nenhum heartbeat
+
+      const elapsed = Date.now() - new Date(oppLastSeen).getTime();
+      debug.log('[HEARTBEAT] ⏱ Oponente last_seen há', Math.round(elapsed / 1000), 's');
+
+      if (elapsed > WO_THRESHOLD_MS && currentPhase === 'battle') {
+        debug.log('[HEARTBEAT] 🚨 Oponente sem heartbeat por', Math.round(elapsed / 1000), 's. Aplicando WO...');
+        stopHeartbeat();
+        applyWalkover();
+      }
+    } catch (err) {
+      console.warn('[HEARTBEAT] Erro ao verificar oponente:', err);
+    }
+  }, CHECK_INTERVAL_MS);
+}
 
 // Parar heartbeat
 function stopHeartbeat() {
@@ -9616,12 +9660,12 @@ window.addEventListener('beforeunload', () => {
   // Se estiver em batalha multiplayer, aplicar WO ao sair da página
   if (multiplayerMode && matchData && currentPhase === 'battle') {
     
-    // Usar sendBeacon para enviar de forma síncrona (mais confiável no unload)
-    const supabaseUrl = new URLSearchParams(window.location.search).get('supabaseUrl');
-    const supabaseKey = new URLSearchParams(window.location.search).get('supabaseKey');
+    // Usar globais gravados no init (mais confiável que reler URL params)
+    const sbUrl = window._sbUrl || new URLSearchParams(window.location.search).get('supabaseUrl');
+    const sbKey = window._sbKey || new URLSearchParams(window.location.search).get('supabaseKey');
     
-    if (supabaseUrl && supabaseKey && matchData.id && opponentUserId) {
-      const url = `${supabaseUrl}/rest/v1/matches?id=eq.${matchData.id}`;
+    if (sbUrl && sbKey && matchData.id && opponentUserId) {
+      const url = `${sbUrl}/rest/v1/matches?id=eq.${matchData.id}&phase=eq.battle`;
       const payload = JSON.stringify({
         phase: 'finished',
         winner_id: opponentUserId,
@@ -9639,13 +9683,13 @@ window.addEventListener('beforeunload', () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': sbKey,
+          'Authorization': `Bearer ${sbKey}`,
           'Prefer': 'return=minimal'
         },
         body: payload,
-        keepalive: true // Permite requisição continuar após página fechar
-      }).catch(() => {}); // Ignorar erros
+        keepalive: true
+      }).catch(() => {});
       
     }
   }
