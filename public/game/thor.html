@@ -2567,8 +2567,9 @@ async function maybeResolveTurn() {
     
     
     // Usar ações diretamente ou idle se não submetido
-    const final_action_blue = submitted_blue ? action_blue : { type: 'idle' };
-    const final_action_red = submitted_red ? action_red : { type: 'idle' };
+    // __notSubmitted: true sinaliza que o jogador NÃO enviou ação (para detecção de WO por rounds)
+    const final_action_blue = submitted_blue ? action_blue : { type: 'idle', __notSubmitted: true };
+    const final_action_red = submitted_red ? action_red : { type: 'idle', __notSubmitted: true };
     
     
     // Marcar como resolvido e avançar turno
@@ -2643,6 +2644,12 @@ function applyResolvedTurn(actions) {
   // Determinar quais são minhas ações e quais são do oponente
   const myAction = (myTeam === 'blue') ? actions.action_blue : actions.action_red;
   const oppAction = (myTeam === 'blue') ? actions.action_red : actions.action_blue;
+
+  // WO por rounds: se oponente não submeteu ação neste round, verificar presença
+  if (oppAction && oppAction.__notSubmitted === true && currentPhase === 'battle') {
+    console.log('[WO-ROUND] Oponente não fez jogada neste round. Verificando presença em 2s...');
+    setTimeout(() => checkOpponentPresenceForWO(), 2000);
+  }
   
   
   // Aplicar MINHAS ações em playerNaves
@@ -3495,8 +3502,8 @@ function startHeartbeat() {
     sendHeartbeat();
   }, 3000);
 
-  // Verificar heartbeat do oponente a cada 5s (só durante battle)
-  checkOpponentHeartbeat();
+  // Nota: WO agora é detectado por rounds (checkOpponentPresenceForWO),
+  // não mais por polling de heartbeat no DB. checkOpponentHeartbeat() desativado.
 }
 
 // Enviar meu heartbeat
@@ -3515,6 +3522,23 @@ async function sendHeartbeat() {
     debug.log('[HEARTBEAT] ❤️ Enviado');
   } catch (err) {
     console.error('[HEARTBEAT] Erro ao enviar:', err);
+  }
+}
+
+// Verificar presença do oponente após round sem jogada.
+// Chamado apenas quando __notSubmitted === true no oppAction.
+// Se oponente não está na presence → WO imediato.
+function checkOpponentPresenceForWO() {
+  if (currentPhase !== 'battle' || !matchStateChannel || !multiplayerMode) return;
+
+  const presenceState = matchStateChannel.presenceState();
+  const opponentOnline = isUserInPresence(presenceState, opponentUserId);
+
+  console.log('[WO-ROUND] Presença do oponente:', opponentOnline ? '✅ online (sem WO)' : '❌ offline → WO');
+
+  if (!opponentOnline) {
+    stopHeartbeat();
+    applyWalkover();
   }
 }
 
