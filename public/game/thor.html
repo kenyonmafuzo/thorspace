@@ -3540,6 +3540,7 @@ function startHeartbeat() {
   if (!multiplayerMode || !supabaseClient || !matchData) return;
   
   debug.log('[HEARTBEAT] Iniciando sistema de heartbeat');
+  window._heartbeatStartedAt = Date.now(); // referência para WO quando oppLastSeen é null
   
   // Enviar heartbeat imediatamente
   sendHeartbeat();
@@ -3617,10 +3618,11 @@ function checkOpponentHeartbeat() {
       const isPlayer1 = myUserId === matchData.player1_id;
       const oppLastSeen = isPlayer1 ? data.player2_last_seen : data.player1_last_seen;
 
-      // Fallback: se oponente nunca enviou heartbeat, usar battleStartedAt como referência
+      // Se oponente nunca enviou heartbeat, usar heartbeatStartedAt como referência.
+      // NÃO usar Date.now() (elapsed seria 0). NÃO usar battleStartedAt (pode ser null).
       const referenceTime = oppLastSeen
         ? new Date(oppLastSeen).getTime()
-        : (battleStartedAt || Date.now());
+        : (window._heartbeatStartedAt || battleStartedAt || (Date.now() - 30000));
 
       const elapsed = Date.now() - referenceTime;
       debug.log('[HEARTBEAT] ⏱ Oponente last_seen há', Math.round(elapsed / 1000), 's (oppLastSeen:', !!oppLastSeen, ')');
@@ -3714,13 +3716,37 @@ function setupMatchStateSync(matchId) {
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
         debug.log('[PRESENCE] Jogador saiu:', key, leftPresences);
         
-        // WO via presence removido — instável (lentidão pode causar falso positivo).
-        // WO só ocorre via beforeunload (oponente fechou a página de verdade).
+        // Verificar se quem saiu é o oponente pelo user_id dentro do payload
         const leftUserId = leftPresences && leftPresences[0]?.user_id;
         if (leftUserId === opponentUserId && multiplayerMode && matchData) {
           opponentInGame = false;
           updateReadyBtnState();
-          debug.log('[PRESENCE] Oponente saiu da presença (pode ser lentidão). Sem WO automático.');
+          // WO apenas durante batalha, com 3s de espera para confirmar (não é lag)
+          if (currentPhase === 'battle') {
+            debug.log('[PRESENCE] Oponente saiu durante batalha. Confirmando WO em 3s...');
+            setTimeout(() => {
+              if (currentPhase !== 'battle') return; // já resolvido
+              // Confirmar via DB que oponente realmente saiu (heartbeat velho)
+              if (!supabaseClient || !matchData) return;
+              supabaseClient
+                .from('matches')
+                .select('player1_last_seen, player2_last_seen, phase')
+                .eq('id', matchData.id)
+                .single()
+                .then(({ data: row }) => {
+                  if (!row || row.phase === 'finished') return;
+                  const isP1 = myUserId === matchData.player1_id;
+                  const oppSeen = isP1 ? row.player2_last_seen : row.player1_last_seen;
+                  const elapsed = oppSeen ? Date.now() - new Date(oppSeen).getTime() : 99999;
+                  if (elapsed > 5000 && currentPhase === 'battle') {
+                    console.log('[PRESENCE+DB] Oponente confirmado ausente (last_seen +' + Math.round(elapsed/1000) + 's). Aplicando WO.');
+                    stopHeartbeat();
+                    applyWalkover();
+                  }
+                })
+                .catch(() => {});
+            }, 3000);
+          }
         }
       })
       .subscribe(async (status) => {
