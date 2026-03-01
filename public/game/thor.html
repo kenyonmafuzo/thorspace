@@ -2222,6 +2222,13 @@ function startTurnWindow(deadlineISO) {
     return;
   }
 
+  // GUARD: Se o jogo já acabou (vitória/derrota/WO), não abrir nova janela de turno.
+  // Isso evita que o banner "Round N" apareça por cima da tela de resultado.
+  if (!gameActive || winner) {
+    console.warn('[SYNC] startTurnWindow ignorado — jogo já encerrado (winner:', winner, ')');
+    return;
+  }
+
   // GUARD: Se é o mesmo deadline, ignorar (já está rodando)
   if (window.__currentTurnDeadline === deadlineISO) {
     return;
@@ -7494,6 +7501,7 @@ function updateGame() {
                 if (newDeadline && !isSameDeadline) {
                   // Novo deadline válido — iniciar janela normalmente
                   awaitingRoundReady = false;
+                  if (!gameActive || winner) return; // jogo encerrou enquanto aguardávamos
                   if (freshRow.turn_number) currentTurnNumber = freshRow.turn_number;
                   startTurnWindow(newDeadline);
                 } else if (_fallbackAttempts < _MAX_FALLBACK) {
@@ -7504,7 +7512,7 @@ function updateGame() {
                   // Esgotou tentativas: sintetizar janela de 20s para não travar o jogo
                   console.error('[SYNC] ❌ Fallback esgotado — sintetizando janela de 20s para desbloquear.');
                   awaitingRoundReady = false;
-                  startTurnWindow(new Date(Date.now() + 20000).toISOString());
+                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 20000).toISOString());
                 }
               } catch(e) {
                 console.error('[SYNC] Erro no fallback DB:', e);
@@ -7512,7 +7520,7 @@ function updateGame() {
                   roundReadyTimeout = setTimeout(_tryFallbackFetch, 2000);
                 } else if (awaitingRoundReady) {
                   awaitingRoundReady = false;
-                  startTurnWindow(new Date(Date.now() + 20000).toISOString());
+                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 20000).toISOString());
                 }
               }
             };
