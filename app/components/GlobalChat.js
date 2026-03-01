@@ -170,6 +170,13 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
   useEffect(() => {
     fetchMessages();
 
+    // ✅ Re-busca mensagens quando o vencedor insere o resultado da partida
+    // (evita race condition: insert termina depois do fetch inicial)
+    const handleRefreshChat = () => {
+      setTimeout(fetchMessages, 300);
+    };
+    window.addEventListener("refresh_chat", handleRefreshChat);
+
     const startRealtime = () => {
       // Realtime: escuta inserts na tabela chat_messages
       const channel = supabase.channel('chat_messages_realtime')
@@ -199,6 +206,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     startRealtime();
 
     return () => {
+      window.removeEventListener("refresh_chat", handleRefreshChat);
       console.log("=== REALTIME CLEANUP ===");
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
@@ -485,7 +493,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
                           fontWeight: 600,
                           color: msg.meta?.is_vip
                             ? (msg.meta.vip_name_color || "#FFD700")
-                            : isCurrentUser ? "#FFD700" : "#00E5FF",
+                            : "#ccc",
                           cursor: "pointer",
                           textDecoration: "underline dotted",
                           display: "inline-flex",

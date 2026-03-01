@@ -99,6 +99,10 @@ export default function MultiplayerPage() {
                   });
                 if (insertError) {
                   console.error("Error inserting match result:", insertError);
+                } else {
+                  // ✅ Notifica o GlobalChat para re-buscar mensagens (evita race condition
+                  // onde o insert termina depois do fetch inicial do chat)
+                  window.dispatchEvent(new CustomEvent("refresh_chat"));
                 }
 
                 // ✅ VERIFICAR BADGES APÓS VITÓRIA (apenas se ganhou)
