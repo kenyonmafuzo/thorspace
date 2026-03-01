@@ -7472,22 +7472,51 @@ function updateGame() {
           } else {
             // Realtime ainda não trouxe o novo deadline — aguardar.
             awaitingRoundReady = true;
-            // Fallback: se Realtime não chegar em 5s, buscar do DB diretamente
+            // Fallback: se Realtime não chegar em 5s, buscar do DB com retry.
+            // Bugs corrigidos:
+            //   (A) DB retorna null (servidor ainda processando) → retry em 2s
+            //   (B) DB retorna o mesmo deadline antigo → startTurnWindow retorna no guard → retry
+            //   (C) Após 5 tentativas sem novo deadline → sintetizar janela de 20s
             if (roundReadyTimeout) clearTimeout(roundReadyTimeout);
-            roundReadyTimeout = setTimeout(async () => {
+            let _fallbackAttempts = 0;
+            const _MAX_FALLBACK = 5;
+            const _tryFallbackFetch = async () => {
               roundReadyTimeout = null;
-              if (!awaitingRoundReady) return;
-              console.warn('[SYNC] ⏰ Fallback: Realtime não chegou, buscando deadline do DB...');
+              if (!awaitingRoundReady) return; // Realtime chegou enquanto esperávamos
+              _fallbackAttempts++;
+              console.warn(`[SYNC] ⏰ Fallback tentativa ${_fallbackAttempts}/${_MAX_FALLBACK}: buscando deadline do DB...`);
               try {
                 const { data: freshRow } = await supabaseClient
                   .from('matches').select('turn_number, turn_deadline_at').eq('id', matchData.id).single();
-                if (freshRow && freshRow.turn_deadline_at) {
+                if (!awaitingRoundReady) return; // Realtime chegou durante o fetch
+                const newDeadline = freshRow?.turn_deadline_at;
+                const isSameDeadline = newDeadline && newDeadline === window.__currentTurnDeadline;
+                if (newDeadline && !isSameDeadline) {
+                  // Novo deadline válido — iniciar janela normalmente
                   awaitingRoundReady = false;
                   if (freshRow.turn_number) currentTurnNumber = freshRow.turn_number;
-                  startTurnWindow(freshRow.turn_deadline_at);
+                  startTurnWindow(newDeadline);
+                } else if (_fallbackAttempts < _MAX_FALLBACK) {
+                  // Deadline nulo ou igual ao anterior (servidor ainda processando) — retry
+                  console.warn(`[SYNC] Deadline ${isSameDeadline ? 'igual ao anterior' : 'nulo'}, retry em 2s...`);
+                  roundReadyTimeout = setTimeout(_tryFallbackFetch, 2000);
+                } else {
+                  // Esgotou tentativas: sintetizar janela de 20s para não travar o jogo
+                  console.error('[SYNC] ❌ Fallback esgotado — sintetizando janela de 20s para desbloquear.');
+                  awaitingRoundReady = false;
+                  startTurnWindow(new Date(Date.now() + 20000).toISOString());
                 }
-              } catch(e) { console.error('[SYNC] Erro no fallback DB:', e); }
-            }, 5000);
+              } catch(e) {
+                console.error('[SYNC] Erro no fallback DB:', e);
+                if (_fallbackAttempts < _MAX_FALLBACK && awaitingRoundReady) {
+                  roundReadyTimeout = setTimeout(_tryFallbackFetch, 2000);
+                } else if (awaitingRoundReady) {
+                  awaitingRoundReady = false;
+                  startTurnWindow(new Date(Date.now() + 20000).toISOString());
+                }
+              }
+            };
+            roundReadyTimeout = setTimeout(_tryFallbackFetch, 5000);
           }
           
           // Aplicar estado pendente se houver
