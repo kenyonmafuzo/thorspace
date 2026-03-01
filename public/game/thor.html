@@ -1190,7 +1190,7 @@ background: rgba(0, 165, 242, 0.04);
 
 <!-- HUD Superior: Timer e Legenda -->
 <div id="gameWrapper">
- <div style="display: flex; flex-direction: column; align-items: center; gap: 0;">
+ <div id="gameContent" style="display: flex; flex-direction: column; align-items: center; gap: 0;">
   
   <!-- HUD row wrapper: hudTop + mute button side by side, button always visible -->
   <div style="position: relative; width: 800px; margin: 0 auto 8px; flex-shrink: 0;">
@@ -10354,6 +10354,54 @@ if (typeof window !== 'undefined') {
     initShotPreferences();
   }
 }
+</script>
+
+<script>
+// ── Responsive game scaling ──────────────────────────────────────────────────
+// Scales #gameContent down so canvas + HUD + player banner all fit on screen.
+// Reference size: 840×760 (800px canvas + breathing room + HUD/banner below).
+// Minimum scale: 0.65 — stops shrinking beyond that so tiny screens still show
+// the game instead of a stamp-sized canvas.
+(function () {
+  var GAME_W = 840;
+  var GAME_H = 760;
+  var MIN_SCALE = 0.65;
+
+  function applyGameScale() {
+    var el = document.getElementById('gameContent');
+    var wrapper = document.getElementById('gameWrapper');
+    if (!el || !wrapper) return;
+
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var scale = Math.max(MIN_SCALE, Math.min(1, vw / GAME_W, vh / GAME_H));
+
+    if (scale < 1) {
+      el.style.transform = 'scale(' + scale.toFixed(4) + ')';
+      el.style.transformOrigin = 'top center';
+      // Switch wrapper to top-aligned so we can control vertical position manually
+      wrapper.style.justifyContent = 'flex-start';
+      wrapper.style.paddingTop = '0';
+      // Visually center the scaled-down content
+      var scaledH = GAME_H * scale;
+      el.style.marginTop = Math.max(0, (vh - scaledH) / 2) + 'px';
+    } else {
+      // Full size: restore original wrapper styles
+      el.style.transform = '';
+      el.style.transformOrigin = '';
+      el.style.marginTop = '';
+      wrapper.style.justifyContent = '';
+      wrapper.style.paddingTop = '';
+    }
+  }
+
+  window.addEventListener('resize', applyGameScale);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyGameScale);
+  } else {
+    applyGameScale();
+  }
+})();
 </script>
 
 </body>
