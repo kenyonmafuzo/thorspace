@@ -296,14 +296,10 @@ background: rgba(0, 165, 242, 0.04);
   z-index: 1;
 }
 
-/* Game Content — centered absolutely; JS controls transform: scale */
+/* Game Content — left/top set by JS scaler; transform-origin center so scale() is symmetric */
 #gameContent {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  /* transform set by JS scaler */
-  transform-origin: 0 0;
-  /* Prevent any inherited flex/block contribution to the wrapper */
+  transform-origin: center center;
   flex-shrink: 0;
 }
 
@@ -10365,33 +10361,55 @@ if (typeof window !== 'undefined') {
 
 <script>
 // ── AAA Resolution Scaling ──────────────────────────────────────────────────
-// Fixed base resolution: 800 × 800 (canvas 800×600 + HUD ~70px + banner ~70px
-// + gaps). Internal layout is NEVER touched — only transform:scale() changes.
+// Fixed base resolution 800×800 (canvas 800×600 + HUD + player banner).
+// The game runs inside an iframe that covers 100vw × 100dvh.
+// The Next.js UserHeader sits on top (z-index 10020) and is ~68px tall on
+// desktop / hidden on mobile. We must center #gameContent in the area
+// BELOW the header, not in the full screen.
 //
-// How it works (same as AAA games):
-//   scale = min(viewport_w / BASE_W, viewport_h / BASE_H)   capped at 1.0
-//   #gameContent sits at position:absolute top:50% left:50%
-//   transform: translate(-50%, -50%) scale(s)
-//   → translate centers the element's origin on screen center
-//   → scale shrinks symmetrically from that center point
-// No element repositioning. No layout changes. Aspect ratio always preserved.
+// Formula:
+//   menuH  = 68px on desktop (>768px), 0px on mobile
+//   availH = viewport_h - menuH
+//   scale  = min(viewport_w / BASE_W, availH / BASE_H, 1.0)
+//   centerX = viewport_w / 2
+//   centerY = menuH + availH / 2
+//   transform = translate(-50%, -50%) scale(scale)
+//   (translate centers element origin on centerX/centerY;
+//    scale shrinks symmetrically — transform-origin: center center)
 (function () {
-  var BASE_W = 800;
-  var BASE_H = 800;
+  var BASE_W  = 800;
+  var BASE_H  = 800;
+  var MENU_H_DESKTOP = 68; // UserHeader rendered height on desktop
 
   function applyGameScale() {
     var el = document.getElementById('gameContent');
     if (!el) return;
 
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var scale = Math.min(1, vw / BASE_W, vh / BASE_H);
+    var vp  = window.visualViewport;
+    var vw  = vp ? vp.width  : window.innerWidth;
+    var vh  = vp ? vp.height : window.innerHeight;
 
+    // Desktop header is hidden via CSS at ≤1₂768px
+    var menuH = vw > 768 ? MENU_H_DESKTOP : 0;
+
+    var availW = vw;
+    var availH = vh - menuH;
+
+    var scale = Math.min(1, availW / BASE_W, availH / BASE_H);
+
+    var cx = vw / 2;
+    var cy = menuH + availH / 2;
+
+    el.style.left      = cx + 'px';
+    el.style.top       = cy + 'px';
     el.style.transform =
       'translate(-50%, -50%) scale(' + scale.toFixed(5) + ')';
   }
 
   window.addEventListener('resize', applyGameScale);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyGameScale);
+  }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', applyGameScale);
