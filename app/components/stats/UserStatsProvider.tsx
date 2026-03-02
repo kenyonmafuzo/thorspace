@@ -47,6 +47,13 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [statsVersion, setStatsVersion] = useState(1);
     const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
+
+    // Safety: force isLoading=false after 6s even if userId never resolves
+    // (handles expired token + failed refresh scenarios)
+    useEffect(() => {
+      const t = setTimeout(() => setIsLoading(false), 6000);
+      return () => clearTimeout(t);
+    }, []);
     // Novo: armazena bootstrap temporário até userId estar disponível
     const [pendingBootstrap, setPendingBootstrap] = useState<any>(null);
     // Daily login streak state
