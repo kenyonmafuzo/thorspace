@@ -67,6 +67,9 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
   }, [currentUserId, currentUsername, currentAvatar]);
 
   useEffect(() => {
+    if (!currentUserId || !currentUsername) return;
+
+    const startPresence = () => {
 
       // Remover apenas o canal anterior deste componente
       if (presenceChannelRef.current) {
