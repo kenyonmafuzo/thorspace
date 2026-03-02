@@ -82,7 +82,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
               userId: presence.user_id,
               username: presence.username || "Unknown",
               avatar: presence.avatar || "normal",
-              status: "online",
+              status: presence.status || "online",
               isVip: presence.is_vip || false,
               vipNameColor: presence.vip_name_color || "#FFD700",
               vipFrameColor: presence.vip_frame_color || "#FFD700",
@@ -154,6 +154,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
               username: currentUsername,
               avatar: currentAvatar || "normal",
               online_at: new Date().toISOString(),
+              status: "online",
               // VIP data from localStorage (set by UserHeader on load)
               is_vip: localStorage.getItem("thor_is_vip") === "true",
               vip_name_color: localStorage.getItem("thor_vip_name_color") || "#FFD700",
@@ -345,15 +346,19 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
                 }}
               >
                 {/* Status indicator */}
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    backgroundColor: getStatusColor(user.status),
-                    flexShrink: 0,
-                  }}
-                />
+                {isPlaying ? (
+                  <span title="Em batalha" style={{ fontSize: 14, flexShrink: 0, lineHeight: 1 }}>⚔️</span>
+                ) : (
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      backgroundColor: getStatusColor(user.status),
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
                 {/* Avatar */}
                 <img
                   src={user.isVip && user.vipAvatar ? user.vipAvatar : getAvatarSrc(user.avatar)}

@@ -296,6 +296,13 @@ background: rgba(0, 165, 242, 0.04);
   z-index: 1;
 }
 
+/* Ship Select Content — scaled the same way as #gameContent */
+#shipSelectContent {
+  position: absolute;
+  width: 900px;
+  transform-origin: top left;
+}
+
 /* Game Content — explicit fixed size matching the designed layout;
    top/left set by JS scaler; NO flex/display change here */
 #gameContent {
@@ -441,7 +448,6 @@ background: rgba(0, 165, 242, 0.04);
   overflow-x: clip;
   overflow-y: visible;
   width: 730px;
-  max-width: calc(100vw - 120px);
   padding: 0 18px;       /* breathing room for edge-card hover scale */
   box-sizing: content-box;
 }
@@ -575,11 +581,7 @@ background: rgba(0, 165, 242, 0.04);
   z-index: 5000;
 }
 
-#loadingLogo {
-  width: 340px;
-  filter: drop-shadow(0 0 12px #0ff);
-  margin-bottom: 32px;
-}
+
 
 #loadingBarWrapper {
   width: 60vw;
@@ -1096,7 +1098,6 @@ background: rgba(0, 165, 242, 0.04);
 
   <!-- ⏳ TELA DE LOADING -->
   <div id="loadingScreen" style="display:flex;">
-    <img src="images/thorspace.png" id="loadingLogo" alt="Logo" />
     <div id="loadingBarWrapper">
       <div id="loadingBar"></div>
     </div>
@@ -1278,6 +1279,7 @@ background: rgba(0, 165, 242, 0.04);
   </div>
   <!-- ============================================================ -->
 
+  <div id="shipSelectContent">
   <!-- Squad header: title + subtitle -->
   <div style="text-align:center; margin-bottom:18px;">
     <div style="font-family:'Orbitron',sans-serif; font-size:15px; color:#00E5FF; letter-spacing:3px; font-weight:700;">FORMAÇÃO DE ESQUADRÃO</div>
@@ -1499,6 +1501,7 @@ background: rgba(0, 165, 242, 0.04);
   <div id="selectionTimerWrapper" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
     <span id="selectionTimerText" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFB84D; min-width:32px; text-align:center; letter-spacing:1px; display:inline-block; visibility:hidden;"></span>
   </div>
+  </div><!-- end #shipSelectContent -->
 </div>
 
 
@@ -10383,10 +10386,10 @@ if (typeof window !== 'undefined') {
   var BASE_H = 780;
   var MENU_H = 68;
 
-  function applyGameScale() {
-    var el = document.getElementById('gameContent');
-    if (!el) return;
+  var SS_W = 900;
+  var SS_H = 640;
 
+  function applyGameScale() {
     var vp = window.visualViewport;
     var vw = vp ? vp.width  : window.innerWidth;
     var vh = vp ? vp.height : window.innerHeight;
@@ -10394,15 +10397,29 @@ if (typeof window !== 'undefined') {
     var menuH  = vw > 768 ? MENU_H : 0;
     var availH = vh - menuH;
 
-    var scale = Math.min(1, vw / BASE_W, availH / BASE_H);
+    // ── Game canvas ──────────────────────────────────────────────
+    var el = document.getElementById('gameContent');
+    if (el) {
+      var scale = Math.min(1, vw / BASE_W, availH / BASE_H);
+      var x = (vw  - BASE_W * scale) / 2;
+      var y = menuH + (availH - BASE_H * scale) / 2;
+      el.style.left            = x + 'px';
+      el.style.top             = y + 'px';
+      el.style.transformOrigin = 'top left';
+      el.style.transform       = 'scale(' + scale.toFixed(5) + ')';
+    }
 
-    var x = (vw  - BASE_W * scale) / 2;
-    var y = menuH + (availH - BASE_H * scale) / 2;
-
-    el.style.left            = x + 'px';
-    el.style.top             = y + 'px';
-    el.style.transformOrigin = 'top left';
-    el.style.transform       = 'scale(' + scale.toFixed(5) + ')';
+    // ── Ship selection screen ─────────────────────────────────────
+    var ss = document.getElementById('shipSelectContent');
+    if (ss) {
+      var ssScale = Math.min(1, vw / SS_W, availH / SS_H);
+      var ssX = (vw  - SS_W * ssScale) / 2;
+      var ssY = menuH + (availH - SS_H * ssScale) / 2;
+      ss.style.left            = ssX + 'px';
+      ss.style.top             = ssY + 'px';
+      ss.style.transformOrigin = 'top left';
+      ss.style.transform       = 'scale(' + ssScale.toFixed(5) + ')';
+    }
   }
 
   window.addEventListener('resize', applyGameScale);
