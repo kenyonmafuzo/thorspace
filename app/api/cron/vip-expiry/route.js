@@ -11,10 +11,28 @@ import { NextResponse } from "next/server";
  */
 
 const PLAN_LABELS = {
-  "1day":   "1 Dia",
-  "7days":  "7 Dias",
-  "15days": "15 Dias",
-  "30days": "30 Dias",
+  "1day":   { pt: "1 Dia",    en: "1 Day",    es: "1 Día"    },
+  "7days":  { pt: "7 Dias",   en: "7 Days",   es: "7 Días"   },
+  "15days": { pt: "15 Dias",  en: "15 Days",  es: "15 Días"  },
+  "30days": { pt: "30 Dias",  en: "30 Days",  es: "30 Días"  },
+};
+
+const MESSAGES = {
+  pt: {
+    title:   (label) => `Seu pacote VIP ${label} chegou ao fim.`,
+    content: `Durante esse período você teve acesso a benefícios exclusivos, bônus especiais e vantagens estratégicas no campo de batalha.\n\n⚠️ Sua conta voltou ao modo padrão.\n\nNão deixe suas vantagens escaparem.\n\n🔥 Renove agora e continue dominando o universo.`,
+    cta:     "Renovar VIP",
+  },
+  en: {
+    title:   (label) => `Your VIP ${label} package has ended.`,
+    content: `During this period you had access to exclusive benefits, special bonuses and strategic advantages on the battlefield.\n\n⚠️ Your account is back to standard mode.\n\nDon't let your advantages slip away.\n\n🔥 Renew now and keep dominating the universe.`,
+    cta:     "Renew VIP",
+  },
+  es: {
+    title:   (label) => `Tu paquete VIP ${label} ha llegado a su fin.`,
+    content: `Durante este período tuviste acceso a beneficios exclusivos, bonos especiales y ventajas estratégicas en el campo de batalla.\n\n⚠️ Tu cuenta volvió al modo estándar.\n\nNo dejes que tus ventajas se escapen.\n\n🔥 Renueva ahora y sigue dominando el universo.`,
+    cta:     "Renovar VIP",
+  },
 };
 
 function getAdminClient() {
@@ -36,10 +54,10 @@ export async function GET(request) {
 
   const admin = getAdminClient();
 
-  // Buscar todos os perfis com VIP expirado
+  // Buscar todos os perfis com VIP expirado (+ settings para saber o idioma)
   const { data: expiredUsers, error } = await admin
     .from("profiles")
-    .select("id, vip_plan")
+    .select("id, vip_plan, settings")
     .eq("is_vip", true)
     .lt("vip_expires_at", new Date().toISOString());
 
@@ -68,20 +86,33 @@ export async function GET(request) {
 
       if (!existing) {
         const planId = user.vip_plan || "1day";
-        const planLabel = PLAN_LABELS[planId] || "VIP";
+
+        // Determinar idioma do usuário a partir de profiles.settings (ui.language)
+        let userLang = "pt";
+        try {
+          const settingsObj = typeof user.settings === "string"
+            ? JSON.parse(user.settings)
+            : user.settings;
+          const detected = settingsObj?.ui?.language;
+          if (detected && MESSAGES[detected]) userLang = detected;
+        } catch (_) {}
+
+        const msg = MESSAGES[userLang];
+        const planLabels = PLAN_LABELS[planId] || PLAN_LABELS["1day"];
+        const planLabel = planLabels[userLang] || planLabels.pt;
 
         await admin.from("inbox").insert([{
           user_id: user.id,
           type: "vip_expired",
-          title: `Seu pacote VIP ${planLabel} chegou ao fim.`,
-          content: `Durante esse período você teve acesso a benefícios exclusivos, bônus especiais e vantagens estratégicas no campo de batalha.\n\n⚠️ Sua conta voltou ao modo padrão.\n\nNão deixe suas vantagens escaparem.\n\n🔥 Renove agora e continue dominando o universo.`,
-          cta: "Renovar VIP",
+          title: msg.title(planLabel),
+          content: msg.content,
+          cta: msg.cta,
           cta_url: "/vip",
-          lang: "pt",
+          lang: userLang,
           created_at: new Date().toISOString(),
         }]);
 
-        console.log(`[VIP Cron] 📨 Notificação enviada → user: ${user.id} | plano: ${planId}`);
+        console.log(`[VIP Cron] 📨 Notificação enviada → user: ${user.id} | plano: ${planId} | lang: ${userLang}`);
       } else {
         skipped++;
       }
