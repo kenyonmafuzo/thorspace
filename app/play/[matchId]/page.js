@@ -159,10 +159,16 @@ export default function PlayPage({ params }) {
   };
 
   return (
-    <div style={{ width: "100vw", height: "100vh", margin: 0 }}>
+    <div style={{
+      position: "fixed",
+      top: 0, left: 0,
+      width: "100vw", height: "100dvh",
+      overflow: "hidden",
+      zIndex: 9999,
+    }}>
       <iframe
         src={`/game/thor.html?matchId=${encodeURIComponent(matchId)}`}
-        style={{ width: "100%", height: "100%", border: "none" }}
+        style={{ width: "100%", height: "100%", border: "none", display: "block" }}
         title="Thorspace"
       />
       <PlayerStatsModal

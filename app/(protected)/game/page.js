@@ -349,7 +349,14 @@ export default function GamePage() {
 
   return (
     <>
-      <div style={{ width: "100vw", height: "100dvh", overflow: "hidden" }}>
+      {/* position:fixed cobre o header do layout — jogo verdadeiramente full-screen */}
+      <div style={{
+        position: "fixed",
+        top: 0, left: 0,
+        width: "100vw", height: "100dvh",
+        overflow: "hidden",
+        zIndex: 9999,
+      }}>
         <iframe
           ref={iframeRef}
           onLoad={handleIframeLoad}
@@ -359,8 +366,6 @@ export default function GamePage() {
             height: "100%",
             border: "none",
             display: "block",
-            position: "relative",
-            zIndex: 1,
           }}
           allow="autoplay"
         />

@@ -10359,19 +10359,24 @@ if (typeof window !== 'undefined') {
 
 <script>
 // ── Responsive game scaling ──────────────────────────────────────────────────
-// Usa ResizeObserver para recalcular o scale sempre que o conteúdo muda
-// de tamanho (canvas aparece, banner aparece, etc.). Isso resolve o problema
-// de medir na carga com canvas display:none → scale=1 → jogo aparece grande.
-// Mínimo 0.60× para não ficar ilegível em telas muito pequenas.
+// O iframe agora é position:fixed cobrindo 100vw x 100dvh, então
+// window.innerWidth/innerHeight refletem o viewport real do browser.
+// O scaler usa ResizeObserver em #gameContent para recalcular quando
+// o canvas aparece (display:none → block) durante o jogo.
+// Mínimo 0.60× — abaixo disso para de reduzir.
 (function () {
   var MIN_SCALE = 0.60;
+  var _scaling = false; // previne loop
 
   function applyGameScale() {
+    if (_scaling) return;
     var el = document.getElementById('gameContent');
     var wrapper = document.getElementById('gameWrapper');
     if (!el || !wrapper) return;
 
-    // Resetar transform para medir o tamanho real do conteúdo
+    _scaling = true;
+
+    // Reset para medir o tamanho real sem transform aplicado
     el.style.transform = 'none';
     el.style.transformOrigin = '';
     el.style.marginTop = '';
@@ -10381,46 +10386,39 @@ if (typeof window !== 'undefined') {
     var contentW = el.offsetWidth;
     var contentH = el.offsetHeight;
 
-    // Conteúdo ainda não renderizado (canvas oculto na carga)
+    _scaling = false;
+
     if (!contentW || !contentH) return;
 
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-
     var scale = Math.max(MIN_SCALE, Math.min(1, vw / contentW, vh / contentH));
 
     if (scale < 1) {
+      _scaling = true;
       el.style.transform = 'scale(' + scale.toFixed(4) + ')';
       el.style.transformOrigin = 'top center';
       wrapper.style.justifyContent = 'flex-start';
       wrapper.style.paddingTop = '0';
-      // Centralizar verticalmente o bloco escalado
       var scaledH = contentH * scale;
       el.style.marginTop = Math.max(0, (vh - scaledH) / 2) + 'px';
+      _scaling = false;
     }
-    // else: scale=1, estilos já foram resetados acima
   }
 
-  // Re-calcula ao redimensionar janela
-  window.addEventListener('resize', applyGameScale);
-
-  // Re-calcula AUTOMATICAMENTE sempre que o conteúdo muda de tamanho
-  // (canvas passa de display:none para block, banner aparece, etc.)
   function startObserver() {
     var el = document.getElementById('gameContent');
     if (!el) return;
+
+    // ResizeObserver: re-calcula quando canvas aparece e muda o tamanho do conteúdo
     if (window.ResizeObserver) {
       var ro = new ResizeObserver(function() {
-        applyGameScale();
+        if (!_scaling) requestAnimationFrame(applyGameScale);
       });
       ro.observe(el);
     }
-    // Fallback: MutationObserver para mudanças de display em filhos
-    var mo = new MutationObserver(function() {
-      requestAnimationFrame(applyGameScale);
-    });
-    mo.observe(el, { attributes: true, subtree: true, attributeFilter: ['style'] });
 
+    window.addEventListener('resize', applyGameScale);
     applyGameScale();
   }
 
@@ -10430,7 +10428,6 @@ if (typeof window !== 'undefined') {
     startObserver();
   }
 
-  // Expor globalmente para o código do jogo chamar manualmente se precisar
   window.applyGameScale = applyGameScale;
 })();
 </script>
