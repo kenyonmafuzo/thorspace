@@ -2223,15 +2223,20 @@ let mpPhase = 'SHIP_SELECT'; // SHIP_SELECT|ROUND_BANNER|PLANNING|RESOLVING|ANIM
 function ensurePvpInteractivePhase(context) {
   try {
     if (!multiplayerMode) return;
-    // Only force phase to 'select' if it's not already interactive
+    // Resetar APENAS o phase de UI do round (roundText/select/selectMove/resolve...)
+    // NUNCA tocar em currentPhase, que é o estado do match (select/battle/finished)
+    // e é usado pelo sistema de WO, heartbeat e beforeunload.
     if (typeof phase !== 'undefined' && phase !== 'select') {
       debug.pvp('[PVP][PHASE][GUARD] Forçando phase="select" no início do turno multiplayer. Contexto:', context, '| phase antes:', phase);
       phase = 'select';
     }
-    if (typeof currentPhase !== 'undefined' && currentPhase !== 'select') {
-      debug.pvp('[PVP][PHASE][GUARD] Forçando currentPhase="select" no início do turno multiplayer. Contexto:', context, '| currentPhase antes:', currentPhase);
-      currentPhase = 'select';
-    }
+    // REMOVIDO: currentPhase NÃO deve ser resetado aqui.
+    // currentPhase representa o estado do match (select/battle/finished) e só
+    // deve ser alterado por: initMultiplayerMode, applyMatchUpdate, applyWalkover.
+    // Resetar currentPhase para 'select' aqui quebrava toda a detecção de WO:
+    //   - checkOpponentHeartbeat() guarda if (currentPhase !== 'battle') return
+    //   - presence leave handler guarda if (currentPhase === 'battle')
+    //   - beforeunload do jogador que sai guarda if (currentPhase === 'battle')
   } catch (err) {
     console.error('[PVP][PHASE][GUARD] Erro ao garantir phase select:', err);
   }
@@ -4600,6 +4605,14 @@ async function handleMatchUpdate(payload) {
   // (E) REGRA PRINCIPAL: se phase === 'battle', iniciar batalha 1 vez
   if (phase === 'battle' && !battleStartApplied) {
     battleStartApplied = true;
+    // Atualizar currentPhase para 'battle' ANTES de iniciar batalha.
+    // Isso é crítico para que todos os sistemas de WO (heartbeat, beforeunload,
+    // presence leave) saibam que o match está em batalha.
+    if (currentPhase !== 'battle') {
+      currentPhase = 'battle';
+      battleStartedAt = Date.now();
+      debug.pvp('[PHASE] currentPhase → battle (handleMatchUpdate)');
+    }
     startBattleFromSelection();
     return;
   }
@@ -4613,6 +4626,11 @@ async function handleMatchUpdate(payload) {
       
       if (freshPhase === 'battle' && !battleStartApplied) {
         battleStartApplied = true;
+        if (currentPhase !== 'battle') {
+          currentPhase = 'battle';
+          battleStartedAt = Date.now();
+          debug.pvp('[PHASE] currentPhase → battle (handleMatchUpdate fallback REST)');
+        }
         startBattleFromSelection();
         return;
       }
