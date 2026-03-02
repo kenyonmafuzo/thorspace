@@ -304,6 +304,17 @@ background: rgba(0, 165, 242, 0.04);
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-top: 26px;
+  box-sizing: border-box;
+}
+
+/* Center the Ready/Waiting button irrespective of scale */
+#shipReadyBtnWrapper {
+  width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 0;
 }
 
 /* Game Content — explicit fixed size matching the designed layout;
@@ -1498,12 +1509,15 @@ background: rgba(0, 165, 242, 0.04);
     <button id="carouselNextBtn" onclick="naveCarouselMove(1)" class="carousel-arrow-btn">&#8594;</button>
   </div><!-- end #naveCarouselOuter -->
 
-  <button id="startGameBtn" onclick="startGameAfterSelection()" style="display:none; margin-top:34px; background: linear-gradient(90deg, #07d8ff, #005ea8 70%); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 22px; border: none; border-radius: 8px; padding: 10px 44px; letter-spacing: 2px; box-shadow: 0 0 20px #0ff5; cursor: pointer; transition: background 0.3s;">Iniciar Jogo</button>
+  <!-- Wrapper dedicado para centralizar o botão Pronto/Aguardando -->
+  <div id="shipReadyBtnWrapper">
+    <button id="startGameBtn" onclick="startGameAfterSelection()" style="display:none; background: linear-gradient(90deg, #07d8ff, #005ea8 70%); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 22px; border: none; border-radius: 8px; padding: 10px 44px; letter-spacing: 2px; box-shadow: 0 0 20px #0ff5; cursor: pointer; transition: background 0.3s;">Iniciar Jogo</button>
 
-  <!-- Timer de seleção multiplayer -->
-  <div id="selectionTimerWrapper" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
-    <span id="selectionTimerText" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFB84D; min-width:32px; text-align:center; letter-spacing:1px; display:inline-block; visibility:hidden;"></span>
-  </div>
+    <!-- Timer de seleção multiplayer -->
+    <div id="selectionTimerWrapper" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
+      <span id="selectionTimerText" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFB84D; min-width:32px; text-align:center; letter-spacing:1px; display:inline-block; visibility:hidden;"></span>
+    </div>
+  </div><!-- end #shipReadyBtnWrapper -->
   </div><!-- end #shipSelectContent -->
 </div>
 
