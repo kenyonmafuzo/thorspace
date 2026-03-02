@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
+import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 
 
 export default function ModePage() {
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
-    const [authChecked, setAuthChecked] = useState(false);
+    const { userId, isLoading: statsLoading } = useUserStats();
     
     // Reload automático após signup, só na primeira visita
     useEffect(() => {
@@ -64,42 +64,18 @@ export default function ModePage() {
   const router = useRouter();
   const { t } = useI18n();
 
+  // Auth guard via context — sem network call, instantâneo após hydration
   useEffect(() => {
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
-
-      if (!session) {
-        router.replace("/login");
-        return;
-      }
-
-      const username = localStorage.getItem("thor_username");
-      if (!username) {
-        router.replace("/username");
-        return;
-      }
-
-      // Autenticação verificada, pode renderizar
-      setAuthChecked(true);
-    })();
-  }, [router]);
-
-  // Não renderiza nada até verificar autenticação
-  if (!authChecked) {
-    return (
-      <div style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#000016',
-        color: '#E6FBFF'
-      }}>
-        <div style={{ opacity: 0.7, fontSize: 14 }}>Carregando...</div>
-      </div>
-    );
-  }
+    if (statsLoading) return;
+    if (!userId) {
+      router.replace("/login");
+      return;
+    }
+    const username = localStorage.getItem("thor_username");
+    if (!username) {
+      router.replace("/username");
+    }
+  }, [userId, statsLoading, router]);
 
   return (
     <>

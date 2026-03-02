@@ -14,7 +14,7 @@ import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 import { checkBadgesAfterMultiplayerWin, checkAllBadgesForUser } from "@/lib/badgesIntegration";
 
 export default function MultiplayerPage() {
-    const { userStats, isLoading: statsLoading } = useUserStats();
+    const { userStats, isLoading: statsLoading, userId: contextUserId } = useUserStats();
   const router = useRouter();
   const { t } = useI18n();
   const [currentUser, setCurrentUser] = useState(null);
@@ -30,6 +30,14 @@ export default function MultiplayerPage() {
   setIsProfileOpen(false);
   setSelectedPlayer(null);
 };
+
+  // Fast-path: assim que userId chega do contexto, libera a auth gate sem esperar rede
+  useEffect(() => {
+    if (contextUserId && !authChecked) {
+      setCurrentUser((prev) => prev ?? { id: contextUserId });
+      setAuthChecked(true);
+    }
+  }, [contextUserId, authChecked]);
 
 
   // Adicionar animação CSS
@@ -148,27 +156,30 @@ export default function MultiplayerPage() {
 
     (async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) console.error("getSession error:", error);
-
-        const session = data?.session ?? null;
-        const user = session?.user ?? (await supabase.auth.getUser()).data?.user ?? null;
-
-        if (!user) {
-          console.warn("[Multiplayer] Sem usuário autenticado");
+        // Fast-path: se userId já veio do contexto, não precisa de getSession (rede)
+        let user = null;
+        if (contextUserId) {
+          user = { id: contextUserId };
           if (mounted) {
-            setLoading(false);
-            clearTimeout(safetyTimeout);
+            setCurrentUser(user);
+            setAuthChecked(true);
           }
-          router.replace("/login");
-          return;
-        }
-
-        // ✅ Seta currentUser IMEDIATAMENTE para evitar "Não autenticado"
-        if (mounted) {
-          console.log("[Multiplayer] Usuário autenticado:", user.id);
-          setCurrentUser(user);
-          setAuthChecked(true);
+        } else {
+          const { data, error } = await supabase.auth.getSession();
+          if (error) console.error("getSession error:", error);
+          const session = data?.session ?? null;
+          user = session?.user ?? (await supabase.auth.getUser()).data?.user ?? null;
+          if (!user) {
+            console.warn("[Multiplayer] Sem usuário autenticado");
+            if (mounted) { setLoading(false); clearTimeout(safetyTimeout); }
+            router.replace("/login");
+            return;
+          }
+          if (mounted) {
+            console.log("[Multiplayer] Usuário autenticado:", user.id);
+            setCurrentUser(user);
+            setAuthChecked(true);
+          }
         }
 
         if (!mounted) return;

@@ -23,6 +23,7 @@ interface PlayerStats {
 }
 
 interface UserStatsContextType {
+  userId: string | null;
   userStats: PlayerProgress | null;
   playerProgress: PlayerProgress | null;
   playerStats: PlayerStats | null;
@@ -539,6 +540,7 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUserStats]);
 
   const value: UserStatsContextType = {
+    userId,
     userStats,
     playerProgress,
     playerStats,
