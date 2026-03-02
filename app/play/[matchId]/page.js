@@ -135,30 +135,34 @@ export default function PlayPage({ params }) {
 
   // Track as "playing" in the shared presence channel while on game screen
   useEffect(() => {
-    const userId = localStorage.getItem("thor_user_id");
-    const username = localStorage.getItem("thor_username");
-    const avatar = localStorage.getItem("thor_avatar") || "normal";
-    if (!userId || !username) return;
+    let ch;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const userId = data?.session?.user?.id;
+      const username = localStorage.getItem("thor_username");
+      const avatar = localStorage.getItem("thor_avatar") || "normal";
+      if (!userId || !username) return;
 
-    const ch = supabase.channel("presence:online-users", {
-      config: { presence: { key: userId } },
-    });
-    ch.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await ch.track({
-          user_id: userId,
-          username,
-          avatar,
-          online_at: new Date().toISOString(),
-          status: "playing",
-          is_vip: localStorage.getItem("thor_is_vip") === "true",
-          vip_name_color: localStorage.getItem("thor_vip_name_color") || "#FFD700",
-          vip_frame_color: localStorage.getItem("thor_vip_frame_color") || "#FFD700",
-          vip_avatar: localStorage.getItem("thor_vip_avatar") || null,
-        });
-      }
-    });
-    return () => { supabase.removeChannel(ch); };
+      ch = supabase.channel("presence:online-users", {
+        config: { presence: { key: userId } },
+      });
+      ch.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await ch.track({
+            user_id: userId,
+            username,
+            avatar,
+            online_at: new Date().toISOString(),
+            status: "playing",
+            is_vip: localStorage.getItem("thor_is_vip") === "true",
+            vip_name_color: localStorage.getItem("thor_vip_name_color") || "#FFD700",
+            vip_frame_color: localStorage.getItem("thor_vip_frame_color") || "#FFD700",
+            vip_avatar: localStorage.getItem("thor_vip_avatar") || null,
+          });
+        }
+      });
+    })();
+    return () => { if (ch) supabase.removeChannel(ch); };
   }, []);
 
   const handleShotTypeChange = async (shotType) => {

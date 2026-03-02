@@ -301,6 +301,9 @@ background: rgba(0, 165, 242, 0.04);
   position: absolute;
   width: 900px;
   transform-origin: top left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* Game Content — explicit fixed size matching the designed layout;
@@ -10398,6 +10401,7 @@ if (typeof window !== 'undefined') {
   var BASE_W = 800;
   var BASE_H = 780;
   var MENU_H = 68;
+  var GAP    = 10; // minimum gap between menu and scaled content
 
   var SS_W = 900;
   var SS_H = 640;
@@ -10415,7 +10419,7 @@ if (typeof window !== 'undefined') {
     if (el) {
       var scale = Math.min(1, vw / BASE_W, availH / BASE_H);
       var x = (vw  - BASE_W * scale) / 2;
-      var y = menuH + (availH - BASE_H * scale) / 2;
+      var y = Math.max(menuH + GAP, menuH + (availH - BASE_H * scale) / 2);
       el.style.left            = x + 'px';
       el.style.top             = y + 'px';
       el.style.transformOrigin = 'top left';
@@ -10427,7 +10431,7 @@ if (typeof window !== 'undefined') {
     if (ss) {
       var ssScale = Math.min(1, vw / SS_W, availH / SS_H);
       var ssX = (vw  - SS_W * ssScale) / 2;
-      var ssY = menuH + (availH - SS_H * ssScale) / 2;
+      var ssY = Math.max(menuH + GAP, menuH + (availH - SS_H * ssScale) / 2);
       ss.style.left            = ssX + 'px';
       ss.style.top             = ssY + 'px';
       ss.style.transformOrigin = 'top left';

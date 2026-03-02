@@ -330,6 +330,11 @@ export default function MultiplayerPage() {
 
                 console.log("[MATCH SYNC] ✅ Navegando para /game com matchId:", payload.new.id);
                 
+                // 🎮 Signal OnlineNow to flip our status to "playing" before we leave presence
+                window.dispatchEvent(new CustomEvent('thor:going_to_game'));
+                // Brief pause so the presence UPDATE reaches other clients before the LEAVE
+                await new Promise(r => setTimeout(r, 350));
+
                 // 🎮 NAVEGAÇÃO: Redirecionar para tela de jogo
                 router.push(`/game?mode=multiplayer&matchId=${payload.new.id}`);
               } catch (error) {

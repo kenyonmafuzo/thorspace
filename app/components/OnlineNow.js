@@ -44,10 +44,29 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
     }, 200);
   }, [search, onlineUsers, currentUserId]);
 
+  // When we're about to navigate to the game, flip our own presence status
+  // to "playing" so others see the battle icon before we leave the channel.
   useEffect(() => {
-    if (!currentUserId || !currentUsername) return;
+    const handleGoingToGame = async () => {
+      const ch = presenceChannelRef.current;
+      if (!ch || !isTrackedRef.current) return;
+      await ch.track({
+        user_id: currentUserId,
+        username: currentUsername,
+        avatar: currentAvatar || 'normal',
+        online_at: new Date().toISOString(),
+        status: 'playing',
+        is_vip: localStorage.getItem('thor_is_vip') === 'true',
+        vip_name_color: localStorage.getItem('thor_vip_name_color') || '#FFD700',
+        vip_frame_color: localStorage.getItem('thor_vip_frame_color') || '#FFD700',
+        vip_avatar: localStorage.getItem('thor_vip_avatar') || null,
+      });
+    };
+    window.addEventListener('thor:going_to_game', handleGoingToGame);
+    return () => window.removeEventListener('thor:going_to_game', handleGoingToGame);
+  }, [currentUserId, currentUsername, currentAvatar]);
 
-    const startPresence = () => {
+  useEffect(() => {
 
       // Remover apenas o canal anterior deste componente
       if (presenceChannelRef.current) {
