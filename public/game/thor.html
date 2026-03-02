@@ -296,11 +296,13 @@ background: rgba(0, 165, 242, 0.04);
   z-index: 1;
 }
 
-/* Game Content — left/top set by JS scaler; transform-origin center so scale() is symmetric */
+/* Game Content — explicit fixed size matching the designed layout;
+   top/left set by JS scaler; NO flex/display change here */
 #gameContent {
   position: absolute;
-  transform-origin: center center;
-  flex-shrink: 0;
+  width: 800px;
+  height: 780px;
+  transform-origin: top left;
 }
 
 /* Restante dos estilos do seu jogo, se houver... */
@@ -1223,7 +1225,8 @@ background: rgba(0, 165, 242, 0.04);
     style="width:800px; margin-top:10px; text-align:center; color:#fff; font-family:'Orbitron',sans-serif; font-size:18px; letter-spacing:1px; text-shadow:0 0 9px #0ff8;">
   </div>
     
-  </div>
+  <!-- NOTE: closing </div> of #gameContent was here and was REMOVED -->
+  <!-- canvas wrapper and matchupBanner are now correctly INSIDE #gameContent -->
   
   <div style="position: relative; width: 800px; height: 600px;">
    <canvas id="gameCanvas" width="800" height="600"
@@ -10361,56 +10364,47 @@ if (typeof window !== 'undefined') {
 
 <script>
 // ── AAA Resolution Scaling ──────────────────────────────────────────────────
-// Fixed base resolution 800×800 (canvas 800×600 + HUD + player banner).
-// The game runs inside an iframe that covers 100vw × 100dvh.
-// The Next.js UserHeader sits on top (z-index 10020) and is ~68px tall on
-// desktop / hidden on mobile. We must center #gameContent in the area
-// BELOW the header, not in the full screen.
-//
-// Formula:
-//   menuH  = 68px on desktop (>768px), 0px on mobile
-//   availH = viewport_h - menuH
-//   scale  = min(viewport_w / BASE_W, availH / BASE_H, 1.0)
-//   centerX = viewport_w / 2
-//   centerY = menuH + availH / 2
-//   transform = translate(-50%, -50%) scale(scale)
-//   (translate centers element origin on centerX/centerY;
-//    scale shrinks symmetrically — transform-origin: center center)
+// Fixed base resolution: 800 × 780
+//   800 = canvas width
+//   780 = HUD(72) + shipTypeArea(28) + canvas(600) + matchupBanner(58) + buffer
+// #gameContent has width:800px height:780px in CSS.
+// transform-origin: top left — math is straightforward:
+//   scale  = min(vw / 800, availH / 780, 1)
+//   x      = (vw  - 800 * scale) / 2         ← center horizontally
+//   y      = menuH + (availH - 780 * scale) / 2   ← center in available area
+//   transform: scale(scale)   (origin top-left, so left/top are final positions)
+// menuH = 68px on desktop (>768px), 0 on mobile (header hidden via CSS).
 (function () {
-  var BASE_W  = 800;
-  var BASE_H  = 800;
-  var MENU_H_DESKTOP = 68; // UserHeader rendered height on desktop
+  var BASE_W = 800;
+  var BASE_H = 780;
+  var MENU_H = 68;
 
   function applyGameScale() {
     var el = document.getElementById('gameContent');
     if (!el) return;
 
-    var vp  = window.visualViewport;
-    var vw  = vp ? vp.width  : window.innerWidth;
-    var vh  = vp ? vp.height : window.innerHeight;
+    var vp = window.visualViewport;
+    var vw = vp ? vp.width  : window.innerWidth;
+    var vh = vp ? vp.height : window.innerHeight;
 
-    // Desktop header is hidden via CSS at ≤1₂768px
-    var menuH = vw > 768 ? MENU_H_DESKTOP : 0;
-
-    var availW = vw;
+    var menuH  = vw > 768 ? MENU_H : 0;
     var availH = vh - menuH;
 
-    var scale = Math.min(1, availW / BASE_W, availH / BASE_H);
+    var scale = Math.min(1, vw / BASE_W, availH / BASE_H);
 
-    var cx = vw / 2;
-    var cy = menuH + availH / 2;
+    var x = (vw  - BASE_W * scale) / 2;
+    var y = menuH + (availH - BASE_H * scale) / 2;
 
-    el.style.left      = cx + 'px';
-    el.style.top       = cy + 'px';
-    el.style.transform =
-      'translate(-50%, -50%) scale(' + scale.toFixed(5) + ')';
+    el.style.left            = x + 'px';
+    el.style.top             = y + 'px';
+    el.style.transformOrigin = 'top left';
+    el.style.transform       = 'scale(' + scale.toFixed(5) + ')';
   }
 
   window.addEventListener('resize', applyGameScale);
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', applyGameScale);
   }
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', applyGameScale);
   } else {
