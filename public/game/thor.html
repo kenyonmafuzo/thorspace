@@ -6449,8 +6449,10 @@ function initCpuNaves() {
 
 canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
-  mouseX = e.clientX - rect.left;
-  mouseY = e.clientY - rect.top;
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  mouseX = (e.clientX - rect.left) * scaleX;
+  mouseY = (e.clientY - rect.top) * scaleY;
 });
 
 // ===============================
@@ -6469,8 +6471,10 @@ function handleCanvasClick(event) {
   }
   
   const rect = canvas.getBoundingClientRect();
-  const clickX = event.clientX - rect.left;
-  const clickY = event.clientY - rect.top;
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clickX = (event.clientX - rect.left) * scaleX;
+  const clickY = (event.clientY - rect.top) * scaleY;
   
 
   // FASE 1: Selecionar nave (se ainda não há nave selecionada)
