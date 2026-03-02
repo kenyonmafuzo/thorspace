@@ -113,6 +113,15 @@ export default function ModePage() {
           .mobile-only-notice { display: flex; }
           .mode-desktop-content { display: none; }
         }
+        /* Scale down content on smaller desktops so nothing clips or crowds the header */
+        @media (min-width: 769px) and (max-width: 1100px) {
+          #modeSelectionScreen h2 { font-size: 22px !important; margin-bottom: 32px !important; }
+          .mode-btn { width: 200px !important; font-size: 14px !important; padding: 10px 20px !important; }
+        }
+        @media (min-width: 769px) and (max-width: 900px) {
+          #modeSelectionScreen h2 { font-size: 18px !important; margin-bottom: 24px !important; }
+          .mode-btn { width: 180px !important; font-size: 13px !important; padding: 9px 16px !important; }
+        }
       `}</style>
       <div className="mobile-only-notice" style={{
         position: "fixed", inset: 0, zIndex: 9998,
@@ -290,10 +299,10 @@ Boas batalhas!`}
         id="modeSelectionScreen"
         style={{
           position: "fixed",
-          top: 0,
+          top: 58,
           left: 0,
           width: "100vw",
-          height: "100vh",
+          height: "calc(100vh - 58px)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
