@@ -3351,15 +3351,20 @@ async function initMultiplayerMode(matchId) {
     window._accessToken = urlParams.access_token || null;
     debug.pvp('[PVP] ✓ Supabase client criado');
     
-    // STEP 3: Autenticar via tokens (se disponíveis) - ANTES de qualquer query
+    // STEP 3: Autenticar via tokens — prefer tokens delivered via THOR:INIT (fresh)
+    //         over URL params (may be stale if the user waited a while).
     let authenticatedUser = null;
-    
-    if (urlParams.access_token && urlParams.refresh_token) {
+
+    const authTokens = window.__initTokens || {};
+    const effectiveAccessToken  = authTokens.access_token  || urlParams.access_token;
+    const effectiveRefreshToken = authTokens.refresh_token || urlParams.refresh_token;
+
+    if (effectiveAccessToken && effectiveRefreshToken) {
       
       try {
         const { data: sessionData, error: sessionError } = await supabaseClient.auth.setSession({
-          access_token: urlParams.access_token,
-          refresh_token: urlParams.refresh_token
+          access_token: effectiveAccessToken,
+          refresh_token: effectiveRefreshToken
         });
         
         if (sessionError) {
@@ -9463,6 +9468,14 @@ showOnly("modeSelectionScreen");
         const initMode = String(payload.mode || 'practice');
         const userId = payload.userId;
         const matchId = payload.matchId;
+
+        // Cache fresh tokens delivered via postMessage (preferred over URL params)
+        if (payload.access_token && payload.refresh_token) {
+          window.__initTokens = {
+            access_token: payload.access_token,
+            refresh_token: payload.refresh_token
+          };
+        }
 
         // Armazenar dados do jogador ANTES de qualquer inicialização
         if (userId && initName) {

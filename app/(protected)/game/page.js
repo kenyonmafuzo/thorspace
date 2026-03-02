@@ -92,8 +92,13 @@ export default function GamePage() {
         const isMultiplayer = mode === "multiplayer" && matchId;
 
         if (isMultiplayer) {
+          // Always fetch a FRESH session at iframe-load time so the token
+          // passed to initMultiplayerMode is not stale.
+          const { data: freshData } = await supabase.auth.getSession();
+          const freshToken = freshData?.session?.access_token || '';
+          const freshRefresh = freshData?.session?.refresh_token || '';
           win.postMessage(
-            { type: "THOR:INIT", payload: { userId, username, matchId } },
+            { type: "THOR:INIT", payload: { userId, username, matchId, access_token: freshToken, refresh_token: freshRefresh } },
             window.location.origin
           );
           console.log("[GamePage] Multiplayer INIT — userId:", userId, "matchId:", matchId);
