@@ -35,6 +35,12 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
 
+  // Delete account
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   const loadProfileData = async () => {
     // Timeout de segurança
     const safetyTimeout = setTimeout(() => {
@@ -405,6 +411,39 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteInput !== "DELETE") {
+      setDeleteError("Digite DELETE para confirmar.");
+      return;
+    }
+    setDeleteLoading(true);
+    setDeleteError("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      const accessToken = data?.session?.access_token;
+      if (!accessToken) throw new Error("Sessão expirada. Faça login novamente.");
+
+      const res = await fetch("/api/account/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ confirmation: "DELETE" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Erro ao deletar conta.");
+
+      // Fazer logout local e redirecionar
+      await supabase.auth.signOut();
+      localStorage.clear();
+      router.replace("/login");
+    } catch (e) {
+      setDeleteError(e.message || "Erro inesperado.");
+      setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ color: "#FFF", minHeight: "100vh", padding: "40px 20px", background: "transparent" }} className="profile-outer">
@@ -687,7 +726,114 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
+
+        {/* Zona de Perigo */}
+        <div style={{ marginBottom: 40 }}>
+          <button
+            onClick={() => { setDeleteModalOpen(true); setDeleteInput(""); setDeleteError(""); }}
+            style={deleteButtonStyle}
+          >
+            Deletar Conta
+          </button>
+        </div>
       </main>
+
+      {/* Modal de confirmação de deleção */}
+      {deleteModalOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 9999,
+          background: "rgba(0,0,0,0.85)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20,
+        }}>
+          <div style={{
+            background: "linear-gradient(135deg, #0d0a0a 0%, #1a0a0a 100%)",
+            border: "1.5px solid rgba(255,60,60,0.45)",
+            borderRadius: 16,
+            padding: 32,
+            maxWidth: 420,
+            width: "100%",
+            boxShadow: "0 0 40px rgba(255,30,30,0.2)",
+            fontFamily: "inherit",
+          }}>
+            <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 20, fontWeight: 800, color: "#FF4444", marginBottom: 12 }}>
+              ⚠️ Deletar Conta
+            </h2>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", marginBottom: 8, lineHeight: 1.6 }}>
+              Esta ação é <strong style={{ color: "#FF4444" }}>permanente e irreversível</strong>. Todo o seu progresso será apagado:
+            </p>
+            <ul style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", marginBottom: 20, paddingLeft: 20, lineHeight: 2 }}>
+              <li>Perfil e username</li>
+              <li>Ranking e XP</li>
+              <li>Histórico de partidas</li>
+              <li>Amigos e mensagens</li>
+              <li>Badges e conquistas</li>
+            </ul>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 10 }}>
+              Para confirmar, digite <strong style={{ color: "#FF4444", letterSpacing: 2 }}>DELETE</strong> abaixo:
+            </p>
+            <input
+              type="text"
+              value={deleteInput}
+              onChange={(e) => { setDeleteInput(e.target.value); setDeleteError(""); }}
+              placeholder="DELETE"
+              autoFocus
+              disabled={deleteLoading}
+              style={{
+                ...inputStyle,
+                borderColor: deleteInput === "DELETE" ? "rgba(255,60,60,0.6)" : "rgba(255,255,255,0.15)",
+                marginBottom: 8,
+                letterSpacing: 2,
+                textAlign: "center",
+                fontWeight: 700,
+              }}
+            />
+            {deleteError && (
+              <p style={{ fontSize: 12, color: "#FFB3B3", marginBottom: 10 }}>{deleteError}</p>
+            )}
+            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                disabled={deleteLoading}
+                style={{
+                  flex: 1,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "#FFF",
+                  padding: "11px 0",
+                  borderRadius: 8,
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  opacity: deleteLoading ? 0.5 : 1,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || deleteInput !== "DELETE"}
+                style={{
+                  flex: 1,
+                  background: deleteInput === "DELETE" ? "rgba(255,40,40,0.18)" : "rgba(255,40,40,0.06)",
+                  border: "1.5px solid rgba(255,40,40,0.5)",
+                  color: deleteInput === "DELETE" ? "#FF4444" : "rgba(255,68,68,0.4)",
+                  padding: "11px 0",
+                  borderRadius: 8,
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: deleteInput === "DELETE" && !deleteLoading ? "pointer" : "not-allowed",
+                  transition: "all 0.2s",
+                }}
+              >
+                {deleteLoading ? "Deletando..." : "Confirmar Deleção"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -731,4 +877,17 @@ const statCardStyle = {
   borderRadius: 8,
   padding: 12,
   textAlign: "center",
+};
+
+const deleteButtonStyle = {
+  background: "rgba(255,40,40,0.06)",
+  border: "1px solid rgba(255,40,40,0.3)",
+  color: "rgba(255,80,80,0.8)",
+  padding: "10px 20px",
+  borderRadius: 6,
+  fontSize: 12,
+  fontWeight: 600,
+  fontFamily: "'Orbitron', sans-serif",
+  cursor: "pointer",
+  transition: "all 0.2s",
 };
