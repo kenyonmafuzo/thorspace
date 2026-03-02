@@ -10359,48 +10359,64 @@ if (typeof window !== 'undefined') {
 
 <script>
 // ── Responsive game scaling ──────────────────────────────────────────────────
-// Scales #gameContent down so canvas + HUD + player banner all fit on screen.
-// Reference size: 840×760 (800px canvas + breathing room + HUD/banner below).
-// Minimum scale: 0.65 — stops shrinking beyond that so tiny screens still show
-// the game instead of a stamp-sized canvas.
+// Mede o tamanho REAL do #gameContent (sem transform) e calcula o scale
+// necessário para caber inteiramente na viewport — nada cortado, sem scroll.
+// Mínimo de 0.60× para não ficar ilegível em telas muito pequenas.
 (function () {
-  var GAME_W = 840;
-  var GAME_H = 760;
-  var MIN_SCALE = 0.65;
+  var MIN_SCALE = 0.60;
+  var _measuredW = 0;
+  var _measuredH = 0;
+
+  function measureContent(el) {
+    // Remover transform temporariamente para medir tamanho real
+    var prev = el.style.transform;
+    el.style.transform = 'none';
+    var rect = el.getBoundingClientRect();
+    _measuredW = rect.width  || el.offsetWidth  || 840;
+    _measuredH = rect.height || el.offsetHeight || 800;
+    el.style.transform = prev;
+  }
 
   function applyGameScale() {
     var el = document.getElementById('gameContent');
     var wrapper = document.getElementById('gameWrapper');
     if (!el || !wrapper) return;
 
+    // Mede o conteúdo real (sem transform vigente para não distorcer)
+    el.style.transform = 'none';
+    el.style.transformOrigin = '';
+    el.style.marginTop = '';
+    wrapper.style.justifyContent = '';
+    wrapper.style.paddingTop = '';
+
+    var contentW = el.offsetWidth  || 840;
+    var contentH = el.offsetHeight || 800;
+
     var vw = window.innerWidth;
     var vh = window.innerHeight;
-    var scale = Math.max(MIN_SCALE, Math.min(1, vw / GAME_W, vh / GAME_H));
+
+    var scaleW = vw / contentW;
+    var scaleH = vh / contentH;
+    var scale = Math.max(MIN_SCALE, Math.min(1, scaleW, scaleH));
 
     if (scale < 1) {
       el.style.transform = 'scale(' + scale.toFixed(4) + ')';
       el.style.transformOrigin = 'top center';
-      // Switch wrapper to top-aligned so we can control vertical position manually
       wrapper.style.justifyContent = 'flex-start';
       wrapper.style.paddingTop = '0';
-      // Visually center the scaled-down content
-      var scaledH = GAME_H * scale;
+      // Centralizar verticalmente o bloco escalado
+      var scaledH = contentH * scale;
       el.style.marginTop = Math.max(0, (vh - scaledH) / 2) + 'px';
-    } else {
-      // Full size: restore original wrapper styles
-      el.style.transform = '';
-      el.style.transformOrigin = '';
-      el.style.marginTop = '';
-      wrapper.style.justifyContent = '';
-      wrapper.style.paddingTop = '';
     }
+    // else: scale=1, sem transform (já resetado acima)
   }
 
   window.addEventListener('resize', applyGameScale);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', applyGameScale);
   } else {
-    applyGameScale();
+    // Aguardar um frame para o layout estar renderizado antes de medir
+    requestAnimationFrame(function() { requestAnimationFrame(applyGameScale); });
   }
 })();
 </script>
