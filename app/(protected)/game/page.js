@@ -74,6 +74,8 @@ export default function GamePage() {
     });
     return () => { supabase.removeChannel(ch); };
   }, []);
+
+  function handleIframeLoad() {
     finalizedRef.current = false;
     console.log("[GamePage] Iframe loaded");
 
