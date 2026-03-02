@@ -58,6 +58,7 @@ async function activateVip(userId, planId) {
     .update({
       is_vip: true,
       vip_expires_at: newExpiry.toISOString(),
+      vip_plan: planId,
     })
     .eq("id", userId);
 

@@ -62,7 +62,7 @@ async function activateVip(admin, userId, planId) {
 
   const { error } = await admin
     .from("profiles")
-    .update({ is_vip: true, vip_expires_at: newExpiry.toISOString() })
+    .update({ is_vip: true, vip_expires_at: newExpiry.toISOString(), vip_plan: planId })
     .eq("id", userId);
 
   if (error) throw error;
