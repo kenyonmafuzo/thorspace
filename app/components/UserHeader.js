@@ -108,9 +108,8 @@ export default function UserHeader() {
     return () => window.removeEventListener("thor_stats_updated", handleStatsUpdated);
   }, [refreshUserStats]);
 
-  // Só renderiza skeleton se realmente não houver dados
-  // Permite renderizar header com dados do bootstrap mesmo durante loading inicial
-  const hasMinimalData = userStats && playerProgress && userStats.username;
+  // Só exige username mínimo — playerProgress é bonus, não bloqueia
+  const hasMinimalData = userStats && userStats.username;
   
   if (!hasMinimalData) {
     return (

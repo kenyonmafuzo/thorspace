@@ -106,6 +106,10 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         const statsData = statsRes.data ?? { matches: 0, matches_played: 0, wins: 0, losses: 0, draws: 0, ships_destroyed: 0, ships_lost: 0 };
           const username = profile?.username ?? undefined;
           const avatarPreset = profile?.avatar_preset ?? undefined;
+        // Fallback: se profile não retornou username, tenta localStorage
+        const resolvedUsername = (username && !username.startsWith('user_'))
+          ? username
+          : (typeof window !== 'undefined' ? (localStorage.getItem('thor_username') || username) : username);
         if (typeof window !== "undefined") {
           const saved = localStorage.getItem("thor_username");
             if (username?.startsWith("user_") && saved) {
@@ -116,7 +120,7 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         }
         const mergedStats = progressData ? {
           ...progressData,
-            username: (username && !username.startsWith("user_")) ? username : undefined,
+            username: resolvedUsername,
             avatar_preset: avatarPreset,
         } : null;
         setPlayerProgress(progressData ?? null);
