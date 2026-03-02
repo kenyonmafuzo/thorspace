@@ -286,19 +286,25 @@ background: rgba(0, 165, 242, 0.04);
   letter-spacing: 4px;
 }
 
-/* Game Wrapper */
+/* Game Wrapper — full-screen container, no layout influence on children */
 #gameWrapper {
   position: fixed;
   top: 0; left: 0;
   width: 100vw;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: 40px;
+  overflow: hidden;
   z-index: 1;
-  overflow: hidden; /* necessário para o scale responsivo cortar o excesso de layout */
+}
+
+/* Game Content — centered absolutely; JS controls transform: scale */
+#gameContent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* transform set by JS scaler */
+  transform-origin: 0 0;
+  /* Prevent any inherited flex/block contribution to the wrapper */
+  flex-shrink: 0;
 }
 
 /* Restante dos estilos do seu jogo, se houver... */
@@ -10358,74 +10364,39 @@ if (typeof window !== 'undefined') {
 </script>
 
 <script>
-// ── Responsive game scaling ──────────────────────────────────────────────────
-// O iframe agora é position:fixed cobrindo 100vw x 100dvh, então
-// window.innerWidth/innerHeight refletem o viewport real do browser.
-// O scaler usa ResizeObserver em #gameContent para recalcular quando
-// o canvas aparece (display:none → block) durante o jogo.
-// Mínimo 0.60× — abaixo disso para de reduzir.
+// ── AAA Resolution Scaling ──────────────────────────────────────────────────
+// Fixed base resolution: 800 × 800 (canvas 800×600 + HUD ~70px + banner ~70px
+// + gaps). Internal layout is NEVER touched — only transform:scale() changes.
+//
+// How it works (same as AAA games):
+//   scale = min(viewport_w / BASE_W, viewport_h / BASE_H)   capped at 1.0
+//   #gameContent sits at position:absolute top:50% left:50%
+//   transform: translate(-50%, -50%) scale(s)
+//   → translate centers the element's origin on screen center
+//   → scale shrinks symmetrically from that center point
+// No element repositioning. No layout changes. Aspect ratio always preserved.
 (function () {
-  var MIN_SCALE = 0.60;
-  var _scaling = false; // previne loop
+  var BASE_W = 800;
+  var BASE_H = 800;
 
   function applyGameScale() {
-    if (_scaling) return;
-    var el = document.getElementById('gameContent');
-    var wrapper = document.getElementById('gameWrapper');
-    if (!el || !wrapper) return;
-
-    _scaling = true;
-
-    // Reset para medir o tamanho real sem transform aplicado
-    el.style.transform = 'none';
-    el.style.transformOrigin = '';
-    el.style.marginTop = '';
-    wrapper.style.justifyContent = '';
-    wrapper.style.paddingTop = '';
-
-    var contentW = el.offsetWidth;
-    var contentH = el.offsetHeight;
-
-    _scaling = false;
-
-    if (!contentW || !contentH) return;
-
-    var vw = window.innerWidth;
-    var vh = window.innerHeight;
-    var scale = Math.max(MIN_SCALE, Math.min(1, vw / contentW, vh / contentH));
-
-    if (scale < 1) {
-      _scaling = true;
-      el.style.transform = 'scale(' + scale.toFixed(4) + ')';
-      el.style.transformOrigin = 'top center';
-      wrapper.style.justifyContent = 'flex-start';
-      wrapper.style.paddingTop = '0';
-      var scaledH = contentH * scale;
-      el.style.marginTop = Math.max(0, (vh - scaledH) / 2) + 'px';
-      _scaling = false;
-    }
-  }
-
-  function startObserver() {
     var el = document.getElementById('gameContent');
     if (!el) return;
 
-    // ResizeObserver: re-calcula quando canvas aparece e muda o tamanho do conteúdo
-    if (window.ResizeObserver) {
-      var ro = new ResizeObserver(function() {
-        if (!_scaling) requestAnimationFrame(applyGameScale);
-      });
-      ro.observe(el);
-    }
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+    var scale = Math.min(1, vw / BASE_W, vh / BASE_H);
 
-    window.addEventListener('resize', applyGameScale);
-    applyGameScale();
+    el.style.transform =
+      'translate(-50%, -50%) scale(' + scale.toFixed(5) + ')';
   }
 
+  window.addEventListener('resize', applyGameScale);
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startObserver);
+    document.addEventListener('DOMContentLoaded', applyGameScale);
   } else {
-    startObserver();
+    applyGameScale();
   }
 
   window.applyGameScale = applyGameScale;
