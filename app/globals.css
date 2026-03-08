@@ -26,21 +26,21 @@
 }
 
 html,
-body {
+html {
   max-width: 100vw;
-  /* overflow-x: hidden intentionally removed — on iOS Safari it promotes html to a
-     scroll container, creating a clipped frame visible when zooming/panning.
-     Horizontal overflow is handled per-component instead. */
-
-  /* iOS Safari: manter barra de busca sempre oculta.
-     height + overflow:hidden no html/body impede o scroll da raiz, o que faz
-     o Safari fixar a toolbar em vez de animá-la. Containers internos com
-     overflow-y:auto continuam rolando normalmente. */
   height: 100%;
+  /* iOS Safari: overflow:hidden no html impede o safari de usar html como
+     scroll container, o que fixa a toolbar. O body abaixo é o verdadeiro
+     scroll container com overflow-y:auto. */
   overflow: hidden;
 }
 
 body {
+  height: 100%;
+  /* body é o scroll container real — rola normalmente no iOS */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
   color: var(--foreground);
   /* background intentionally NOT set here — controlled by iOS-safe rule below */
   font-family: Arial, Helvetica, sans-serif;
