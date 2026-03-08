@@ -470,7 +470,8 @@ background: rgba(0, 165, 242, 0.04);
   overflow-x: clip;
   overflow-y: visible;
   width: 730px;
-  padding: 0 18px;       /* breathing room for edge-card hover scale */
+  padding: 0 18px 0 18px; /* left breathing room */
+  padding-right: 32px;     /* extra right room so 3rd card border/shadow is never clipped */
   box-sizing: content-box;
 }
 #naveCarouselTrack {
