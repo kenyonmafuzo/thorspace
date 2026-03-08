@@ -241,6 +241,7 @@ background: rgba(0, 165, 242, 0.04);
   width: 800px;
   height: 780px;
   transform-origin: top left;
+  z-index: 2;
 }
 .bg-full {
   position: absolute;
@@ -8041,6 +8042,7 @@ function showVictoryScreen() {
   }
 
   showOnly('victoryScreen');
+  if (window.applyGameScale) window.applyGameScale();
   
   // Atualizar textos traduzidos
   const victoryTextEl = document.getElementById('victoryText');
@@ -8070,6 +8072,7 @@ function showDefeatScreen() {
   if (document.getElementById("modeSelectionScreen").style.display === "flex") return;
 
   showOnly('defeatScreen');
+  if (window.applyGameScale) window.applyGameScale();
   
   // Atualizar textos traduzidos
   const defeatTextEl = document.getElementById('defeatText');
@@ -8097,6 +8100,7 @@ function showDrawScreen() {
   if (document.getElementById("modeSelectionScreen").style.display === "flex") return;
 
   showOnly('drawScreen');
+  if (window.applyGameScale) window.applyGameScale();
   
   // Atualizar textos traduzidos
   const drawTextEl = document.getElementById('drawText');
