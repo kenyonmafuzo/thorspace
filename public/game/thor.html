@@ -235,6 +235,13 @@ background: rgba(0, 165, 242, 0.04);
   opacity: 1;
   pointer-events: auto;
 }
+/* Inner container for result screens — scaled the same way as #gameContent */
+.end-inner {
+  position: absolute;
+  width: 800px;
+  height: 780px;
+  transform-origin: top left;
+}
 .bg-full {
   position: absolute;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -1161,48 +1168,54 @@ background: rgba(0, 165, 242, 0.04);
 <!-- Tela de Vitória -->
 <div id="victoryScreen" class="end-screen" style="display: none;">
   <img src="images/bg_victory.png" class="bg-full" alt="Victory Background">
-  <div class="end-content">
-    <div class="end-emblem" id="victoryText">VICTORY</div>
+  <div class="end-inner">
+    <div class="end-content">
+      <div class="end-emblem" id="victoryText">VICTORY</div>
 
-    <div class="score-board big"></div>
+      <div class="score-board big"></div>
 
-    <div class="score-details"></div>
+      <div class="score-details"></div>
 
-    <div class="score-total"></div>
+      <div class="score-total"></div>
 
-    <button id="restartVictory" class="end-btn">Return to Lobby</button>
+      <button id="restartVictory" class="end-btn">Return to Lobby</button>
+    </div>
   </div>
 </div>
 
 <!-- Tela de Derrota -->
 <div id="defeatScreen" class="end-screen" style="display: none;">
   <img src="images/bg_defeat.png" class="bg-full" alt="Defeat Background">
-  <div class="end-content">
-    <div class="end-emblem defeat" id="defeatText">DEFEAT</div>
+  <div class="end-inner">
+    <div class="end-content">
+      <div class="end-emblem defeat" id="defeatText">DEFEAT</div>
 
-    <div class="score-board big"></div>
+      <div class="score-board big"></div>
 
-    <div class="score-details"></div>
+      <div class="score-details"></div>
 
-    <div class="score-total"></div>
+      <div class="score-total"></div>
 
-    <button id="restartDefeat" class="end-btn">Return to Lobby</button>
+      <button id="restartDefeat" class="end-btn">Return to Lobby</button>
+    </div>
   </div>
 </div>
 
 <!-- Tela de Empate -->
 <div id="drawScreen" class="end-screen" style="display: none;">
   <img src="images/bg_draw.png" class="bg-full" alt="Draw Background">
-  <div class="end-content">
-    <div class="end-emblem draw" id="drawText">DRAW</div>
+  <div class="end-inner">
+    <div class="end-content">
+      <div class="end-emblem draw" id="drawText">DRAW</div>
 
-    <div class="score-board big"></div>
+      <div class="score-board big"></div>
 
-    <div class="score-details"></div>
+      <div class="score-details"></div>
 
-    <div class="score-total"></div>
+      <div class="score-total"></div>
 
-    <button id="restartDraw" class="end-btn">Return to Lobby</button>
+      <button id="restartDraw" class="end-btn">Return to Lobby</button>
+    </div>
   </div>
 </div>
 
@@ -10469,6 +10482,15 @@ if (typeof window !== 'undefined') {
       ss.style.transformOrigin = 'top left';
       ss.style.transform       = 'scale(' + ssScale.toFixed(5) + ')';
     }
+
+    // ── Result screens (victory / defeat / draw) — same scale as #gameContent
+    var endInners = document.querySelectorAll('.end-inner');
+    endInners.forEach(function(ri) {
+      ri.style.left            = x + 'px';
+      ri.style.top             = y + 'px';
+      ri.style.transformOrigin = 'top left';
+      ri.style.transform       = 'scale(' + scale.toFixed(5) + ')';
+    });
   }
 
   window.addEventListener('resize', applyGameScale);
