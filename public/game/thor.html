@@ -10320,6 +10320,7 @@ function openShotTypeModal(shipType) {
   const modal = document.getElementById('shotTypeModal');
   if (modal) {
     modal.style.display = 'flex';
+    if (window.applyGameScale) window.applyGameScale();
   }
 }
 
@@ -10496,6 +10497,15 @@ if (typeof window !== 'undefined') {
       ri.style.transformOrigin = 'top left';
       ri.style.transform       = 'scale(' + scale.toFixed(5) + ')';
     });
+
+    // ── Shot-type modal content — scale down on small screens
+    var smc = document.getElementById('shotTypeModalContent');
+    if (smc) {
+      // 860 = natural modal width (800px) + outer padding breathing room (60px)
+      var smcScale = Math.min(1, vw / 860);
+      smc.style.transformOrigin = 'center center';
+      smc.style.transform       = 'scale(' + smcScale.toFixed(5) + ')';
+    }
   }
 
   window.addEventListener('resize', applyGameScale);
