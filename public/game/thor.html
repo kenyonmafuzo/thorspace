@@ -467,11 +467,12 @@ background: rgba(0, 165, 242, 0.04);
 
 /* ── Ship Selection Carousel ── */
 #naveCarouselViewport {
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: hidden;           /* Safari-safe: clip works on all axes */
   width: 730px;
-  padding: 0 18px 0 18px; /* left breathing room */
-  padding-right: 32px;     /* extra right room so 3rd card border/shadow is never clipped */
+  /* top padding > 80px (track's nave-img overhang) so ship images aren't clipped;
+     negative margin compensates so layout height is unchanged */
+  padding: 90px 32px 0 18px;
+  margin-top: -90px;
   box-sizing: content-box;
 }
 #naveCarouselTrack {
