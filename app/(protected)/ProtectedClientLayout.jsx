@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import UserHeader from "../components/UserHeader";
 import MobileHeader from "../components/MobileHeader";
 import NotificationsClientRoot from "../components/notifications/NotificationsClientRoot";
@@ -8,8 +10,28 @@ import OnlineNow from "../components/OnlineNow";
 import { useUserStats } from "../components/stats/UserStatsProvider";
 
 export default function ProtectedClientLayout({ children }) {
-  const { userStats, isLoading } = useUserStats();
+  const { userId, userStats, isLoading } = useUserStats();
+  const router = useRouter();
   const isReady = !!(userStats && (userStats.user_id || userStats.id) && userStats.username);
+
+  // Redirecionar para login se auth resolveu sem usuário
+  useEffect(() => {
+    if (!isLoading && !userId) {
+      router.replace("/login");
+    }
+  }, [isLoading, userId, router]);
+
+  // Enquanto carrega ou sem usuário: tela preta (sem flash de conteúdo)
+  if (isLoading || !userId) {
+    return (
+      <div style={{
+        position: "fixed",
+        inset: 0,
+        background: "#000010",
+        zIndex: 9999,
+      }} />
+    );
+  }
 
   return (
     <NotificationProvider>
@@ -27,8 +49,6 @@ export default function ProtectedClientLayout({ children }) {
         {/* Mobile header — only visible on ≤768px via CSS */}
         <MobileHeader />
         <main className="mobile-page-content">{children}</main>
-
-
       </NotificationsClientRoot>
     </NotificationProvider>
   );

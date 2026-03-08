@@ -243,7 +243,11 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     // render already has it. getSession() reads only from storage — instant.
     supabase.auth.getSession().then(({ data }) => {
       const uid = data?.session?.user?.id || null;
-      if (!cancelled && uid) setUserId(uid);
+      if (!cancelled) {
+        setUserId(uid);
+        // No session in storage → not logged in, stop loading immediately
+        if (!uid) setIsLoading(false);
+      }
     });
 
     // Listen for auth state changes (login/logout/refresh)
@@ -254,7 +258,11 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
         // Page refresh / session restored from storage — set userId immediately
         const uid = session?.user?.id || null;
-        if (!cancelled) setUserId(uid);
+        if (!cancelled) {
+          setUserId(uid);
+          // No session → not logged in, stop loading so redirect fires fast
+          if (!uid) setIsLoading(false);
+        }
       } else if (event === 'SIGNED_IN') {
         const uid = session?.user?.id || null;
         if (!cancelled && uid) {
@@ -276,6 +284,7 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
           setUserStats(null);
           setPlayerProgress(null);
           setPlayerStats(null);
+          setIsLoading(false);
         }
       }
     });
