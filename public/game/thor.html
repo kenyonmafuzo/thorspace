@@ -6396,6 +6396,7 @@ function applyMyShips(selecao, isP1) {
       target: null,
       shot: null,
       hp,
+      maxHp: hp,
       angle: 0, // será calculado abaixo
       tipo,
       sprite,
@@ -6486,6 +6487,7 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
           target: null,
           shot: null,
           hp,
+          maxHp: hp,
           angle: 0,
           tipo,
           sprite,
@@ -6551,6 +6553,7 @@ function initCpuNaves() {
     n.tipo = tipo;
     n.sprite = sprite;
     n.hp = hp;
+    n.maxHp = hp;
     n.initialized = true;
     n.tint = 'red'; // CPU é sempre vermelha no modo solo
     
@@ -6817,9 +6820,9 @@ const idleBob = isMoving ? 0 : Math.sin(performance.now() / 500 + nave.x) * 2.0;
   ctx.fillStyle = "red";
 ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, 30, 5);
 
-let maxHP = nave.tipo === 1 ? 50 : nave.tipo === 2 ? 100 : 75;
+let maxHP = nave.maxHp || (nave.tipo === 1 ? 50 : nave.tipo === 2 ? 100 : 75);
 ctx.fillStyle = "lime";
-ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, 30 * (nave.hp / maxHP), 5);
+ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, Math.min(30, 30 * (nave.hp / maxHP)), 5);
 
 
 
