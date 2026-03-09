@@ -213,12 +213,15 @@ background: rgba(0, 165, 242, 0.04);
   letter-spacing: 0.5px;
   line-height: 1.55;
   box-shadow: 0 0 32px rgba(0,229,255,0.22);
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  max-width: min(88vw, 480px);
+  width: max-content;
   cursor: pointer;
   user-select: none;
   animation: tutHintIn 0.25s ease;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 @keyframes tutHintIn {
@@ -1679,7 +1682,7 @@ function showTutorialHint(text) {
     + '<path d="M12 2a7 7 0 0 1 4 12.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26A7 7 0 0 1 12 2z" stroke="#00E5FF" stroke-width="1.6" fill="rgba(0,229,255,0.12)"/>'
     + '<path d="M9 21h6M10 18v-1h4v1" stroke="#00E5FF" stroke-width="1.6" stroke-linecap="round"/>'
     + '</svg>';
-  inner.innerHTML = icon + '<span>' + text + '</span>';
+  inner.innerHTML = icon + '<span style="flex:1; min-width:0;">' + text + '</span>';
   el.style.display = 'block';
   // Force re-animation
   inner.style.animation = 'none';
