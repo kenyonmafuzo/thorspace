@@ -1779,28 +1779,9 @@ function hideSelectionTimer() {
 
 function startSelectionTimer() {
   if (!multiplayerMode || !matchData) {
-    // Solo: fallback para timer local
-    debug.timer('[TIMER][SOLO] startSelectionTimer called');
-    cancelSelectionTimer();
-    selectionTimerStarted = true;
-    selectionTimeRemaining = 15;
-    showSelectionTimer(selectionTimeRemaining);
-    selectionTimerInterval = setInterval(() => {
-      selectionTimeRemaining--;
-      showSelectionTimer(selectionTimeRemaining);
-      if (selectionTimeRemaining <= 0) {
-        clearInterval(selectionTimerInterval);
-        selectionTimerInterval = null;
-      }
-    }, 1000);
-    selectionTimer = setTimeout(async () => {
-      if (!window.selectedNaves || window.selectedNaves.length < 3) {
-        window.selectedNaves = [1, 1, 1];
-        updatePreviews();
-      }
-      await saveShipSelection();
-      updatePhaseAndStartBattle();
-    }, 15000);
+    // Modo prática: sem timer na seleção de naves
+    const tw = document.getElementById('selectionTimerWrapper');
+    if (tw) tw.style.display = 'none';
     return;
   }
   // Multiplayer: sempre iniciar 15s local ao receber evento.
