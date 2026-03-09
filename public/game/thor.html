@@ -10390,7 +10390,10 @@ function openShotTypeModal(shipType) {
   const modal = document.getElementById('shotTypeModal');
   if (modal) {
     modal.style.display = 'flex';
-    if (window.applyGameScale) window.applyGameScale();
+    // Use rAF so browser has done layout before we measure natural height
+    requestAnimationFrame(function() {
+      if (window.applyGameScale) window.applyGameScale();
+    });
   }
 }
 
@@ -10568,11 +10571,16 @@ if (typeof window !== 'undefined') {
       ri.style.transform       = 'scale(' + scale.toFixed(5) + ')';
     });
 
-    // ── Shot-type modal content — scale down on small screens
+    // ── Shot-type modal content — scale down on small screens (width AND height)
     var smc = document.getElementById('shotTypeModalContent');
-    if (smc) {
-      // 860 = natural modal width (800px) + outer padding breathing room (60px)
-      var smcScale = Math.min(1, vw / 860);
+    var smcModal = document.getElementById('shotTypeModal');
+    if (smc && smcModal && smcModal.style.display !== 'none') {
+      // Reset transform so we measure the real natural dimensions
+      smc.style.transform = 'none';
+      var smcNaturalH = smc.offsetHeight;
+      // 860 = natural modal width (800px content + ~60px outer padding)
+      // 40  = vertical clearance (20px top + 20px bottom wrapper padding)
+      var smcScale = Math.min(1, vw / 860, (availH - 40) / smcNaturalH);
       smc.style.transformOrigin = 'center center';
       smc.style.transform       = 'scale(' + smcScale.toFixed(5) + ')';
     }
