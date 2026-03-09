@@ -502,10 +502,9 @@ background: rgba(0, 165, 242, 0.04);
   overflow: hidden;           /* Safari-safe: clip works on all axes */
   flex-shrink: 0;             /* never let the flex row squeeze the viewport narrower than its padding-box */
   width: 730px;
-  /* top padding > 80px (track's nave-img overhang) so ship images aren't clipped;
-     negative margin compensates so layout height is unchanged.
-     right padding: just enough for the 2px card border to render — any more reveals the 4th card */
-  padding: 90px 4px 0 18px;
+  /* right padding: 10px absorbs the scale(1.06) hover overhang (~7px) while staying
+     10px short of where the 4th card begins (20px gap after card 3) */
+  padding: 90px 10px 0 18px;
   margin-top: -90px;
   box-sizing: content-box;
 }
