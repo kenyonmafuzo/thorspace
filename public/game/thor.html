@@ -6682,12 +6682,14 @@ function handleCanvasClick(event) {
         roundLocked = true; // Travar cliques mas manter phase
         selectedNave = null;
         document.getElementById("legendArea").textContent = t('waitingOpponentShort');
+        hideTutorialHint();
       } else {
         // Algumas naves configuradas, continuar
         // broadcastRealtimeState() removido: não vazar posições de planejamento ao oponente
         selectedNave = null;
         // Manter phase = "select" em multiplayer
         document.getElementById("legendArea").textContent = t('selectAnotherShip');
+        showTutorialHint(t('selectAnotherShip'));
       }
     } else {
       // Modo solo
@@ -6704,9 +6706,11 @@ function handleCanvasClick(event) {
         
         fireProjectiles();
         document.getElementById("legendArea").textContent = t('attentionCommander');
+        hideTutorialHint();
       } else {
         phase = "selectMove";
         document.getElementById("legendArea").textContent = t('selectAnotherShip');
+        showTutorialHint(t('selectAnotherShip'));
       }
     }
     return;
