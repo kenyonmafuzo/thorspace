@@ -500,6 +500,7 @@ background: rgba(0, 165, 242, 0.04);
 /* ── Ship Selection Carousel ── */
 #naveCarouselViewport {
   overflow: hidden;           /* Safari-safe: clip works on all axes */
+  flex-shrink: 0;             /* never let the flex row squeeze the viewport narrower than its padding-box */
   width: 730px;
   /* top padding > 80px (track's nave-img overhang) so ship images aren't clipped;
      negative margin compensates so layout height is unchanged */
