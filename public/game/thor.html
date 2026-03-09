@@ -1665,13 +1665,10 @@ function hideGameHUD() {
 
 // ── Round-1 tutorial hints ──────────────────────────────────────
 var _tutHintTimer = null;
-var _tutHintShown = { ship: false, dest: false, target: false };
 
-function showTutorialHint(text, key) {
-  // Only show on round 1; each key shown at most once per game
+function showTutorialHint(text) {
+  // Only show on round 1
   if (typeof round === 'undefined' || round !== 1) return;
-  if (_tutHintShown[key]) return;
-  _tutHintShown[key] = true;
 
   var el = document.getElementById('tutorialHint');
   var inner = document.getElementById('tutorialHintInner');
@@ -1699,7 +1696,6 @@ function hideTutorialHint() {
 }
 
 function resetTutorialHints() {
-  _tutHintShown = { ship: false, dest: false, target: false };
   hideTutorialHint();
 }
 
@@ -2454,7 +2450,7 @@ function startTurnWindow(deadlineISO) {
     if (legendArea) {
       legendArea.textContent = t('nextTurn');
       legendArea.style.color = '';
-      showTutorialHint(t('clickShipToMove'), 'ship');
+      showTutorialHint(t('clickShipToMove'));
     }
     
     const timerArea = document.getElementById('timerArea');
@@ -5538,7 +5534,7 @@ function updateTurnUI() {
   // TURNOS SIMULTÂNEOS: sempre permitir input
   legendArea.textContent = t('clickShipToMove');
   legendArea.style.color = myTeam === 'blue' ? '#00D4FF' : '#FF4444';
-  showTutorialHint(t('clickShipToMove'), 'ship');
+  showTutorialHint(t('clickShipToMove'));
   // Removido: banner central de aguarde. Só usar legendArea no HUD.
   
   // Sempre habilitar em modo simultâneo
@@ -6618,7 +6614,7 @@ function handleCanvasClick(event) {
         selectedNave = nave;
         // Manter a fase como está (não forçar "selectMove" se está em "select")
         document.getElementById("legendArea").textContent = t('chooseDestination');
-        showTutorialHint(t('chooseDestination'), 'dest');
+        showTutorialHint(t('chooseDestination'));
         return;
       }
     }
@@ -6642,7 +6638,7 @@ function handleCanvasClick(event) {
       }
       
       document.getElementById("legendArea").textContent = t('chooseTarget');
-      showTutorialHint(t('chooseTarget'), 'target');
+      showTutorialHint(t('chooseTarget'));
     } else {
       // Fora do alcance - ignorar ou mostrar feedback
     }
@@ -7456,7 +7452,7 @@ function updateGame() {
   phase = "selectMove";
   isInteracting = false; // Resetar interaction lock
   document.getElementById("legendArea").textContent = t('clickShipToMove');
-  showTutorialHint(t('clickShipToMove'), 'ship');
+  showTutorialHint(t('clickShipToMove'));
   const hudTop = document.getElementById("hudTop");
   if (hudTop) {
     hudTop.style.visibility = 'visible';
