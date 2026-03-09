@@ -503,8 +503,9 @@ background: rgba(0, 165, 242, 0.04);
   flex-shrink: 0;             /* never let the flex row squeeze the viewport narrower than its padding-box */
   width: 730px;
   /* top padding > 80px (track's nave-img overhang) so ship images aren't clipped;
-     negative margin compensates so layout height is unchanged */
-  padding: 90px 32px 0 18px;
+     negative margin compensates so layout height is unchanged.
+     right padding: just enough for the 2px card border to render — any more reveals the 4th card */
+  padding: 90px 4px 0 18px;
   margin-top: -90px;
   box-sizing: content-box;
 }
