@@ -244,9 +244,12 @@ export default {
       { id: "30days",label: "VIP 30 Días", sublabel: "Mejor relación calidad-precio",     price: "$7.99", days: 30, best: true }
     ],
     benefits: [
-      { icon: "🏅", title: "Sello VIP",            desc: "Sello VIP mostrado en modales, perfil y lista de jugadores" },
-      { icon: "🛍️", title: "Tienda VIP",          desc: "Acceso a la tienda exclusiva con artículos únicos" },
-      { icon: "⚡", title: "Efectos Visuales",     desc: "Colores y efectos especiales en disparos, rayos y explosiones" }
+      { icon: "💬", title: "Color VIP en Chat",    desc: "Elige el color de tu nombre en el chat global y destácate entre todos los jugadores" },
+      { icon: "🖼️", title: "Marco Exclusivo",     desc: "Marco especial en tu nivel y tier, mostrando tu estatus entre los pilotos de élite" },
+      { icon: "💎", title: "Ícono Diamante",       desc: "Un ícono de diamante premium aparece junto a tu nombre, identificando tu estatus VIP al instante" },
+      { icon: "🚀", title: "Naves Premium",        desc: "Desbloquea skins exclusivas de naves con visuales únicos para destacarte en las batallas" },
+      { icon: "🎨", title: "Íconos de Perfil",     desc: "Colección de avatares e íconos exclusivos disponibles solo para jugadores VIP" },
+      { icon: "😎", title: "Emojis Especiales",    desc: "Usa emojis exclusivos en el chat para expresarte durante las partidas" }
     ]
   },
 };

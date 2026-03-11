@@ -244,9 +244,12 @@ export default {
       { id: "30days",label: "VIP 30 Days", sublabel: "Best value",                    price: "$7.99", days: 30, best: true }
     ],
     benefits: [
-      { icon: "🏅", title: "VIP Badge",        desc: "VIP badge shown in modals, profile and player list" },
-      { icon: "🛍️", title: "VIP Shop",        desc: "Access to the exclusive shop with items nobody else has" },
-      { icon: "⚡", title: "Visual Effects",   desc: "Special colors and effects on shots, lightning and explosions" }
+      { icon: "💬", title: "VIP Chat Color",   desc: "Choose your name color in the global chat and stand out among all players" },
+      { icon: "🖼️", title: "Exclusive Frame",  desc: "Special frame displayed on your level and tier, showing your status among elite pilots" },
+      { icon: "💎", title: "Diamond Icon",     desc: "A premium diamond icon appears next to your name, instantly identifying your VIP status" },
+      { icon: "🚀", title: "Premium Ships",    desc: "Unlock exclusive ship skins with unique visuals to stand out in battles" },
+      { icon: "🎨", title: "Profile Icons",    desc: "Collection of exclusive avatars and icons available only for VIP players" },
+      { icon: "😎", title: "Special Emojis",   desc: "Use exclusive emojis in chat to express yourself during matches" }
     ]
   },
 };
