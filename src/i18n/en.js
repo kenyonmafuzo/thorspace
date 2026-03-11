@@ -244,15 +244,9 @@ export default {
       { id: "30days",label: "VIP 30 Days", sublabel: "Best value",                    price: "$7.99", days: 30, best: true }
     ],
     benefits: [
-      { icon: "💬", title: "VIP Chat Color",   desc: "Your name appears in gold for everyone in the global chat" },
-      { icon: "🖼️", title: "Exclusive Frame",  desc: "Special animated frame on your level and tier" },
-      { icon: "💎", title: "Diamond Icon",     desc: "Shiny diamond icon next to your name" },
       { icon: "🏅", title: "VIP Badge",        desc: "VIP badge shown in modals, profile and player list" },
       { icon: "🛍️", title: "VIP Shop",        desc: "Access to the exclusive shop with items nobody else has" },
-      { icon: "🚀", title: "Premium Ships",    desc: "Exclusive ship skins with epic visuals" },
-      { icon: "🎨", title: "Profile Icons",    desc: "Exclusive VIP profile avatars and icons" },
-      { icon: "⚡", title: "Visual Effects",   desc: "Special colors and effects on shots, lightning and explosions" },
-      { icon: "😎", title: "Special Emojis",   desc: "Exclusive emoji pack for use in chat" }
+      { icon: "⚡", title: "Visual Effects",   desc: "Special colors and effects on shots, lightning and explosions" }
     ]
   },
 };

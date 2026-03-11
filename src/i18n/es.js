@@ -244,15 +244,9 @@ export default {
       { id: "30days",label: "VIP 30 Días", sublabel: "Mejor relación calidad-precio",     price: "$7.99", days: 30, best: true }
     ],
     benefits: [
-      { icon: "💬", title: "Color VIP en Chat",   desc: "Tu nombre aparece en dorado para todos en el chat global" },
-      { icon: "🖼️", title: "Marco Exclusivo",     desc: "Marco especial animado en tu level y tier" },
-      { icon: "💎", title: "Ícono Diamante",       desc: "Ícono de diamante brillante junto a tu nombre" },
       { icon: "🏅", title: "Sello VIP",            desc: "Sello VIP mostrado en modales, perfil y lista de jugadores" },
       { icon: "🛍️", title: "Tienda VIP",          desc: "Acceso a la tienda exclusiva con artículos únicos" },
-      { icon: "🚀", title: "Naves Premium",        desc: "Skins exclusivos de naves con visuales épicos" },
-      { icon: "🎨", title: "Íconos de Perfil",     desc: "Avatares e íconos de perfil exclusivos VIP" },
-      { icon: "⚡", title: "Efectos Visuales",     desc: "Colores y efectos especiales en disparos, rayos y explosiones" },
-      { icon: "😎", title: "Emojis Especiales",    desc: "Pack de emojis exclusivos para usar en el chat" }
+      { icon: "⚡", title: "Efectos Visuales",     desc: "Colores y efectos especiales en disparos, rayos y explosiones" }
     ]
   },
 };
