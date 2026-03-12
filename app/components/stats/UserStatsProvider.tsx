@@ -71,10 +71,14 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const { lang } = useI18n ? useI18n() : { lang: "en" };
 
 
+    // Background refresh reasons: don't show loading spinner — avoids blocking UI on tab switch/realtime
+    const SILENT_REASONS = ['realtime:', 'tab_visible', 'thor_stats_updated'];
+
     // Função de refresh precisa ser declarada após userId e antes de qualquer useEffect que a utilize
     const refreshUserStats = useCallback(async (reason?: string) => {
       if (!userId) return;
-      setIsLoading(true);
+      const silent = !!reason && SILENT_REASONS.some(r => reason.startsWith(r));
+      if (!silent) setIsLoading(true);
       try {
         if (process.env.NODE_ENV !== "production") {
           // ...existing code...
@@ -130,9 +134,9 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         setStatsVersion(v => v + 1);
         setLastUpdatedAt(Date.now());
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
       }
-    }, [userId]);
+    }, [userId]);  // eslint-disable-line react-hooks/exhaustive-deps
 
     // Bootstrap inicial do localStorage (signup) - lê assim que possível e armazena até userId
     useEffect(() => {
@@ -196,44 +200,7 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Realtime: escuta updates em player_progress/player_stats do usuário logado
-  useEffect(() => {
-    if (!userId) return;
-    const progressChannel = supabase
-      .channel(`realtime:player_progress:${userId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'player_progress',
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        if (process.env.NODE_ENV !== "production") {
-          // ...existing code...
-        }
-        refreshUserStats && refreshUserStats('realtime:player_progress');
-      })
-      .subscribe();
-
-    const statsChannel = supabase
-      .channel(`realtime:player_stats:${userId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'player_stats',
-        filter: `user_id=eq.${userId}`,
-      }, (payload) => {
-        if (process.env.NODE_ENV !== "production") {
-          // ...existing code...
-        }
-        refreshUserStats && refreshUserStats('realtime:player_stats');
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(progressChannel);
-      supabase.removeChannel(statsChannel);
-    };
-  }, [userId, refreshUserStats]);
+  // Realtime listeners moved to consolidated block below — removed duplicate
 
   // Get current userId and claim daily XP after login
   useEffect(() => {
@@ -521,31 +488,31 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("thor_stats_updated", handleStatsUpdated);
   }, [refreshUserStats]);
 
-  // Initial load and on userId change
+  // Refresh on tab focus — re-validates session first to handle expired tokens
   useEffect(() => {
-    if (userId) refreshUserStats("mount");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
-
-
-  // Refresh on tab focus
-  useEffect(() => {
-    const handler = () => {
-      if (document.visibilityState === "visible") {
+    const handler = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const uid = data?.session?.user?.id || null;
+        if (!uid) {
+          // Session expired while in background — sign out cleanly
+          setUserId(null);
+          setUserStats(null);
+          setPlayerProgress(null);
+          setPlayerStats(null);
+          setIsLoading(false);
+          return;
+        }
+        // Silent refresh — no loading spinner
         refreshUserStats("tab_visible");
+      } catch (e) {
+        // Session check failed — don't block UI
+        setIsLoading(false);
       }
     };
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
-  }, [refreshUserStats]);
-
-  // Listener global para garantir refreshUserStats em todo contexto
-  useEffect(() => {
-    function handleStatsUpdated() {
-      refreshUserStats && refreshUserStats("thor_stats_updated:provider");
-    }
-    window.addEventListener("thor_stats_updated", handleStatsUpdated);
-    return () => window.removeEventListener("thor_stats_updated", handleStatsUpdated);
   }, [refreshUserStats]);
 
   const value: UserStatsContextType = {
