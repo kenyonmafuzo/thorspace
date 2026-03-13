@@ -166,7 +166,7 @@ export default function SignupPage() {
         email: String(email).trim(),
         password: String(password),
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? window.location.origin : 'https://thorspace.com.br'}/auth/callback`,
           data: {
             username: username.trim(),
           }
