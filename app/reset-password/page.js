@@ -52,6 +52,9 @@ export default function ResetPasswordPage() {
         setError(err.message || "Erro ao atualizar senha.");
       } else {
         setSuccess(true);
+        // Sign out so the login page doesn't redirect the still-authenticated
+        // user back to /mode, which causes the infinite "Carregando..." screen.
+        await supabase.auth.signOut().catch(() => {});
         setTimeout(() => router.replace("/login"), 2500);
       }
     } catch (e) {
