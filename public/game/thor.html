@@ -7669,6 +7669,7 @@ function updateGame() {
       });
       
       if (!winner) {
+        round++; // increment for both solo and multiplayer
         if (multiplayerMode) {
           // Animação concluída: parar e ocultar o timer do round anterior imediatamente.
           // startTurnWindow re-ativa o HUD depois que o banner do próximo round fechar.
@@ -7761,7 +7762,6 @@ function updateGame() {
           roundTextAlpha = 0;
           roundTextFadeIn = true;
           roundTextTimer = 0;
-          round++;
         }
       } else {
         resetTurn();
