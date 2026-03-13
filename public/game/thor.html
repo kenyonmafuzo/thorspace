@@ -195,7 +195,7 @@ background: rgba(0, 165, 242, 0.04);
 #tutorialHint {
   position: absolute;
   left: 50%;
-  top: 42%;
+  top: 50%;
   transform: translate(-50%, -50%);
   z-index: 9000;
   pointer-events: auto;
@@ -215,7 +215,7 @@ background: rgba(0, 165, 242, 0.04);
   box-shadow: 0 0 32px rgba(0,229,255,0.22);
   white-space: normal;
   word-break: break-word;
-  max-width: min(88vw, 480px);
+  max-width: 520px;
   width: max-content;
   cursor: pointer;
   user-select: none;
@@ -1265,8 +1265,6 @@ background: rgba(0, 165, 242, 0.04);
 
 <!-- HUD Superior: Timer e Legenda -->
 <div id="gameWrapper">
-  <!-- Round-1 tutorial hint overlay -->
-  <div id="tutorialHint" onclick="hideTutorialHint()"><div id="tutorialHintInner"></div></div>
  <div id="gameContent" style="display: flex; flex-direction: column; align-items: center; gap: 0;">
   
   <!-- HUD row wrapper: hudTop + mute button side by side, button always visible -->
@@ -1301,6 +1299,8 @@ background: rgba(0, 165, 242, 0.04);
   <!-- canvas wrapper and matchupBanner are now correctly INSIDE #gameContent -->
   
   <div style="position: relative; width: 800px; height: 600px;">
+   <!-- Round-1 tutorial hint overlay — inside canvas area so it scales with the game -->
+   <div id="tutorialHint" onclick="hideTutorialHint()"><div id="tutorialHintInner"></div></div>
    <canvas id="gameCanvas" width="800" height="600"
      style="display: none; clip-path: polygon(24px 0%, 776px 0%, 800px 24px, 800px 576px, 776px 600px, 24px 600px, 0px 576px, 0px 24px);"></canvas>
    
