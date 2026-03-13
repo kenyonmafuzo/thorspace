@@ -6827,15 +6827,9 @@ let maxHP = nave.maxHp || (nave.tipo === 1 ? 50 : nave.tipo === 2 ? 100 : 75);
 ctx.fillStyle = "lime";
 ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, Math.min(30, 30 * (nave.hp / maxHP)), 5);
 
-  // ── Locked overlay (between rounds) ──────────────────────────────────
-  if (!isCPU && typeof roundLocked !== 'undefined' && roundLocked) {
+  // ── Locked overlay (between rounds, hide once combat animation starts) ──
+  if (!isCPU && typeof roundLocked !== 'undefined' && roundLocked && phase !== "wait") {
     ctx.save();
-
-    // Dimming circle
-    ctx.beginPath();
-    ctx.arc(nave.x, nave.y, NAVY_SIZE * 0.62, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0, 0, 12, 0.65)';
-    ctx.fill();
 
     // Lock — shackle (arch)
     const lx = nave.x, ly = nave.y + 5;
