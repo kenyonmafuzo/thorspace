@@ -191,6 +191,23 @@ background: rgba(0, 165, 242, 0.04);
   transition: opacity 0.2s;
 }
 #bgm-mute-btn:hover { opacity: 1; }
+#hints-btn {
+  position: absolute;
+  right: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 4px;
+  display: none;
+  align-items: center;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+#hints-btn:hover { opacity: 1; }
+#hints-btn.active { opacity: 1; }
 /* ── Round-1 tutorial hint ── */
 #tutorialHint {
   position: absolute;
@@ -198,11 +215,11 @@ background: rgba(0, 165, 242, 0.04);
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 9000;
-  pointer-events: auto;
+  pointer-events: none;
   display: none;
 }
 #tutorialHintInner {
-  background: rgba(0,8,22,0.93);
+  background: rgba(0,8,22,0.72);
   border: 1.5px solid rgba(0,229,255,0.6);
   border-radius: 14px;
   padding: 14px 26px;
@@ -217,7 +234,6 @@ background: rgba(0, 165, 242, 0.04);
   word-break: break-word;
   max-width: 520px;
   width: max-content;
-  cursor: pointer;
   user-select: none;
   animation: tutHintIn 0.25s ease;
   display: flex;
@@ -1290,6 +1306,19 @@ background: rgba(0, 165, 242, 0.04);
         <line x1="17" y1="9" x2="23" y2="15"/>
       </svg>
     </button>
+    <!-- Hints toggle button -->
+    <button id="hints-btn" title="Toggle hints" onclick="toggleHints()">
+      <!-- lightbulb icon: on (cyan) -->
+      <svg id="hints-icon-on" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
+        <path d="M12 2a7 7 0 0 1 4 12.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26A7 7 0 0 1 12 2z" stroke="#00E5FF" stroke-width="1.8" fill="rgba(0,229,255,0.15)"/>
+        <path d="M9 21h6M10 18v-1h4v1" stroke="#00E5FF" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <!-- lightbulb icon: off (dimmed) -->
+      <svg id="hints-icon-off" width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2a7 7 0 0 1 4 12.74V17a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1v-2.26A7 7 0 0 1 12 2z" stroke="rgba(255,255,255,0.35)" stroke-width="1.8" fill="none"/>
+        <path d="M9 21h6M10 18v-1h4v1" stroke="rgba(255,255,255,0.35)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </button>
   </div>
   <div id="shipTypeArea"
     style="width:800px; margin-top:10px; text-align:center; color:#fff; font-family:'Orbitron',sans-serif; font-size:18px; letter-spacing:1px; text-shadow:0 0 9px #0ff8;">
@@ -1300,7 +1329,7 @@ background: rgba(0, 165, 242, 0.04);
   
   <div style="position: relative; width: 800px; height: 600px;">
    <!-- Round-1 tutorial hint overlay — inside canvas area so it scales with the game -->
-   <div id="tutorialHint" onclick="hideTutorialHint()"><div id="tutorialHintInner"></div></div>
+   <div id="tutorialHint"><div id="tutorialHintInner"></div></div>
    <canvas id="gameCanvas" width="800" height="600"
      style="display: none; clip-path: polygon(24px 0%, 776px 0%, 800px 24px, 800px 576px, 776px 600px, 24px 600px, 0px 576px, 0px 24px);"></canvas>
    
@@ -1668,10 +1697,23 @@ function hideGameHUD() {
 
 // ── Round-1 tutorial hints ──────────────────────────────────────
 var _tutHintTimer = null;
+var hintsAlwaysOn = false; // user toggled hints for all rounds
+
+function toggleHints() {
+  hintsAlwaysOn = !hintsAlwaysOn;
+  var btn     = document.getElementById('hints-btn');
+  var iconOn  = document.getElementById('hints-icon-on');
+  var iconOff = document.getElementById('hints-icon-off');
+  if (btn)     btn.classList.toggle('active', hintsAlwaysOn);
+  if (iconOn)  iconOn.style.display  = hintsAlwaysOn ? 'block' : 'none';
+  if (iconOff) iconOff.style.display = hintsAlwaysOn ? 'none'  : 'block';
+  if (!hintsAlwaysOn) hideTutorialHint();
+}
 
 function showTutorialHint(text) {
-  // Only show on round 1
-  if (typeof round === 'undefined' || round !== 1) return;
+  // Show on round 1 always, or in any round if user enabled hints
+  if (typeof round === 'undefined') return;
+  if (round !== 1 && !hintsAlwaysOn) return;
 
   var el = document.getElementById('tutorialHint');
   var inner = document.getElementById('tutorialHintInner');
@@ -6079,6 +6121,15 @@ function backToStartMenu() {
   // Esconder botão de mute (fora do jogo)
   const muteBtn = document.getElementById('bgm-mute-btn');
   if (muteBtn) muteBtn.style.display = 'none';
+  const hintsBtn = document.getElementById('hints-btn');
+  if (hintsBtn) hintsBtn.style.display = 'none';
+  // Reset hints state
+  hintsAlwaysOn = false;
+  var iconOn2  = document.getElementById('hints-icon-on');
+  var iconOff2 = document.getElementById('hints-icon-off');
+  if (hintsBtn) hintsBtn.classList.remove('active');
+  if (iconOn2)  iconOn2.style.display  = 'none';
+  if (iconOff2) iconOff2.style.display = 'block';
 
   // 3) Limpa algumas coisas do jogo (opcional, mas recomendado)
   projectiles = [];
@@ -6255,6 +6306,8 @@ function playRandomBgm() {
   bgmBattle.play().catch(e => {});
   const muteBtn = document.getElementById('bgm-mute-btn');
   if (muteBtn) muteBtn.style.display = 'flex';
+  const hintsBtn2 = document.getElementById('hints-btn');
+  if (hintsBtn2) hintsBtn2.style.display = 'flex';
 }
 function toggleBgmMute() {
   bgmMuted = !bgmMuted;
