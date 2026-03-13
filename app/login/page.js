@@ -150,9 +150,11 @@ export default function LoginPage() {
     setResetError("");
     setResetLoading(true);
     try {
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const baseUrl = isLocal ? window.location.origin : 'https://thorspace.com.br';
       const { error: err } = await supabase.auth.resetPasswordForEmail(
         resetEmail.trim(),
-        { redirectTo: `${window.location.origin}/reset-password` }
+        { redirectTo: `${baseUrl}/reset-password` }
       );
       if (err) {
         setResetError(err.message || "Erro ao enviar email");
