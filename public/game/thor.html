@@ -4693,6 +4693,20 @@ async function handleMatchUpdate(payload) {
     pendingAnimActions = { action_blue, action_red };
     selfAnimReady = true;
 
+    // 🔥 FIX: Salvar deadline do próximo round AGORA, pois o bloco de turnos abaixo
+    // jamais detecta turnNumberChanged (currentTurnNumber já foi atualizado neste mesmo evento).
+    // Sem isso, o cleanup ficava 5-10s esperando o fallback de polling antes de abrir o round 2.
+    if (row.turn_deadline_at) {
+      pendingTurnDeadline = row.turn_deadline_at;
+      roundLocked = true;
+      if (awaitingRoundReady) {
+        // Animação já terminou antes deste evento chegar — iniciar janela imediatamente
+        awaitingRoundReady = false;
+        const _d = pendingTurnDeadline; pendingTurnDeadline = null;
+        startTurnWindow(_d);
+      }
+    }
+
     // Broadcast para o oponente que estou pronto para animar
     if (syncChannel) {
       try {
