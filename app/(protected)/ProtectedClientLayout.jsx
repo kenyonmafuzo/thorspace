@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserHeader from "../components/UserHeader";
 import MobileHeader from "../components/MobileHeader";
@@ -13,11 +13,22 @@ export default function ProtectedClientLayout({ children }) {
   const { userId, userStats, isLoading } = useUserStats();
   const router = useRouter();
   const isReady = !!(userStats && (userStats.user_id || userStats.id) && userStats.username);
+  // Track whether we ever had an authenticated session in this page lifecycle
+  const hadSession = useRef(false);
+
+  useEffect(() => {
+    if (userId) hadSession.current = true;
+  }, [userId]);
 
   // Redirecionar para login se auth resolveu sem usuário
   useEffect(() => {
     if (!isLoading && !userId) {
-      router.replace("/login");
+      // If we previously had a valid session, it expired due to inactivity
+      if (hadSession.current) {
+        router.replace("/login?reason=idle");
+      } else {
+        router.replace("/login");
+      }
     }
   }, [isLoading, userId, router]);
 

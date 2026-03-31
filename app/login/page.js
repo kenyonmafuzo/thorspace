@@ -20,12 +20,15 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState("");
+  const [alreadyLoggedIn, setAlreadyLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Verificar se veio do signup com parâmetro msg=confirm_email
+    // Verificar parâmetros de URL
     const params = new URLSearchParams(window.location.search);
     if (params.get('msg') === 'confirm_email') {
       setInfoMessage("✉️ Verifique seu email para confirmar o cadastro antes de fazer login.");
+    } else if (params.get('reason') === 'idle') {
+      setInfoMessage("⏱️ Você foi desconectado por inatividade. Faça login novamente.");
     }
 
     let mounted = true;
@@ -39,7 +42,8 @@ export default function LoginPage() {
         if (!mounted) return;
 
         if (session) {
-          router.replace("/mode");
+          setAlreadyLoggedIn(true);
+          setAuthChecked(true);
         } else {
           setAuthChecked(true);
         }
@@ -358,6 +362,67 @@ export default function LoginPage() {
         />
 
         <div style={card}>
+          {alreadyLoggedIn && (
+            <div style={{
+              padding: '16px 14px',
+              borderRadius: 10,
+              background: 'rgba(255, 200, 0, 0.08)',
+              border: '1px solid rgba(255, 200, 0, 0.35)',
+              color: '#FFD700',
+              fontSize: 13,
+              marginBottom: 16,
+              textAlign: 'center',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>⚠️</div>
+              <strong>Você já está logado em outra aba ou dispositivo.</strong>
+              <div style={{ color: 'rgba(255,230,100,0.85)', marginTop: 6, fontSize: 12 }}>
+                Para evitar conflitos no jogo, não é permitido acessar com duas sessões simultâneas.
+              </div>
+              <button
+                type="button"
+                onClick={() => router.replace('/mode')}
+                style={{
+                  marginTop: 14,
+                  padding: '10px 22px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'linear-gradient(90deg, #FFD700, #FF9900)',
+                  color: '#1a0f00',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                CONTINUAR SESSÃO EXISTENTE
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  setAlreadyLoggedIn(false);
+                }}
+                style={{
+                  marginTop: 8,
+                  padding: '8px 22px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,100,100,0.4)',
+                  background: 'transparent',
+                  color: '#FF8080',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                SAIR DE TODAS AS SESSÕES E FAZER NOVO LOGIN
+              </button>
+            </div>
+          )}
+
           {infoMessage && (
             <div style={{
               padding: '12px 14px',

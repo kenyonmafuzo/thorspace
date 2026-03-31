@@ -2566,13 +2566,13 @@ function startTurnWindow(deadlineISO) {
       // APENAS Player 1 (host) resolve turnos (variável já declarada acima)
       if (isPlayer1) {
         let resolveAttempts = 0;
-        function tryResolveLoop() {
+        async function tryResolveLoop() {
           resolveAttempts++;
-          maybeResolveTurn();
-          if (resolveAttempts < 5 && phase !== 'wait') {
+          await maybeResolveTurn();
+          if (phase === 'wait' || winner || !gameActive) {
+            // Turno já foi resolvido ou jogo encerrado
+          } else if (resolveAttempts < 5) {
             setTimeout(tryResolveLoop, 700);
-          } else if (phase === 'wait') {
-            // Turno já foi resolvido
           } else {
             console.warn('[TURN] [TIMEOUT] Player 1 não conseguiu resolver turno após 5 tentativas.');
           }
@@ -3779,11 +3779,13 @@ function checkOpponentHeartbeat() {
       const isPlayer1 = myUserId === matchData.player1_id;
       const oppLastSeen = isPlayer1 ? data.player2_last_seen : data.player1_last_seen;
 
-      // Se oponente nunca enviou heartbeat, usar heartbeatStartedAt como referência.
-      // NÃO usar Date.now() (elapsed seria 0). NÃO usar battleStartedAt (pode ser null).
+      // Se oponente nunca enviou heartbeat ainda, usar battleStartedAt como referência.
+      // _heartbeatStartedAt é definido no init (antes da batalha) e causaria WO falso
+      // se a batalha demorar >15s para começar após o init.
+      // Se battleStartedAt também for null, usar Date.now() (elapsed = 0, nunca WO).
       const referenceTime = oppLastSeen
         ? new Date(oppLastSeen).getTime()
-        : (window._heartbeatStartedAt || battleStartedAt || (Date.now() - 30000));
+        : (battleStartedAt || Date.now());
 
       const elapsed = Date.now() - referenceTime;
       debug.log('[HEARTBEAT] ⏱ Oponente last_seen há', Math.round(elapsed / 1000), 's (oppLastSeen:', !!oppLastSeen, ')');
