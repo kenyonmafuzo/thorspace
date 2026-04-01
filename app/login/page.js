@@ -122,15 +122,23 @@ export default function LoginPage() {
         // Garante perfil e player_progress completos
         // Verificar sessão ativa em outro dispositivo/browser
         const SESSION_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutos
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileQueryError } = await supabase
           .from('profiles')
           .select('active_session_at')
           .eq('id', user.id)
           .single();
 
+        if (profileQueryError) {
+          console.warn('[DupSession] Erro ao consultar active_session_at:', profileQueryError.message);
+        } else {
+          console.log('[DupSession] active_session_at no DB:', profileData?.active_session_at);
+        }
+
         if (profileData?.active_session_at) {
           const lastSeen = new Date(profileData.active_session_at).getTime();
-          if (Date.now() - lastSeen < SESSION_THRESHOLD_MS) {
+          const elapsed = Date.now() - lastSeen;
+          console.log('[DupSession] elapsed ms:', elapsed, '/ threshold:', SESSION_THRESHOLD_MS);
+          if (elapsed < SESSION_THRESHOLD_MS) {
             // Sessão ativa em outro lugar → perguntar ao usuário
             setPendingUser({ id: user.id, email: user.email, user_metadata: user.user_metadata });
             setDupSession(true);
