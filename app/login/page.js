@@ -31,6 +31,8 @@ export default function LoginPage() {
       setInfoMessage("✉️ Verifique seu email para confirmar o cadastro antes de fazer login.");
     } else if (params.get('reason') === 'idle') {
       setInfoMessage("⏱️ Você foi desconectado por inatividade. Faça login novamente.");
+    } else if (params.get('reason') === 'kicked') {
+      setInfoMessage("⚠️ Sua sessão foi encerrada porque a mesma conta foi usada em outro dispositivo.");
     }
 
     let mounted = true;
@@ -162,8 +164,13 @@ export default function LoginPage() {
 
   async function completeLogin(userObj) {
     try {
-      // Atualiza active_session_at para marcar esta sessão como ativa
-      await supabase.from('profiles').update({ active_session_at: new Date().toISOString() }).eq('id', userObj.id);
+      // Gera token único para esta sessão e salva no DB + localStorage
+      const sessionToken = crypto.randomUUID();
+      localStorage.setItem('thor_session_token', sessionToken);
+      await supabase.from('profiles').update({
+        active_session_at: new Date().toISOString(),
+        session_token: sessionToken,
+      }).eq('id', userObj.id);
 
       const onboardingResult = await ensureProfileAndOnboarding(userObj);
       if (onboardingResult?.error) {

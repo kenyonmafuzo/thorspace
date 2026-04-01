@@ -33,16 +33,37 @@ export default function ProtectedClientLayout({ children }) {
     }
   }, [isLoading, userId, router]);
 
-  // Atualiza active_session_at a cada 2 minutos para manter sessão ativa no DB
+  // Atualiza active_session_at e valida session_token a cada 30s para detectar sessão tomada por outro browser
   useEffect(() => {
     if (!userId) return;
-    const updateSession = () => {
-      supabase.from('profiles').update({ active_session_at: new Date().toISOString() }).eq('id', userId);
+
+    const updateSession = async () => {
+      await supabase.from('profiles')
+        .update({ active_session_at: new Date().toISOString() })
+        .eq('id', userId);
     };
-    updateSession(); // atualiza imediatamente ao entrar
-    const interval = setInterval(updateSession, 2 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [userId]);
+
+    const checkSessionToken = async () => {
+      const localToken = typeof window !== 'undefined' ? localStorage.getItem('thor_session_token') : null;
+      if (!localToken) return; // sessão sem token (login antigo) — não verifica
+      const { data } = await supabase.from('profiles').select('session_token').eq('id', userId).single();
+      if (data && data.session_token && data.session_token !== localToken) {
+        // Outro browser tomou conta — deslogar
+        localStorage.removeItem('thor_session_token');
+        await supabase.auth.signOut();
+        router.replace('/login?reason=kicked');
+      }
+    };
+
+    updateSession();
+    checkSessionToken();
+    const updateInterval = setInterval(updateSession, 2 * 60 * 1000);
+    const checkInterval = setInterval(checkSessionToken, 30 * 1000);
+    return () => {
+      clearInterval(updateInterval);
+      clearInterval(checkInterval);
+    };
+  }, [userId, router]);
 
   // Enquanto carrega ou sem usuário: tela preta (sem flash de conteúdo)
   if (isLoading || !userId) {
