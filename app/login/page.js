@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false);
   const [resetError, setResetError] = useState("");
   const [alreadyLoggedIn, setAlreadyLoggedIn] = useState(false);
+  const [dupSession, setDupSession] = useState(false); // sessão ativa em outro browser/dispositivo
+  const [pendingUser, setPendingUser] = useState(null); // usuário aguardando decisão de sessão dupla
 
   useEffect(() => {
     // Verificar parâmetros de URL
@@ -118,25 +120,26 @@ export default function LoginPage() {
           return;
         }
         // Garante perfil e player_progress completos
-        const userObj = { id: user.id, email: user.email, user_metadata: user.user_metadata };
-        try {
-          const onboardingResult = await ensureProfileAndOnboarding(userObj);
-          console.log("Login onboarding result:", onboardingResult);
-          if (onboardingResult?.error) {
-            setError("Erro ao criar perfil/jogo: " + (onboardingResult.error || "Desconhecido"));
+        // Verificar sessão ativa em outro dispositivo/browser
+        const SESSION_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutos
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('active_session_at')
+          .eq('id', user.id)
+          .single();
+
+        if (profileData?.active_session_at) {
+          const lastSeen = new Date(profileData.active_session_at).getTime();
+          if (Date.now() - lastSeen < SESSION_THRESHOLD_MS) {
+            // Sessão ativa em outro lugar → perguntar ao usuário
+            setPendingUser({ id: user.id, email: user.email, user_metadata: user.user_metadata });
+            setDupSession(true);
             setLoading(false);
             return;
           }
-        } catch (e) {
-          console.error("Erro ao garantir perfil completo:", e);
-          setError("Erro ao garantir perfil completo: " + (e?.message || e));
-          setLoading(false);
-          return;
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new Event("thor_stats_updated"));
-        }
-        router.replace("/mode");
+
+        await completeLogin({ id: user.id, email: user.email, user_metadata: user.user_metadata });
       } catch (e) {
         console.error("Error ensuring profile after login:", e);
         setError("Erro ao completar login. Tente novamente.");
@@ -147,6 +150,41 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function completeLogin(userObj) {
+    try {
+      // Atualiza active_session_at para marcar esta sessão como ativa
+      await supabase.from('profiles').update({ active_session_at: new Date().toISOString() }).eq('id', userObj.id);
+
+      const onboardingResult = await ensureProfileAndOnboarding(userObj);
+      if (onboardingResult?.error) {
+        setError("Erro ao criar perfil/jogo: " + (onboardingResult.error || "Desconhecido"));
+        setLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.error("Erro ao garantir perfil completo:", e);
+      setError("Erro ao garantir perfil completo: " + (e?.message || e));
+      setLoading(false);
+      return;
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("thor_stats_updated"));
+    }
+    router.replace("/mode");
+  }
+
+  async function handleTakeOverSession() {
+    setLoading(true);
+    setDupSession(false);
+    await completeLogin(pendingUser);
+  }
+
+  async function handleCancelDupSession() {
+    await supabase.auth.signOut();
+    setPendingUser(null);
+    setDupSession(false);
   }
 
   async function handleForgotPassword(e) {
@@ -423,6 +461,65 @@ export default function LoginPage() {
             </div>
           )}
 
+          {dupSession && (
+            <div style={{
+              padding: '16px 14px',
+              borderRadius: 10,
+              background: 'rgba(255, 80, 80, 0.08)',
+              border: '1px solid rgba(255, 80, 80, 0.4)',
+              color: '#FF6B6B',
+              fontSize: 13,
+              marginBottom: 16,
+              textAlign: 'center',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 6 }}>🚫</div>
+              <strong>Esta conta já está ativa em outro dispositivo ou browser.</strong>
+              <div style={{ color: 'rgba(255,160,160,0.85)', marginTop: 6, fontSize: 12 }}>
+                Para evitar conflitos no jogo, não é permitido acessar com duas sessões simultâneas.
+                Deseja encerrar a sessão anterior e entrar aqui?
+              </div>
+              <button
+                type="button"
+                onClick={handleTakeOverSession}
+                style={{
+                  marginTop: 14,
+                  padding: '10px 22px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'linear-gradient(90deg, #FF4444, #CC0000)',
+                  color: '#fff',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                SIM, ENCERRAR SESSÃO ANTERIOR E ENTRAR AQUI
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelDupSession}
+                style={{
+                  marginTop: 8,
+                  padding: '8px 22px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  background: 'transparent',
+                  color: '#aaa',
+                  fontFamily: "'Orbitron', sans-serif",
+                  fontWeight: 600,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                CANCELAR
+              </button>
+            </div>
+          )}
+
           {infoMessage && (
             <div style={{
               padding: '12px 14px',
@@ -479,7 +576,7 @@ export default function LoginPage() {
               )}
             </div>
           ) : (
-          <form onSubmit={handleSubmit}>
+          !dupSession && !alreadyLoggedIn && <form onSubmit={handleSubmit}>
             <label style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
               Email ou Username
             </label>

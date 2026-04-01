@@ -8,6 +8,7 @@ import NotificationsClientRoot from "../components/notifications/NotificationsCl
 import NotificationProvider from "../components/notifications/NotificationProvider";
 import OnlineNow from "../components/OnlineNow";
 import { useUserStats } from "../components/stats/UserStatsProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function ProtectedClientLayout({ children }) {
   const { userId, userStats, isLoading } = useUserStats();
@@ -31,6 +32,17 @@ export default function ProtectedClientLayout({ children }) {
       }
     }
   }, [isLoading, userId, router]);
+
+  // Atualiza active_session_at a cada 2 minutos para manter sessão ativa no DB
+  useEffect(() => {
+    if (!userId) return;
+    const updateSession = () => {
+      supabase.from('profiles').update({ active_session_at: new Date().toISOString() }).eq('id', userId);
+    };
+    updateSession(); // atualiza imediatamente ao entrar
+    const interval = setInterval(updateSession, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [userId]);
 
   // Enquanto carrega ou sem usuário: tela preta (sem flash de conteúdo)
   if (isLoading || !userId) {
