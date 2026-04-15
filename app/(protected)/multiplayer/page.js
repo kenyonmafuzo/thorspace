@@ -154,6 +154,9 @@ export default function MultiplayerPage() {
       }
     }, 8000);
 
+    let acceptedChannel = null;
+    let invitesChannel = null;
+
     (async () => {
       try {
         // Fast-path: se userId já veio do contexto, não precisa de getSession (rede)
@@ -255,7 +258,7 @@ export default function MultiplayerPage() {
 
         // ✅ AAA PATTERN: Subscription APENAS para sync de dados
         // Lógica de navegação é responsabilidade da UI, não do DB
-        const acceptedChannel = supabase
+        acceptedChannel = supabase
           .channel(`match-accepted:${user.id}`)
           .on(
             "postgres_changes",
@@ -356,7 +359,7 @@ export default function MultiplayerPage() {
           .subscribe();
 
         // Subscribe para convites recebidos
-        const invitesChannel = supabase
+        invitesChannel = supabase
           .channel(`match-invites:${user.id}`)
           .on(
             "postgres_changes",
@@ -388,10 +391,6 @@ export default function MultiplayerPage() {
           )
           .subscribe();
 
-        return () => {
-          supabase.removeChannel(acceptedChannel);
-          supabase.removeChannel(invitesChannel);
-        };
       } catch (err) {
         console.error("Error loading user:", err);
         if (mounted) setLoading(false);
@@ -403,6 +402,8 @@ export default function MultiplayerPage() {
     return () => {
       mounted = false;
       clearTimeout(safetyTimeout);
+      if (acceptedChannel) supabase.removeChannel(acceptedChannel);
+      if (invitesChannel) supabase.removeChannel(invitesChannel);
     };
   }, [router]);
 
