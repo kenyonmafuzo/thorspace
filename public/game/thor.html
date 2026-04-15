@@ -7020,21 +7020,27 @@ function allShipsFinishedMoving() {
 
 function moveTowards(nave) {
   if (!nave.target || nave.hp <= 0) return;
-  
-  const dx = nave.target.x - nave.x;
-  const dy = nave.target.y - nave.y;
+
+  // Clampar o target aos limites do canvas local.
+  // Coordenadas do oponente podem ter sido salvas num canvas de tamanho diferente;
+  // sem isso a nave ficaria parada na borda sem nunca atingir o target → movementComplete nunca true.
+  const clampedTargetX = Math.max(NAVY_SIZE / 2, Math.min(canvas.width  - NAVY_SIZE / 2, nave.target.x));
+  const clampedTargetY = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.target.y));
+
+  const dx = clampedTargetX - nave.x;
+  const dy = clampedTargetY - nave.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  
+
   const scaledSpeed = SPEED * _frameDt;
   if (dist < scaledSpeed) {
-    nave.x = nave.target.x;
-    nave.y = nave.target.y;
+    nave.x = clampedTargetX;
+    nave.y = clampedTargetY;
     nave.target = null;
   } else {
     nave.x += scaledSpeed * dx / dist;
     nave.y += scaledSpeed * dy / dist;
   }
-  nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width - NAVY_SIZE / 2, nave.x));
+  nave.x = Math.max(NAVY_SIZE / 2, Math.min(canvas.width  - NAVY_SIZE / 2, nave.x));
   nave.y = Math.max(NAVY_SIZE / 2, Math.min(canvas.height - NAVY_SIZE / 2, nave.y));
 }
 
