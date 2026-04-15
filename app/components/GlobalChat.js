@@ -209,11 +209,20 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     // (ex: após minimizar e restaurar o Chrome)
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return;
+
+      // Chrome throttle timers em abas background — qualquer setTimeout (incluindo
+      // o de segurança do sending) pode não disparar por 1+ minuto. Resetamos
+      // diretamente aqui para desbloquear o input/botão imediatamente.
+      setSending(false);
+      lastMessageTimeRef.current = 0; // reseta rate limit também
+
       // Re-fetch mensagens perdidas durante o background
       fetchMessages();
-      // Verifica se o canal realtime fechou e reconecta
+
+      // Reconecta canal se não estiver no estado 'joined'
+      // (pode estar 'closed', 'errored', 'leaving', 'left' ou preso em 'joining')
       const state = channelRef.current?.state;
-      if (!channelRef.current || state === 'closed' || state === 'errored') {
+      if (!channelRef.current || state !== 'joined') {
         if (channelRef.current) {
           supabase.removeChannel(channelRef.current);
           channelRef.current = null;
