@@ -2859,8 +2859,8 @@ function resetRoundState() {
   combatPhase = 'idle';
   movementComplete = false;
   shootingComplete = false;
-  if (Array.isArray(playerNaves)) playerNaves.forEach(n => { n.target = null; n.shot = null; });
-  if (Array.isArray(cpuNaves))    cpuNaves.forEach(n  => { n.target = null; n.shot = null; });
+  // Nota: target e shot das naves NÃO são limpos aqui — são definidos logo antes
+  // de combatPhase='combat' e zerados pelo game loop no bloco 'cleanup'.
 }
 
 // Aplicar turno resolvido (executar ações de ambos simultaneamente)
