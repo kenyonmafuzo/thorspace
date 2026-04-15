@@ -112,11 +112,13 @@ export default function UserHeader() {
   const hasMinimalData = userStats && userStats.username;
 
   // Se dados não carregaram (ex: fetch falhou após F5 com token expirado),
-  // força um refresh único para recuperar sem precisar limpar cache
+  // força um refresh único para recuperar sem precisar limpar cache.
+  // OBRIGATÓRIO: usar razão silenciosa (prefixo "tab_visible:") para evitar
+  // que isLoading=true cause tela preta no ProtectedClientLayout.
   const retryDoneRef = React.useRef(false);
   if (!hasMinimalData && !isLoading && !retryDoneRef.current) {
     retryDoneRef.current = true;
-    setTimeout(() => refreshUserStats && refreshUserStats("header_retry"), 800);
+    setTimeout(() => refreshUserStats && refreshUserStats("tab_visible:header_retry"), 800);
   }
   
   if (!hasMinimalData) {

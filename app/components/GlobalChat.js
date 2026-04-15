@@ -205,36 +205,37 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
     startRealtime();
 
-    // Reconecta realtime e re-busca mensagens quando a aba fica visível novamente
-    // (ex: após minimizar e restaurar o Chrome)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return;
-
-      // Chrome throttle timers em abas background — qualquer setTimeout (incluindo
-      // o de segurança do sending) pode não disparar por 1+ minuto. Resetamos
-      // diretamente aqui para desbloquear o input/botão imediatamente.
+    // Restaura o estado do chat ao voltar do background/minimize.
+    // Usa TANTO visibilitychange QUANTO window.focus para cobrir todos os
+    // cenários: minimize via botão amarelo, Cmd+H, Mission Control, etc.
+    const handleRestoreFromBackground = () => {
+      // Chrome throttle timers em abas background — resetamos diretamente
+      // sem depender de setTimeout.
       setSending(false);
-      lastMessageTimeRef.current = 0; // reseta rate limit também
+      lastMessageTimeRef.current = 0;
 
       // Re-fetch mensagens perdidas durante o background
       fetchMessages();
 
-      // Reconecta canal se não estiver no estado 'joined'
-      // (pode estar 'closed', 'errored', 'leaving', 'left' ou preso em 'joining')
-      const state = channelRef.current?.state;
-      if (!channelRef.current || state !== 'joined') {
-        if (channelRef.current) {
-          supabase.removeChannel(channelRef.current);
-          channelRef.current = null;
-        }
+      // Supabase realtime tem reconexão automática built-in.
+      // Só recriamos o canal se ele foi explicitamente removido (null).
+      if (!channelRef.current) {
         startRealtime();
       }
     };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') handleRestoreFromBackground();
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    // window.focus é o fallback mais confiável para janela minimizada no macOS
+    window.addEventListener('focus', handleRestoreFromBackground);
 
     return () => {
       window.removeEventListener("refresh_chat", handleRefreshChat);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleRestoreFromBackground);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;

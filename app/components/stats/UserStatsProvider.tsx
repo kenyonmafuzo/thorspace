@@ -493,27 +493,22 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const handler = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        // Usa getUser() em vez de getSession(): faz chamada ao servidor,
-        // valida o JWT e aciona refresh automático se expirado.
-        // getSession() só lê o localStorage e pode retornar token stale.
+        // Validar sessão sem bloquear UI. Nunca setamos userId=null aqui:
+        // se o usuário realmente fez logout, onAuthStateChange dispara SIGNED_OUT
+        // e trata isso corretamente. Setar null aqui causaria tela preta + remount.
         const { data } = await supabase.auth.getUser();
         const uid = data?.user?.id || null;
         if (!uid) {
-          // Token inválido mesmo após tentativa de refresh — encerrar sessão
-          setUserId(null);
-          setUserStats(null);
-          setPlayerProgress(null);
-          setPlayerStats(null);
-          setIsLoading(false);
+          // Sessão possivelmente expirada — deixa onAuthStateChange tratar
+          // Não faz nada aqui para evitar tela preta desnecessária
           return;
         }
-        // Se userId mudou (ex: refresh gerou novo token), atualiza
+        // Garantir que userId está correto e fazer refresh silencioso
         setUserId(uid);
-        // Silent refresh — no loading spinner
         refreshUserStats("tab_visible");
       } catch (e) {
-        // Session check failed — don't block UI
-        setIsLoading(false);
+        // Erro de rede ao restaurar — não bloquear UI
+        // onAuthStateChange cuidará de qualquer mudança de sessão real
       }
     };
     document.addEventListener("visibilitychange", handler);
