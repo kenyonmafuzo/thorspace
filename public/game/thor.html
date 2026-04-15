@@ -2696,7 +2696,9 @@ async function maybeResolveTurn() {
   }
   
   isResolvingTurn = true;
-  
+  // Safety: se algo travar (ex: rede cair durante o await), libera o guard após 8s
+  // para que as próximas tentativas do tryResolveLoop consigam entrar
+  const resolveGuardTimeout = setTimeout(() => { isResolvingTurn = false; }, 8000);
   
   try {
     // Buscar estado atual do match
@@ -2771,7 +2773,8 @@ async function maybeResolveTurn() {
     
     // Marcar como resolvido e avançar turno
     const nextTurnNumber = currentTurnInDb + 1;
-    const newDeadline = new Date(Date.now() + 20000).toISOString();
+    // IMPORTANTE: usar o mesmo TURN_DURATION_S definido em startTurnWindow (30s)
+    const newDeadline = new Date(Date.now() + 30000).toISOString();
     
     // IMPORTANTE: Salvar as ações em last_action_* ANTES de limpar
     // para que o Realtime UPDATE possa ler elas
@@ -2796,12 +2799,14 @@ async function maybeResolveTurn() {
     
     if (updateError) {
       console.error('[TURN] Erro ao atualizar match:', updateError);
+      clearTimeout(resolveGuardTimeout);
       isResolvingTurn = false;
       return;
     }
     
     // Se não retornou dados, outro cliente já resolveu (ou o turno já avançou)
     if (!updateData || updateData.length === 0) {
+      clearTimeout(resolveGuardTimeout);
       isResolvingTurn = false;
       return;
     }
@@ -2814,9 +2819,11 @@ async function maybeResolveTurn() {
 
     // NÃO atualizar currentTurnNumber aqui - deixar o Realtime detectar e iniciar novo turno
 
+    clearTimeout(resolveGuardTimeout);
     isResolvingTurn = false;
   } catch (err) {
     console.error('[TURN] ❌ Exceção ao resolver turno:', err);
+    clearTimeout(resolveGuardTimeout);
     isResolvingTurn = false;
   }
 }
@@ -4724,7 +4731,7 @@ async function handleMatchUpdate(payload) {
       // Fallback: se oponente não responder em 1.5s, animar de qualquer jeito
       if (animReadyTimeout) clearTimeout(animReadyTimeout);
       animReadyTimeout = setTimeout(() => {
-        if (pendingAnimActions && !window.__lastAppliedTurnKey) {
+        if (pendingAnimActions) {
           console.warn('[SYNC] ⏰ Fallback: oponente não respondeu ANIM_READY, animando sozinho');
           applyResolvedTurn(pendingAnimActions);
         }
