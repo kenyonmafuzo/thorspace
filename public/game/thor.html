@@ -2401,6 +2401,8 @@ function startTurnWindow(deadlineISO) {
 
   // 🔥 Performance: limpar destroços do round anterior (wrecks cresce indefinidamente se não limpar)
   wrecks = [];
+  explosions = [];
+  projectiles = [];
 
   // 2) MUITO IMPORTANTE: zerar seleção do round (senão Round 2 fica travado)
   window.selectedNaves = [];
@@ -2846,9 +2848,24 @@ async function maybeResolveTurn() {
   }
 }
 
+// Limpar todo estado que não deve persistir entre rounds
+function resetRoundState() {
+  projectiles = [];
+  explosions = [];
+  if (typeof particles !== 'undefined') particles = [];
+  if (typeof damageTexts !== 'undefined') damageTexts = [];
+  wrecks = [];
+  projectileHitRegistry.clear();
+  combatPhase = 'idle';
+  movementComplete = false;
+  shootingComplete = false;
+  if (Array.isArray(playerNaves)) playerNaves.forEach(n => { n.target = null; n.shot = null; });
+  if (Array.isArray(cpuNaves))    cpuNaves.forEach(n  => { n.target = null; n.shot = null; });
+}
+
 // Aplicar turno resolvido (executar ações de ambos simultaneamente)
 function applyResolvedTurn(actions) {
-  if (!multiplayerMode) return;
+  if (!multiplayerMode || !actions) return;
   
   // Guard: prevenir múltiplas aplicações do mesmo turno
   const turnKey = JSON.stringify(actions);
@@ -2920,11 +2937,28 @@ function applyResolvedTurn(actions) {
   projectileHitRegistry.clear();
   // Registro de hits limpo para novo turno
   
+  // 🔥 Garantir estado totalmente limpo antes de iniciar combate
+  resetRoundState();
+  
   // 🔥 AAA: MOVIMENTO E TIROS SIMULTÂNEOS (AAA Quality)
   combatPhase = 'combat'; // Fase única: movimento + tiros ao mesmo tempo
   movementComplete = false;
   shootingComplete = false;
   // Iniciando COMBATE (movimento + tiros SIMULTÂNEOS)
+
+  // 🛡️ Watchdog: forçar cleanup se combate travar por mais de 20s
+  if (window.__combatWatchdog) clearTimeout(window.__combatWatchdog);
+  window.__combatWatchdog = setTimeout(() => {
+    if (combatPhase === 'combat') {
+      console.warn('[WATCHDOG] combatPhase preso em "combat" há 20s — forçando cleanup');
+      movementComplete = true;
+      shootingComplete = true;
+      projectiles = [];
+      explosions = [];
+      combatPhase = 'cleanup';
+    }
+    window.__combatWatchdog = null;
+  }, 20000);
   
   // Disparar projéteis IMEDIATAMENTE
   fireProjectiles();
@@ -4730,7 +4764,9 @@ async function handleMatchUpdate(payload) {
         // Animação já terminou antes deste evento chegar — iniciar janela imediatamente
         awaitingRoundReady = false;
         const _d = pendingTurnDeadline; pendingTurnDeadline = null;
+        const _savedPendingActions = pendingAnimActions; // salvar antes — startTurnWindow zera pendingAnimActions
         startTurnWindow(_d);
+        if (!pendingAnimActions) pendingAnimActions = _savedPendingActions; // restaurar para applyResolvedTurn abaixo
       }
     }
 
@@ -5792,6 +5828,7 @@ function setupMultiplayerSync(matchId) {
           debug.pvp('[PVP] 🔄 Tentando reconectar syncChannel...');
           if (syncChannel) {
             syncChannel.unsubscribe();
+            syncChannel = null; // garantir que a guard de duplicata não bloqueie a recriação
           }
           setupMultiplayerSync(); // Recriar canal
         }, 2000);
@@ -5802,6 +5839,7 @@ function setupMultiplayerSync(matchId) {
           debug.pvp('[PVP] 🔄 Tentando reconectar após timeout...');
           if (syncChannel) {
             syncChannel.unsubscribe();
+            syncChannel = null; // garantir que a guard de duplicata não bloqueie a recriação
           }
           setupMultiplayerSync();
         }, 2000);
@@ -7679,6 +7717,8 @@ function updateGame() {
     
     // Fase 3: CLEANUP - Finalizar turno
     if (combatPhase === 'cleanup' && movementComplete && shootingComplete) {
+      // Limpar watchdog (combate concluiu normalmente)
+      if (window.__combatWatchdog) { clearTimeout(window.__combatWatchdog); window.__combatWatchdog = null; }
       mpPhase = 'ROUND_BANNER'; // canonical state: animation done, banner + sync barrier next
       // ✅ XP: Processar eventos de round
       processRoundXPEvents();
