@@ -2481,8 +2481,8 @@ function startTurnWindow(deadlineISO) {
   setTimeout(() => {
     // ⚠️ CLOCK SKEW FIX: Nunca calcular tempo restante de Date.now() vs deadline do servidor.
     // Relógios de Windows/Mac podem diferir fazendo P2 receber 0s ou 67s.
-    // Ambos os clientes sempre recebem 20s locais a partir do momento que recebem o evento.
-    const TURN_DURATION_S = 20;
+    // Ambos os clientes sempre recebem 30s locais a partir do momento que recebem o evento.
+    const TURN_DURATION_S = 30;
     turnTimeRemaining = TURN_DURATION_S;
     
     // Mostrar timer visual
@@ -6340,7 +6340,7 @@ window.addEventListener('message', (e) => {
 });
 
 const NAVY_SIZE = 50;
-const SPEED = 2.5; // AAA: aumentado para movimento mais fluido
+const SPEED = 2.0; // levemente reduzido (era 2.5)
 let projectiles = [];
 
 // Configuração visual dos tipos de tiro (AAA)
@@ -7252,7 +7252,7 @@ function getEdgePoint(from, to, canvasWidth = canvas.width, canvasHeight = canva
 
 
 function fireProjectiles() {
-  const PROJECTILE_SPEED = 6; // antes estava super lento
+  const PROJECTILE_SPEED = 4.8; // levemente reduzido (era 6)
   
   // fireProjectiles chamada
 
