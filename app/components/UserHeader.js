@@ -110,6 +110,14 @@ export default function UserHeader() {
 
   // Só exige username mínimo — playerProgress é bonus, não bloqueia
   const hasMinimalData = userStats && userStats.username;
+
+  // Se dados não carregaram (ex: fetch falhou após F5 com token expirado),
+  // força um refresh único para recuperar sem precisar limpar cache
+  const retryDoneRef = React.useRef(false);
+  if (!hasMinimalData && !isLoading && !retryDoneRef.current) {
+    retryDoneRef.current = true;
+    setTimeout(() => refreshUserStats && refreshUserStats("header_retry"), 800);
+  }
   
   if (!hasMinimalData) {
     return (

@@ -493,10 +493,13 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const handler = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const { data } = await supabase.auth.getSession();
-        const uid = data?.session?.user?.id || null;
+        // Usa getUser() em vez de getSession(): faz chamada ao servidor,
+        // valida o JWT e aciona refresh automático se expirado.
+        // getSession() só lê o localStorage e pode retornar token stale.
+        const { data } = await supabase.auth.getUser();
+        const uid = data?.user?.id || null;
         if (!uid) {
-          // Session expired while in background — sign out cleanly
+          // Token inválido mesmo após tentativa de refresh — encerrar sessão
           setUserId(null);
           setUserStats(null);
           setPlayerProgress(null);
@@ -504,6 +507,8 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
           return;
         }
+        // Se userId mudou (ex: refresh gerou novo token), atualiza
+        setUserId(uid);
         // Silent refresh — no loading spinner
         refreshUserStats("tab_visible");
       } catch (e) {

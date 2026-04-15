@@ -205,9 +205,27 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
     startRealtime();
 
+    // Reconecta realtime e re-busca mensagens quando a aba fica visível novamente
+    // (ex: após minimizar e restaurar o Chrome)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Re-fetch mensagens perdidas durante o background
+      fetchMessages();
+      // Verifica se o canal realtime fechou e reconecta
+      const state = channelRef.current?.state;
+      if (!channelRef.current || state === 'closed' || state === 'errored') {
+        if (channelRef.current) {
+          supabase.removeChannel(channelRef.current);
+          channelRef.current = null;
+        }
+        startRealtime();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       window.removeEventListener("refresh_chat", handleRefreshChat);
-      console.log("=== REALTIME CLEANUP ===");
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -217,8 +235,6 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         channelRef.current = null;
       }
       reconnectAttemptsRef.current = 0;
-      console.log("Channel removed successfully");
-      console.log("========================");
     };
   }, []);
 
@@ -323,6 +339,10 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     setSending(true);
     lastMessageTimeRef.current = now;
 
+    // Safety: se o Chrome estava minimizado e o fetch ficou suspenso,
+    // reseta o estado de envio após 15s para não bloquear o botão para sempre
+    const sendingTimeout = setTimeout(() => setSending(false), 15000);
+
     try {
       const vipAvatarUrl = currentUserIsVip
         ? (typeof window !== "undefined" ? localStorage.getItem("thor_vip_avatar") : null)
@@ -388,6 +408,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       setErrorMessage("Erro ao enviar mensagem");
       setTimeout(() => setErrorMessage(""), 3000);
     } finally {
+      clearTimeout(sendingTimeout);
       setSending(false);
     }
   };
