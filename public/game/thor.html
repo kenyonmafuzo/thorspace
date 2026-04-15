@@ -2895,36 +2895,41 @@ function applyResolvedTurn(actions) {
   if (myAction && myAction.type === 'play' && myAction.ships) {
     myAction.ships.forEach(shipData => {
       const nave = playerNaves[shipData.index];
-      if (nave && nave.hp > 0) {
-        nave.target = shipData.target;
-        nave.shot = shipData.shot;
-        // Usar shotType do payload (fonte única de verdade)
-        if (shipData.shotType) nave.shotType = shipData.shotType;
+      if (nave) {
+        // 🔥 Snap HP autoritativo do payload — garante que HP local não esteja desatualizado
+        // pelo Realtime player1_hp/player2_hp (que pode chegar com valor antigo)
+        if (shipData.hp !== undefined) nave.hp = shipData.hp;
+        if (nave.hp > 0) {
+          nave.target = shipData.target;
+          nave.shot = shipData.shot;
+          // Usar shotType do payload (fonte única de verdade)
+          if (shipData.shotType) nave.shotType = shipData.shotType;
+        }
       }
     });
-  } else {
   }
   
   // Aplicar ações do OPONENTE em cpuNaves
   if (oppAction && oppAction.type === 'play' && oppAction.ships) {
     oppAction.ships.forEach(shipData => {
       const nave = cpuNaves[shipData.index];
-      if (nave && nave.hp > 0) {
-        nave.target = shipData.target;
-        nave.shot = shipData.shot;
-        // Usar shotType do payload (fonte única de verdade)
-        if (shipData.shotType) nave.shotType = shipData.shotType;
-        // Aplicar ângulo salvo pelo oponente (sem recalcular)
-        if (shipData.angle !== undefined) {
-          nave.angle = shipData.angle;
+      if (nave) {
+        // 🔥 Snap HP autoritativo do payload — corrige HP desatualizado do Realtime
+        // (player1_hp/player2_hp pode chegar com valor antigo ou zerado de partida anterior)
+        if (shipData.hp !== undefined) nave.hp = shipData.hp;
+        if (nave.hp > 0) {
+          nave.target = shipData.target;
+          nave.shot = shipData.shot;
+          // Usar shotType do payload (fonte única de verdade)
+          if (shipData.shotType) nave.shotType = shipData.shotType;
+          // Aplicar ângulo salvo pelo oponente (sem recalcular)
+          if (shipData.angle !== undefined) nave.angle = shipData.angle;
+          // 🔥 AAA: Snap posição canônica — garante animação determinística em ambas as telas
+          if (shipData.x !== undefined) nave.x = shipData.x;
+          if (shipData.y !== undefined) nave.y = shipData.y;
         }
-        // 🔥 AAA: Snap posição canônica — garante animação determinística em ambas as telas
-        // Sem isso, o lerp do realtime_state pode deixar posições divergentes em cada cliente
-        // resultando em colisões diferentes (P1 vê acerto, P2 vê erro)
-        if (shipData.x !== undefined) nave.x = shipData.x;
-        if (shipData.y !== undefined) nave.y = shipData.y;
       } else {
-        console.warn('[TURN]   - ⚠️ cpuNave #' + shipData.index + ' não existe ou HP=0');
+        console.warn('[TURN]   - ⚠️ cpuNave #' + shipData.index + ' não existe');
       }
     });
   } else {
