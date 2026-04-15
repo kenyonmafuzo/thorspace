@@ -2697,19 +2697,31 @@ async function maybeResolveTurn() {
   
   isResolvingTurn = true;
   // Safety: se algo travar (ex: rede cair durante o await), libera o guard após 8s
-  // para que as próximas tentativas do tryResolveLoop consigam entrar
-  const resolveGuardTimeout = setTimeout(() => { isResolvingTurn = false; }, 8000);
+  // E dispara novo retry — garante que o turno seja resolvido mesmo se tryResolveLoop
+  // já esgotou suas tentativas antes do unlock.
+  const resolveGuardTimeout = setTimeout(() => {
+    isResolvingTurn = false;
+    // Retry imediato após unlock — cobre o caso onde tryResolveLoop esgotou 5 tentativas
+    // enquanto o guard estava travado
+    setTimeout(() => maybeResolveTurn(), 200);
+  }, 8000);
   
   try {
-    // Buscar estado atual do match
-    const { data: match, error } = await supabaseClient
+    // Buscar estado atual do match com timeout de 6s para não travar indefinidamente
+    const queryPromise = supabaseClient
       .from('matches')
       .select('*')
       .eq('id', matchData.id)
       .maybeSingle();
+    const queryTimeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('query timeout')), 6000)
+    );
+    const { data: match, error } = await Promise.race([queryPromise, queryTimeout])
+      .catch(e => ({ data: null, error: e }));
     
     if (error || !match) {
       console.error('[TURN] Erro ao buscar match:', error);
+      clearTimeout(resolveGuardTimeout);
       isResolvingTurn = false;
       return;
     }
@@ -2718,6 +2730,7 @@ async function maybeResolveTurn() {
     // player2_id aguarda o Realtime detectar turn_resolved_at
     const isPlayer1 = myUserId === match.player1_id;
     if (!isPlayer1) {
+      clearTimeout(resolveGuardTimeout);
       isResolvingTurn = false;
       return;
     }
@@ -2748,6 +2761,7 @@ async function maybeResolveTurn() {
     
     // Só resolver se ambos enviaram OU deadline passou
     if (!bothSubmitted && !deadlinePassed) {
+      clearTimeout(resolveGuardTimeout);
       isResolvingTurn = false;
       return;
     }
@@ -2758,6 +2772,7 @@ async function maybeResolveTurn() {
       const msRemaining = deadline.getTime() - Date.now();
       if (msRemaining > 2500 && !earlySubmitBufferScheduled) {
         earlySubmitBufferScheduled = true;
+        clearTimeout(resolveGuardTimeout);
         isResolvingTurn = false;
         setTimeout(() => { earlySubmitBufferScheduled = false; maybeResolveTurn(); }, 2500);
         return;
@@ -7753,10 +7768,10 @@ function updateGame() {
                   console.warn(`[SYNC] Deadline ${isSameDeadline ? 'igual ao anterior' : 'nulo'}, retry em 2s...`);
                   roundReadyTimeout = setTimeout(_tryFallbackFetch, 2000);
                 } else {
-                  // Esgotou tentativas: sintetizar janela de 20s para não travar o jogo
-                  console.error('[SYNC] ❌ Fallback esgotado — sintetizando janela de 20s para desbloquear.');
+                  // Esgotou tentativas: sintetizar janela de 30s para não travar o jogo
+                  console.error('[SYNC] ❌ Fallback esgotado — sintetizando janela de 30s para desbloquear.');
                   awaitingRoundReady = false;
-                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 20000).toISOString());
+                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 30000).toISOString());
                 }
               } catch(e) {
                 console.error('[SYNC] Erro no fallback DB:', e);
@@ -7764,7 +7779,7 @@ function updateGame() {
                   roundReadyTimeout = setTimeout(_tryFallbackFetch, 2000);
                 } else if (awaitingRoundReady) {
                   awaitingRoundReady = false;
-                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 20000).toISOString());
+                  if (gameActive && !winner) startTurnWindow(new Date(Date.now() + 30000).toISOString());
                 }
               }
             };
