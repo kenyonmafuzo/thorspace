@@ -2774,7 +2774,10 @@ async function maybeResolveTurn() {
         earlySubmitBufferScheduled = true;
         clearTimeout(resolveGuardTimeout);
         isResolvingTurn = false;
-        setTimeout(() => { earlySubmitBufferScheduled = false; maybeResolveTurn(); }, 2500);
+        // NÃO resetar earlySubmitBufferScheduled no callback — isso causava loop infinito
+        // (re-agendava o buffer a cada 2.5s até o deadline, deixando o jogo "travado" 30s).
+        // startTurnWindow já reseta earlySubmitBufferScheduled no início de cada round.
+        setTimeout(() => { maybeResolveTurn(); }, 2500);
         return;
       }
     }
