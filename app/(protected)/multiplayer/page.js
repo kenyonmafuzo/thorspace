@@ -992,5 +992,5 @@ const mobilePanelStyle = {
   flexDirection: 'column',
   overflow: 'hidden',
   minHeight: 0,
-  padding: '8px 12px 12px',
+  padding: '8px 16px 12px',
 };
