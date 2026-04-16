@@ -902,7 +902,10 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
             }}
             tabIndex={-1}
           >
-            {sending ? "..." : t("multiplayer.send")}
+            {sending
+              ? <span style={{ width: 20, height: 20, border: '2px solid #001018', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+              : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 2L11 13" stroke="#001018" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#001018" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            }
           </button>
         </form>
       </div>
@@ -1059,15 +1062,18 @@ const inputStyle = {
 };
 
 const sendButtonStyle = {
-  padding: "10px 20px",
-  fontSize: 13,
-  fontWeight: 700,
+  padding: 0,
+  width: 44,
+  height: 44,
+  flexShrink: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   color: "#001018",
-  background: "linear-gradient(90deg, #00E5FF, #0072FF)",
+  background: "linear-gradient(135deg, #00E5FF, #0072FF)",
   border: "none",
-  borderRadius: 8,
+  borderRadius: 10,
   cursor: "pointer",
   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
   transform: "translateY(0)",
-  fontFamily: "'Orbitron',sans-serif",
 };

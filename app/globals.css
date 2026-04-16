@@ -2,6 +2,10 @@
   --foreground: #ededed;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 @font-face {
   font-family: 'Orbitron';
   font-style: normal;
