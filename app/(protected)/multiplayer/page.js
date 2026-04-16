@@ -626,6 +626,7 @@ export default function MultiplayerPage() {
                 borderBottom: mobileTab === tab ? '2px solid #00E5FF' : '2px solid transparent',
                 color: mobileTab === tab ? '#00E5FF' : 'rgba(255,255,255,0.45)',
                 fontWeight: mobileTab === tab ? 700 : 400,
+                paddingLeft: tab === 'online' ? 16 : 0,
               }}
             >
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
