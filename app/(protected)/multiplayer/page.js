@@ -607,7 +607,7 @@ export default function MultiplayerPage() {
     <div style={isMobile ? mobilePageContainerStyle : pageContainerStyle}>
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       
-      <div style={topRowStyle}>
+      <div style={isMobile ? topRowStyle : { ...topRowStyle, paddingTop: 32, paddingBottom: 20 }}>
         <Link href="/mode" style={backButtonStyle}>
           ← {t('multiplayer.back')}
         </Link>
@@ -628,7 +628,13 @@ export default function MultiplayerPage() {
                 fontWeight: mobileTab === tab ? 700 : 400,
               }}
             >
-              {tab === 'online' ? '🟢 Online' : '💬 Chat'}
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {tab === 'online'
+                  ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                }
+                {tab === 'online' ? 'Online' : 'Chat'}
+              </span>
             </button>
           ))}
         </div>
