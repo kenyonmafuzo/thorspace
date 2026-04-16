@@ -604,7 +604,7 @@ export default function MultiplayerPage() {
   }
 
   return (
-    <div style={pageContainerStyle}>
+    <div style={isMobile ? mobilePageContainerStyle : pageContainerStyle}>
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       
       <div style={topRowStyle}>
@@ -872,7 +872,21 @@ const pageContainerStyle = {
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
-  paddingTop: 64, // header fixo
+  paddingTop: 64, // header fixo (desktop)
+};
+
+// Mobile: position fixed so container is exactly the visible area between
+// MobileHeader bottom and viewport bottom — prevents iOS Safari 100vh issues
+// and keeps input bar pinned to the bottom.
+const mobilePageContainerStyle = {
+  ...pageContainerStyle,
+  position: "fixed",
+  top: "calc(220px + env(safe-area-inset-top, 0px))",
+  bottom: "env(safe-area-inset-bottom, 0px)",
+  left: 0,
+  right: 0,
+  height: "auto",
+  paddingTop: 0,
 };
 
 const topRowStyle = {
