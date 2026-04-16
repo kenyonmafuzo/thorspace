@@ -778,6 +778,7 @@ export default function MultiplayerPage() {
               currentUserId={currentUser.id}
               currentUsername={profile?.username ?? "Player"}
               currentAvatar={profile?.avatar_preset ?? "normal"}
+              autoFocus={!isMobile}
             />
           </div>
         </div>

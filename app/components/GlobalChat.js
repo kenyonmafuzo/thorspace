@@ -15,7 +15,7 @@ import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
  */
 import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 
-export default function GlobalChat({ currentUserId, currentUsername, currentAvatar }) {
+export default function GlobalChat({ currentUserId, currentUsername, currentAvatar, autoFocus = false }) {
     // HOOKS: manter apenas UM bloco de declarações
     const { t } = useI18n();
     const [messages, setMessages] = useState([]);
@@ -34,6 +34,15 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     const reconnectAttemptsRef = useRef(0);
     const inputRef = useRef(null);
     const maxReconnectAttempts = 5;
+
+    // Auto-focus input on mount (desktop only — passed via prop)
+    useEffect(() => {
+      if (!autoFocus) return;
+      // Wait for loading to finish before focusing
+      if (!loading) {
+        setTimeout(() => inputRef.current?.focus(), 150);
+      }
+    }, [autoFocus, loading]);
     const [badgePickerOpen, setBadgePickerOpen] = useState(false);
     const [userBadges, setUserBadges] = useState([]);
     const [selectedBadge, setSelectedBadge] = useState(null);
