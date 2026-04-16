@@ -986,7 +986,8 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 // Styles
 const containerStyle = {
   width: "100%",
-  height: "100%",
+  flex: 1,
+  minHeight: 0,
   background: "rgba(0, 0, 0, 0.4)",
   border: "1px solid rgba(255, 255, 255, 0.1)",
   borderRadius: 12,

@@ -693,7 +693,7 @@ export default function MultiplayerPage() {
           ? { ...mobilePanelStyle, display: mobileTab === 'chat' ? 'flex' : 'none' }
           : centerColumnStyle
         }>
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
             {matchResult && (
               <div style={{
                 background: matchResult.result === 'VICTORY' ? 'linear-gradient(135deg, #1a4d2e 0%, #0d2818 100%)' 
@@ -872,7 +872,7 @@ const pageContainerStyle = {
   display: "flex",
   flexDirection: "column",
   overflow: "hidden",
-  paddingTop: 90,
+  paddingTop: 64, // header fixo
 };
 
 const topRowStyle = {
@@ -880,10 +880,10 @@ const topRowStyle = {
   alignItems: "center",
   justifyContent: "flex-start",
   gap: 16,
-  padding: "24px 24px 18px 24px",
-  marginTop: 8,
+  padding: "12px 16px 10px 16px",
   position: "relative",
   zIndex: 1,
+  flexShrink: 0,
 };
 
 const titleStyle = {
@@ -914,23 +914,28 @@ const backButtonStyle = {
 const mainLayoutStyle = {
   flex: 1,
   display: "flex",
-  gap: 24,
-  padding: 24,
+  gap: 16,
+  padding: "0 16px 16px",
   overflow: "hidden",
+  minHeight: 0,
 };
 
 const leftColumnStyle = {
   width: 280,
   flexShrink: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  minHeight: 0,
 };
 
 const centerColumnStyle = {
   flex: 1,
   minWidth: 0,
-  paddingTop: 8,
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
+  minHeight: 0,
 };
 
 // ── Mobile-only styles ──────────────────────────────────────
@@ -944,10 +949,10 @@ const mobileTabBarStyle = {
 
 const mobileTabButtonStyle = {
   flex: 1,
-  padding: '12px 0',
+  padding: '10px 0',
   background: 'none',
   border: 'none',
-  fontSize: 14,
+  fontSize: 13,
   fontFamily: "'Orbitron', sans-serif",
   letterSpacing: 0.5,
   cursor: 'pointer',
@@ -959,11 +964,13 @@ const mobileMainStyle = {
   overflow: 'hidden',
   display: 'flex',
   flexDirection: 'column',
+  minHeight: 0,
 };
 
 const mobilePanelStyle = {
   flex: 1,
   flexDirection: 'column',
   overflow: 'hidden',
-  padding: '0 12px 12px',
+  minHeight: 0,
+  padding: '8px 12px 12px',
 };
