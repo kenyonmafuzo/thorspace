@@ -296,6 +296,10 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
+    // Focus synchronously while still inside the user-gesture chain.
+    // iOS Safari blocks programmatic focus() after any await, so this must
+    // happen before the first async operation.
+    inputRef.current?.focus();
 
     // Clear previous error
     setErrorMessage("");
