@@ -32,6 +32,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     const channelRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
     const reconnectAttemptsRef = useRef(0);
+    const inputRef = useRef(null);
     const maxReconnectAttempts = 5;
     const [badgePickerOpen, setBadgePickerOpen] = useState(false);
     const [userBadges, setUserBadges] = useState([]);
@@ -396,6 +397,8 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       } else {
         setNewMessage("");
         setSelectedBadge(null); // Limpar badge selecionado
+        // Restaurar foco no campo após envio
+        setTimeout(() => inputRef.current?.focus(), 0);
         
         // Adicionar mensagem imediatamente no state
         if (data) {
@@ -855,6 +858,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
               </div>
             )}
             <input
+              ref={inputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
