@@ -966,6 +966,7 @@ const mobileTabBarStyle = {
   background: 'rgba(0,0,22,0.85)',
   flexShrink: 0,
   zIndex: 10,
+  marginTop: 12,
 };
 
 const mobileTabButtonStyle = {
