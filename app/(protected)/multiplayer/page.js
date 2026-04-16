@@ -26,6 +26,15 @@ export default function MultiplayerPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [declinedBy, setDeclinedBy] = useState(null); // username que recusou o convite
   const pendingMatchChannelRef = useRef(null); // canal dedicado ao match pendente atual
+  const [mobileTab, setMobileTab] = useState('online'); // 'online' | 'chat'
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   const handleCloseProfile = () => {
   setIsProfileOpen(false);
   setSelectedPlayer(null);
@@ -605,8 +614,32 @@ export default function MultiplayerPage() {
         <h2 style={titleStyle}>{t('multiplayer.title')} Hub</h2>
       </div>
 
-      <div style={mainLayoutStyle}>
-        <div style={leftColumnStyle}>
+      {/* ── Mobile tab bar ── */}
+      {isMobile && (
+        <div style={mobileTabBarStyle}>
+          {['online', 'chat'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                ...mobileTabButtonStyle,
+                borderBottom: mobileTab === tab ? '2px solid #00E5FF' : '2px solid transparent',
+                color: mobileTab === tab ? '#00E5FF' : 'rgba(255,255,255,0.45)',
+                fontWeight: mobileTab === tab ? 700 : 400,
+              }}
+            >
+              {tab === 'online' ? '🟢 Online' : '💬 Chat'}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div style={isMobile ? mobileMainStyle : mainLayoutStyle}>
+        {/* Left / Online panel */}
+        <div style={isMobile
+          ? { ...mobilePanelStyle, display: mobileTab === 'online' ? 'flex' : 'none' }
+          : leftColumnStyle
+        }>
           <OnlineNow 
           currentUserId={currentUser.id} 
           currentUsername={profile?.username ?? "Player"}
@@ -655,7 +688,11 @@ export default function MultiplayerPage() {
 
         </div>
 
-        <div style={centerColumnStyle}>
+        {/* Center / Chat panel */}
+        <div style={isMobile
+          ? { ...mobilePanelStyle, display: mobileTab === 'chat' ? 'flex' : 'none' }
+          : centerColumnStyle
+        }>
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {matchResult && (
               <div style={{
@@ -894,4 +931,39 @@ const centerColumnStyle = {
   display: 'flex',
   flexDirection: 'column',
   overflow: 'hidden',
+};
+
+// ── Mobile-only styles ──────────────────────────────────────
+const mobileTabBarStyle = {
+  display: 'flex',
+  borderBottom: '1px solid rgba(0,229,255,0.2)',
+  background: 'rgba(0,0,22,0.85)',
+  flexShrink: 0,
+  zIndex: 10,
+};
+
+const mobileTabButtonStyle = {
+  flex: 1,
+  padding: '12px 0',
+  background: 'none',
+  border: 'none',
+  fontSize: 14,
+  fontFamily: "'Orbitron', sans-serif",
+  letterSpacing: 0.5,
+  cursor: 'pointer',
+  transition: 'color 0.2s, border-color 0.2s',
+};
+
+const mobileMainStyle = {
+  flex: 1,
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const mobilePanelStyle = {
+  flex: 1,
+  flexDirection: 'column',
+  overflow: 'hidden',
+  padding: '0 12px 12px',
 };
