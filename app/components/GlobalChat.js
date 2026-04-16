@@ -410,8 +410,6 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       } else {
         setNewMessage("");
         setSelectedBadge(null); // Limpar badge selecionado
-        // Restaurar foco no campo após envio
-        setTimeout(() => inputRef.current?.focus(), 0);
         
         // Adicionar mensagem imediatamente no state
         if (data) {
@@ -436,6 +434,8 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     } finally {
       clearTimeout(sendingTimeout);
       setSending(false);
+      // Restaurar foco após setSending(false) para que o re-render não roube o foco
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
