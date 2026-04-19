@@ -911,9 +911,9 @@ export default function RankingPage() {
                   ← Voltar
                 </button>
                 <div ref={statsRef} style={{ background: '#0a0a0f', borderRadius: 14, overflow: 'hidden', paddingBottom: 16 }}>
-                  {/* Logo header for screenshot */}
-                  <div style={{ background: '#000', padding: '18px 24px 16px', textAlign: 'center', marginBottom: 16 }}>
-                    <span style={{ color: '#00E5FF', fontSize: 26, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", letterSpacing: 5, textShadow: '0 0 12px #00E5FF, 0 0 28px rgba(0,229,255,0.5), 0 0 50px rgba(0,191,255,0.3)' }}>THORSPACE</span>
+                  {/* Logo header - hidden on page, shown only in screenshot */}
+                  <div id="screenshot-logo-header" style={{ display: 'none', background: '#000', padding: '24px', textAlign: 'center' }}>
+                    <img src="/game/images/thorspace.png" alt="ThorSpace" style={{ height: 80, objectFit: 'contain' }} />
                   </div>
                   {/* Player header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)', margin: '0 16px 24px' }}>
@@ -1027,6 +1027,10 @@ export default function RankingPage() {
                         scale: 2,
                         useCORS: true,
                         logging: false,
+                        onclone: (clonedDoc) => {
+                          const hdr = clonedDoc.getElementById('screenshot-logo-header');
+                          if (hdr) hdr.style.display = 'block';
+                        },
                       });
                       canvas.toBlob(blob => {
                         if (!blob) return;
