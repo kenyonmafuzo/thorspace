@@ -24,54 +24,131 @@ export default function RankingPage() {
   const [confrontosFilter, setConfrontosFilter] = useState("recentes");
   const [confrontosSearch, setConfrontosSearch] = useState("");
   const [selectedConfronto, setSelectedConfronto] = useState(null);
+  const [confrontosData, setConfrontosData] = useState([]);
+  const [loadingConfrontos, setLoadingConfrontos] = useState(false);
 
-  const confrontosMockData = [
-    {
-      id: 1,
-      name: "Márcio",
-      avatar: '/game/images/nave_normal.png',
-      tier: 'elite', material: 'gold',
-      rank: 'Elite IV',
-      partidas: 20,
-      youWins: 12, opponentWins: 8,
-      lastMatch: 'há 2 dias',
-      winrate: 60,
-      lastResults: ['V', 'V', 'D', 'V', 'D'],
-      avgDamageYou: 3200, avgDamageOpponent: 2800,
-      bestStreak: 4,
-      lastEncounter: '16/04/2026',
-    },
-    {
-      id: 2,
-      name: "Juliana",
-      avatar: '/game/images/nave_protecao.png',
-      tier: 'elite', material: 'silver',
-      rank: 'Elite II',
-      partidas: 15,
-      youWins: 7, opponentWins: 8,
-      lastMatch: 'há 5 dias',
-      winrate: 46.7,
-      lastResults: ['D', 'V', 'D', 'D', 'V'],
-      avgDamageYou: 2900, avgDamageOpponent: 3100,
-      bestStreak: 2,
-      lastEncounter: '13/04/2026',
-    },
-    {
-      id: 3,
-      name: "RafaelX",
-      avatar: '/game/images/nave_alcance.png',
-      tier: 'rookie', material: 'gold',
-      rank: 'Rookie IV',
-      partidas: 32,
-      youWins: 19, opponentWins: 13,
-      lastMatch: 'há 1 semana',
-      winrate: 59.4,
-      lastResults: ['V', 'V', 'V', 'D', 'V'],
-      avgDamageYou: 3500, avgDamageOpponent: 2600,
-      bestStreak: 6,
-      lastEncounter: '10/04/2026',
-    },
-  ];
+  function formatRelativeDate(date) {
+    const diff = Date.now() - date.getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'hoje';
+    if (days === 1) return 'há 1 dia';
+    if (days < 7) return `há ${days} dias`;
+    if (days < 14) return 'há 1 semana';
+    if (days < 30) return `há ${Math.floor(days / 7)} semanas`;
+    return date.toLocaleDateString('pt-BR');
+  }
+
+  function resolveAvatarUrl(avatarPreset) {
+    if (!avatarPreset) return '/game/images/nave_normal.png';
+    if (avatarPreset.startsWith('/')) return avatarPreset;
+    if (avatarPreset === 'protecao') return '/game/images/nave_protecao.png';
+    if (avatarPreset === 'alcance') return '/game/images/nave_alcance.png';
+    return '/game/images/nave_normal.png';
+  }
+
+  async function loadConfrontos(userId) {
+    setLoadingConfrontos(true);
+    try {
+      const { data: results, error } = await supabase
+        .from('match_results')
+        .select('match_id, winner_id, loser_id, winner_score, loser_score, processed_at')
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
+        .order('processed_at', { ascending: false });
+
+      if (error || !results?.length) {
+        setConfrontosData([]);
+        return;
+      }
+
+      const opponentIds = [...new Set(results.map(r =>
+        r.winner_id === userId ? r.loser_id : r.winner_id
+      ))];
+
+      const [{ data: profiles }, { data: progressData }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, username, avatar_preset, is_vip, vip_name_color, vip_frame_color')
+          .in('id', opponentIds),
+        supabase
+          .from('player_progress')
+          .select('user_id, total_xp')
+          .in('user_id', opponentIds),
+      ]);
+
+      const profileMap = {};
+      (profiles || []).forEach(p => { profileMap[p.id] = p; });
+      const progressMap = {};
+      (progressData || []).forEach(p => { progressMap[p.user_id] = p; });
+
+      // Group by opponent
+      const h2hMap = {};
+      results.forEach(r => {
+        const opponentId = r.winner_id === userId ? r.loser_id : r.winner_id;
+        const iWon = r.winner_id === userId;
+        const myScore = iWon ? r.winner_score : r.loser_score;
+        const oppScore = iWon ? r.loser_score : r.winner_score;
+        if (!h2hMap[opponentId]) {
+          h2hMap[opponentId] = { opponentId, matches: [], youWins: 0, opponentWins: 0 };
+        }
+        h2hMap[opponentId].matches.push({ date: r.processed_at, myScore, oppScore, iWon });
+        if (iWon) h2hMap[opponentId].youWins++;
+        else h2hMap[opponentId].opponentWins++;
+      });
+
+      const data = Object.values(h2hMap).map(h2h => {
+        const profile = profileMap[h2h.opponentId] || {};
+        const progress = progressMap[h2h.opponentId] || {};
+        const total_xp = Number(progress.total_xp ?? 0);
+        const calcProg = getLevelProgressFromTotalXp(total_xp);
+
+        const sortedMatches = [...h2h.matches].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const lastMatch = sortedMatches[0];
+        const lastFive = sortedMatches.slice(0, 5);
+
+        const avgScoreYou = Math.round(h2h.matches.reduce((s, m) => s + (m.myScore || 0), 0) / h2h.matches.length);
+        const avgScoreOpp = Math.round(h2h.matches.reduce((s, m) => s + (m.oppScore || 0), 0) / h2h.matches.length);
+
+        let bestStreak = 0, curStreak = 0;
+        sortedMatches.forEach(m => {
+          if (m.iWon) { curStreak++; bestStreak = Math.max(bestStreak, curStreak); }
+          else curStreak = 0;
+        });
+
+        const lastDate = lastMatch ? new Date(lastMatch.date) : null;
+
+        return {
+          opponentId: h2h.opponentId,
+          name: profile.username || 'Jogador',
+          avatar: resolveAvatarUrl(profile.avatar_preset),
+          tier: calcProg.tier?.toLowerCase() || 'rookie',
+          material: calcProg.material?.toLowerCase() || 'bronze',
+          rank: `${calcProg.tier} ${calcProg.material}`,
+          partidas: h2h.matches.length,
+          youWins: h2h.youWins,
+          opponentWins: h2h.opponentWins,
+          lastMatchLabel: lastDate ? formatRelativeDate(lastDate) : null,
+          lastMatchTimestamp: lastDate ? lastDate.getTime() : 0,
+          winrate: h2h.matches.length > 0 ? (h2h.youWins / h2h.matches.length) * 100 : 0,
+          lastResults: lastFive.map(m => ({ myScore: m.myScore ?? 0, oppScore: m.oppScore ?? 0, iWon: m.iWon })),
+          avgScoreYou,
+          avgScoreOpp,
+          bestStreak,
+          lastEncounterDate: lastDate ? lastDate.toLocaleDateString('pt-BR') : null,
+          lastEncounterResult: lastMatch ? `${lastMatch.myScore ?? 0} x ${lastMatch.oppScore ?? 0}` : null,
+          is_vip: profile.is_vip || false,
+          vip_name_color: profile.vip_name_color || '#FFD700',
+          vip_frame_color: profile.vip_frame_color || '#FFD700',
+        };
+      });
+
+      setConfrontosData(data);
+    } catch (err) {
+      console.error('[loadConfrontos]', err);
+      setConfrontosData([]);
+    } finally {
+      setLoadingConfrontos(false);
+    }
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -164,6 +241,7 @@ export default function RankingPage() {
       setCurrentUserId(session.user.id);
       setLoading(false);
       loadRanking();
+      loadConfrontos(session.user.id);
     })();
 
     function handleStatsUpdated() {
@@ -655,89 +733,120 @@ export default function RankingPage() {
                   ))}
                 </div>
                 {/* Cards */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {confrontosMockData
+                {loadingConfrontos ? (
+                  <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.4)', fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>Carregando confrontos...</div>
+                ) : (() => {
+                  const filtered = confrontosData
                     .filter(p => p.name.toLowerCase().includes(confrontosSearch.toLowerCase()))
-                    .map(player => {
-                      const tierUrl = `/game/images/ranks/${player.tier}/${player.tier}_${player.material}.png`;
-                      const isWinning = player.youWins > player.opponentWins;
-                      const isTied = player.youWins === player.opponentWins;
-                      return (
-                        <div
-                          key={player.id}
-                          onClick={() => setSelectedConfronto(player)}
-                          style={{
-                            background: 'rgba(255,255,255,0.04)',
-                            border: '1.5px solid rgba(255,255,255,0.1)',
-                            borderRadius: 12,
-                            padding: '14px 18px',
-                            cursor: 'pointer',
-                            transition: 'border-color 0.2s, background 0.2s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 14,
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.borderColor = 'rgba(0,229,255,0.4)';
-                            e.currentTarget.style.background = 'rgba(0,229,255,0.06)';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
-                            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                          }}
-                        >
-                          {/* Avatar */}
-                          <img
-                            src={player.avatar}
-                            alt={player.name}
-                            style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,229,255,0.3)', flexShrink: 0 }}
-                            onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
-                          />
-                          {/* Info */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                              <span style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 14 }}>{player.name}</span>
-                              <img src={tierUrl} alt={player.rank} style={{ width: 18, height: 18, objectFit: 'contain' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: "'Orbitron',sans-serif" }}>{player.rank}</span>
-                            </div>
-                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", marginBottom: 6 }}>
-                              {player.partidas} partidas
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ color: '#00FF00', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>Você {player.youWins}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>x</span>
-                              <span style={{ color: '#FF4444', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>{player.opponentWins}</span>
-                            </div>
-                          </div>
-                          {/* Right badge + last match */}
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{
-                              display: 'inline-block',
-                              padding: '3px 10px',
+                    .slice();
+
+                  if (confrontosFilter === 'recentes') {
+                    filtered.sort((a, b) => b.lastMatchTimestamp - a.lastMatchTimestamp);
+                  } else if (confrontosFilter === 'mais_enfrentados') {
+                    filtered.sort((a, b) => b.partidas - a.partidas);
+                  } else if (confrontosFilter === 'rivalidades') {
+                    // Maiores rivalidades = mais equilibrado (menor diferença) com mais partidas
+                    filtered.sort((a, b) => {
+                      const diffA = Math.abs(a.youWins - a.opponentWins);
+                      const diffB = Math.abs(b.youWins - b.opponentWins);
+                      if (diffA !== diffB) return diffA - diffB;
+                      return b.partidas - a.partidas;
+                    });
+                  }
+
+                  if (!filtered.length) {
+                    return (
+                      <div style={{ textAlign: 'center', padding: 40, color: 'rgba(255,255,255,0.35)', fontFamily: "'Orbitron',sans-serif", fontSize: 13 }}>
+                        Nenhum confronto encontrado.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {filtered.map(player => {
+                        const tierUrl = `/game/images/ranks/${player.tier}/${player.tier}_${player.material}.png`;
+                        const isWinning = player.youWins > player.opponentWins;
+                        const isTied = player.youWins === player.opponentWins;
+                        return (
+                          <div
+                            key={player.opponentId}
+                            onClick={() => setSelectedConfronto(player)}
+                            style={{
+                              background: 'rgba(255,255,255,0.04)',
+                              border: '1.5px solid rgba(255,255,255,0.1)',
                               borderRadius: 12,
-                              background: isWinning ? 'rgba(0,255,0,0.12)' : isTied ? 'rgba(255,200,0,0.12)' : 'rgba(255,68,68,0.12)',
-                              border: `1px solid ${isWinning ? 'rgba(0,255,0,0.3)' : isTied ? 'rgba(255,200,0,0.3)' : 'rgba(255,68,68,0.3)'}`,
-                              color: isWinning ? '#00FF00' : isTied ? '#FFD700' : '#FF4444',
-                              fontSize: 10,
-                              fontFamily: "'Orbitron',sans-serif",
-                              fontWeight: 700,
-                              marginBottom: 8,
-                            }}>
-                              {isWinning ? 'Vencendo' : isTied ? 'Empatado' : 'Perdendo'}
+                              padding: '14px 18px',
+                              cursor: 'pointer',
+                              transition: 'border-color 0.2s, background 0.2s',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 14,
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.borderColor = 'rgba(0,229,255,0.4)';
+                              e.currentTarget.style.background = 'rgba(0,229,255,0.06)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                            }}
+                          >
+                            <img
+                              src={player.avatar}
+                              alt={player.name}
+                              style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: player.is_vip ? `2px solid ${player.vip_frame_color}` : '2px solid rgba(0,229,255,0.3)', flexShrink: 0 }}
+                              onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                                <span style={{ color: player.is_vip ? player.vip_name_color : '#fff', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 14 }}>
+                                  {player.is_vip && <span style={{ marginRight: 3, fontSize: 11 }}>💎</span>}
+                                  {player.name}
+                                </span>
+                                <img src={tierUrl} alt={player.rank} style={{ width: 18, height: 18, objectFit: 'contain' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                                <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>{player.rank}</span>
+                              </div>
+                              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", marginBottom: 6 }}>
+                                {player.partidas} partidas
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: '#00FF00', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>Você {player.youWins}</span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>x</span>
+                                <span style={{ color: '#FF4444', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>{player.opponentWins}</span>
+                              </div>
                             </div>
-                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>
-                              Última: {player.lastMatch}
+                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                              <div style={{
+                                display: 'inline-block',
+                                padding: '3px 10px',
+                                borderRadius: 12,
+                                background: isWinning ? 'rgba(0,255,0,0.12)' : isTied ? 'rgba(255,200,0,0.12)' : 'rgba(255,68,68,0.12)',
+                                border: `1px solid ${isWinning ? 'rgba(0,255,0,0.3)' : isTied ? 'rgba(255,200,0,0.3)' : 'rgba(255,68,68,0.3)'}`,
+                                color: isWinning ? '#00FF00' : isTied ? '#FFD700' : '#FF4444',
+                                fontSize: 10,
+                                fontFamily: "'Orbitron',sans-serif",
+                                fontWeight: 700,
+                                marginBottom: 8,
+                              }}>
+                                {isWinning ? 'Vencendo' : isTied ? 'Empatado' : 'Perdendo'}
+                              </div>
+                              {player.lastMatchLabel && (
+                                <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>
+                                  Última: {player.lastMatchLabel}
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </>
             ) : (
               /* ── Stats Panel ── */
               <div>
-                {/* Back */}
                 <button
                   onClick={() => setSelectedConfronto(null)}
                   style={{
@@ -764,17 +873,19 @@ export default function RankingPage() {
                   <img
                     src={selectedConfronto.avatar}
                     alt={selectedConfronto.name}
-                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,229,255,0.4)' }}
+                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: selectedConfronto.is_vip ? `2px solid ${selectedConfronto.vip_frame_color}` : '2px solid rgba(0,229,255,0.4)' }}
                     onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
                   />
                   <div>
-                    <div style={{ color: '#00E5FF', fontFamily: "'Orbitron',sans-serif", fontWeight: 800, fontSize: 18 }}>{selectedConfronto.name}</div>
+                    <div style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : '#00E5FF', fontFamily: "'Orbitron',sans-serif", fontWeight: 800, fontSize: 18 }}>
+                      {selectedConfronto.is_vip && <span style={{ marginRight: 4 }}>💎</span>}
+                      {selectedConfronto.name}
+                    </div>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron',sans-serif", fontSize: 12, marginTop: 2 }}>{selectedConfronto.rank} • {selectedConfronto.partidas} partidas</div>
                   </div>
                 </div>
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
-                  {/* Vitórias */}
                   <div style={{ background: 'rgba(0,255,0,0.06)', border: '1px solid rgba(0,255,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>VITÓRIAS</div>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -784,20 +895,19 @@ export default function RankingPage() {
                     </div>
                     <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 4 }}>Você x Oponente</div>
                   </div>
-                  {/* Winrate */}
                   <div style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>WINRATE</div>
                     <div style={{ color: '#00E5FF', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.winrate.toFixed(1)}%</div>
                   </div>
-                  {/* Dano médio */}
                   <div style={{ background: 'rgba(255,165,0,0.06)', border: '1px solid rgba(255,165,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>DANO MÉDIO</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      <span style={{ color: '#FFA500', fontSize: 16, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.avgDamageYou.toLocaleString('pt-BR')}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>vs {selectedConfronto.avgDamageOpponent.toLocaleString('pt-BR')}</span>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>SCORE MÉDIO</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ color: '#FFA500', fontSize: 18, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.avgScoreYou}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>x</span>
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.avgScoreOpp}</span>
                     </div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 4 }}>kills por partida</div>
                   </div>
-                  {/* Melhor sequência */}
                   <div style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>MELHOR SEQUÊNCIA</div>
                     <div style={{ color: '#FFD700', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.bestStreak}x</div>
@@ -806,28 +916,43 @@ export default function RankingPage() {
                 {/* Últimos resultados */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
                   <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 10 }}>ÚLTIMOS RESULTADOS</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {selectedConfronto.lastResults.map((r, i) => (
                       <div key={i} style={{
-                        width: 34, height: 34, borderRadius: 8,
-                        background: r === 'V' ? 'rgba(0,255,0,0.15)' : 'rgba(255,68,68,0.15)',
-                        border: `1.5px solid ${r === 'V' ? 'rgba(0,255,0,0.4)' : 'rgba(255,68,68,0.4)'}`,
-                        color: r === 'V' ? '#00FF00' : '#FF4444',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontFamily: "'Orbitron',sans-serif", fontWeight: 900, fontSize: 13,
-                      }}>{r}</div>
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        background: r.iWon ? 'rgba(0,255,0,0.12)' : 'rgba(255,68,68,0.12)',
+                        border: `1.5px solid ${r.iWon ? 'rgba(0,255,0,0.35)' : 'rgba(255,68,68,0.35)'}`,
+                        color: r.iWon ? '#00FF00' : '#FF4444',
+                        fontFamily: "'Orbitron',sans-serif",
+                        fontWeight: 700,
+                        fontSize: 12,
+                        minWidth: 44,
+                        textAlign: 'center',
+                      }}>
+                        {r.myScore} x {r.oppScore}
+                      </div>
                     ))}
                   </div>
                 </div>
                 {/* Último encontro */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 6 }}>ÚLTIMO ENCONTRO</div>
-                  <div style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 600 }}>{selectedConfronto.lastEncounter}</div>
-                </div>
+                {selectedConfronto.lastEncounterDate && (
+                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 6 }}>ÚLTIMO ENCONTRO</div>
+                    <div style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 600 }}>
+                      {selectedConfronto.lastEncounterDate}
+                      {selectedConfronto.lastEncounterResult && (
+                        <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400, fontSize: 12, marginLeft: 10 }}>
+                          • {selectedConfronto.lastEncounterResult}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Compartilhar */}
                 <button
                   onClick={() => {
-                    const text = `Confronto direto vs ${selectedConfronto.name}\nVocê ${selectedConfronto.youWins} x ${selectedConfronto.opponentWins}\nWinrate: ${selectedConfronto.winrate.toFixed(1)}%\nMelhor sequência: ${selectedConfronto.bestStreak}x\nÚltimo encontro: ${selectedConfronto.lastEncounter}`;
+                    const text = `Confronto direto vs ${selectedConfronto.name}\nVocê ${selectedConfronto.youWins} x ${selectedConfronto.opponentWins}\nWinrate: ${selectedConfronto.winrate.toFixed(1)}%\nMelhor sequência: ${selectedConfronto.bestStreak}x${selectedConfronto.lastEncounterDate ? `\nÚltimo encontro: ${selectedConfronto.lastEncounterDate} • ${selectedConfronto.lastEncounterResult}` : ''}`;
                     if (navigator.share) {
                       navigator.share({ title: 'Confronto Direto - ThorSpace', text });
                     } else {
