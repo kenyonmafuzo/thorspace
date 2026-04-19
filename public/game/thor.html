@@ -10978,7 +10978,11 @@ if (typeof window !== 'undefined') {
     var vw = vp ? vp.width  : window.innerWidth;
     var vh = vp ? vp.height : window.innerHeight;
 
-    var menuH  = vw > 768 ? MENU_H : 0;
+    // On mobile portrait the Next.js MobileHeader overlays the top ~220-265px
+    // (varies with safe-area-inset-top). Use 170px so the game content is
+    // always positioned comfortably below the header.
+    var isMobilePortrait = vw <= 600 && vh > vw;
+    var menuH  = vw > 768 ? MENU_H : (isMobilePortrait ? 170 : 0);
     var availH = vh - menuH;
 
     // ── Game canvas ──────────────────────────────────────────────
