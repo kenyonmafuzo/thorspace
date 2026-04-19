@@ -166,7 +166,7 @@ export default function SignupPage() {
         email: String(email).trim(),
         password: String(password),
         options: {
-          emailRedirectTo: `${window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? window.location.origin : 'https://thorspace.com.br'}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             username: username.trim(),
           }
@@ -186,6 +186,10 @@ export default function SignupPage() {
 
       // ✅ Conta criada! Agora usuário precisa confirmar email
       console.log("[Signup] Conta criada, aguardando confirmação de email");
+      
+      // Encerra a sessão automática criada pelo signUp para que
+      // ao chegar na tela de login não apareça o aviso de "outra sessão"
+      try { await supabase.auth.signOut(); } catch (_) {}
       
       setSuccess("Conta criada! Verifique seu email para confirmar o cadastro.");
       setLoading(false);

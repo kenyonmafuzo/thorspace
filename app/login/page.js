@@ -45,6 +45,15 @@ export default function LoginPage() {
         const session = data?.session;
         if (!mounted) return;
 
+        // Se chegou via cadastro (confirm_email), a sessão é um resquício
+        // automático do signUp — descartamos silenciosamente
+        const params = new URLSearchParams(window.location.search);
+        if (session && params.get('msg') === 'confirm_email') {
+          await supabase.auth.signOut();
+          setAuthChecked(true);
+          return;
+        }
+
         if (session) {
           setAlreadyLoggedIn(true);
           setAuthChecked(true);
