@@ -20,6 +20,58 @@ export default function RankingPage() {
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
   const [zoomModal, setZoomModal] = useState(null); // { src, label, level? }
+  const [mainTab, setMainTab] = useState("geral");
+  const [confrontosFilter, setConfrontosFilter] = useState("recentes");
+  const [confrontosSearch, setConfrontosSearch] = useState("");
+  const [selectedConfronto, setSelectedConfronto] = useState(null);
+
+  const confrontosMockData = [
+    {
+      id: 1,
+      name: "Márcio",
+      avatar: '/game/images/nave_normal.png',
+      tier: 'elite', material: 'gold',
+      rank: 'Elite IV',
+      partidas: 20,
+      youWins: 12, opponentWins: 8,
+      lastMatch: 'há 2 dias',
+      winrate: 60,
+      lastResults: ['V', 'V', 'D', 'V', 'D'],
+      avgDamageYou: 3200, avgDamageOpponent: 2800,
+      bestStreak: 4,
+      lastEncounter: '16/04/2026',
+    },
+    {
+      id: 2,
+      name: "Juliana",
+      avatar: '/game/images/nave_protecao.png',
+      tier: 'elite', material: 'silver',
+      rank: 'Elite II',
+      partidas: 15,
+      youWins: 7, opponentWins: 8,
+      lastMatch: 'há 5 dias',
+      winrate: 46.7,
+      lastResults: ['D', 'V', 'D', 'D', 'V'],
+      avgDamageYou: 2900, avgDamageOpponent: 3100,
+      bestStreak: 2,
+      lastEncounter: '13/04/2026',
+    },
+    {
+      id: 3,
+      name: "RafaelX",
+      avatar: '/game/images/nave_alcance.png',
+      tier: 'rookie', material: 'gold',
+      rank: 'Rookie IV',
+      partidas: 32,
+      youWins: 19, opponentWins: 13,
+      lastMatch: 'há 1 semana',
+      winrate: 59.4,
+      lastResults: ['V', 'V', 'V', 'D', 'V'],
+      avgDamageYou: 3500, avgDamageOpponent: 2600,
+      bestStreak: 6,
+      lastEncounter: '10/04/2026',
+    },
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -146,6 +198,11 @@ export default function RankingPage() {
         @media (min-width: 769px) {
           .rank-cards-mobile { display: none !important; }
         }
+        @keyframes confrontosFadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .confrontos-section { animation: confrontosFadeIn 0.25s ease; }
       `}</style>
       <UserHeader />
       <MobileHeader />
@@ -213,26 +270,44 @@ export default function RankingPage() {
         </div>
       )}
       <div className="rank-main-container" style={{ maxWidth: 900, margin: '120px auto 0 auto', padding: '0 16px 60px', position: 'relative', zIndex: 1 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "flex-start",
-          gap: 16,
-          padding: "0 0 24px 0",
-          width: "100%",
-          margin: 0,
-          position: "relative",
-          zIndex: 1,
-        }}>
+        <div style={{ padding: "0 0 24px 0", width: "100%", margin: 0, position: "relative", zIndex: 1 }}>
           <h2 style={{
             margin: 0,
+            marginBottom: 20,
             fontSize: 28,
             fontWeight: 800,
             color: "#00E5FF",
             fontFamily: "'Orbitron',sans-serif",
             letterSpacing: 1,
           }}>Ranking</h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[
+              { key: 'geral', label: 'Ranking Geral' },
+              { key: 'confrontos', label: 'Confrontos Diretos' },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setMainTab(tab.key); setSelectedConfronto(null); }}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 8,
+                  border: mainTab === tab.key ? '1.5px solid #00E5FF' : '1.5px solid rgba(255,255,255,0.15)',
+                  background: mainTab === tab.key ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: mainTab === tab.key ? '#00E5FF' : 'rgba(255,255,255,0.6)',
+                  fontFamily: "'Orbitron',sans-serif",
+                  fontWeight: 700,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
+        {mainTab === 'geral' && (
         <div
           style={{
             background: "rgba(0, 0, 0, 0.4)",
@@ -528,6 +603,257 @@ export default function RankingPage() {
             </div>
           )}
         </div>
+        )}
+
+        {mainTab === 'confrontos' && (
+          <div className="confrontos-section" style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 24, backdropFilter: 'blur(10px)' }}>
+            {!selectedConfronto ? (
+              <>
+                {/* Search */}
+                <div style={{ marginBottom: 16 }}>
+                  <input
+                    type="text"
+                    placeholder="Buscar jogador..."
+                    value={confrontosSearch}
+                    onChange={e => setConfrontosSearch(e.target.value)}
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1.5px solid rgba(0,229,255,0.25)',
+                      borderRadius: 8, padding: '10px 16px',
+                      color: '#fff', fontSize: 13,
+                      fontFamily: "'Orbitron',sans-serif",
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+                {/* Filter chips */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'recentes', label: 'Recentes' },
+                    { key: 'mais_enfrentados', label: 'Mais enfrentados' },
+                    { key: 'rivalidades', label: 'Maiores rivalidades' },
+                  ].map(f => (
+                    <button
+                      key={f.key}
+                      onClick={() => setConfrontosFilter(f.key)}
+                      style={{
+                        padding: '5px 14px',
+                        borderRadius: 20,
+                        border: confrontosFilter === f.key ? '1.5px solid #00E5FF' : '1.5px solid rgba(255,255,255,0.15)',
+                        background: confrontosFilter === f.key ? 'rgba(0,229,255,0.15)' : 'rgba(255,255,255,0.04)',
+                        color: confrontosFilter === f.key ? '#00E5FF' : 'rgba(255,255,255,0.5)',
+                        fontFamily: "'Orbitron',sans-serif",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+                {/* Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {confrontosMockData
+                    .filter(p => p.name.toLowerCase().includes(confrontosSearch.toLowerCase()))
+                    .map(player => {
+                      const tierUrl = `/game/images/ranks/${player.tier}/${player.tier}_${player.material}.png`;
+                      const isWinning = player.youWins > player.opponentWins;
+                      const isTied = player.youWins === player.opponentWins;
+                      return (
+                        <div
+                          key={player.id}
+                          onClick={() => setSelectedConfronto(player)}
+                          style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1.5px solid rgba(255,255,255,0.1)',
+                            borderRadius: 12,
+                            padding: '14px 18px',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.2s, background 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 14,
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.borderColor = 'rgba(0,229,255,0.4)';
+                            e.currentTarget.style.background = 'rgba(0,229,255,0.06)';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                          }}
+                        >
+                          {/* Avatar */}
+                          <img
+                            src={player.avatar}
+                            alt={player.name}
+                            style={{ width: 46, height: 46, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,229,255,0.3)', flexShrink: 0 }}
+                            onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
+                          />
+                          {/* Info */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                              <span style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 14 }}>{player.name}</span>
+                              <img src={tierUrl} alt={player.rank} style={{ width: 18, height: 18, objectFit: 'contain' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                              <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: "'Orbitron',sans-serif" }}>{player.rank}</span>
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", marginBottom: 6 }}>
+                              {player.partidas} partidas
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ color: '#00FF00', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>Você {player.youWins}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>x</span>
+                              <span style={{ color: '#FF4444', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>{player.opponentWins}</span>
+                            </div>
+                          </div>
+                          {/* Right badge + last match */}
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: 12,
+                              background: isWinning ? 'rgba(0,255,0,0.12)' : isTied ? 'rgba(255,200,0,0.12)' : 'rgba(255,68,68,0.12)',
+                              border: `1px solid ${isWinning ? 'rgba(0,255,0,0.3)' : isTied ? 'rgba(255,200,0,0.3)' : 'rgba(255,68,68,0.3)'}`,
+                              color: isWinning ? '#00FF00' : isTied ? '#FFD700' : '#FF4444',
+                              fontSize: 10,
+                              fontFamily: "'Orbitron',sans-serif",
+                              fontWeight: 700,
+                              marginBottom: 8,
+                            }}>
+                              {isWinning ? 'Vencendo' : isTied ? 'Empatado' : 'Perdendo'}
+                            </div>
+                            <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>
+                              Última: {player.lastMatch}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </>
+            ) : (
+              /* ── Stats Panel ── */
+              <div>
+                {/* Back */}
+                <button
+                  onClick={() => setSelectedConfronto(null)}
+                  style={{
+                    background: 'none',
+                    border: '1.5px solid rgba(255,255,255,0.2)',
+                    borderRadius: 8,
+                    color: 'rgba(255,255,255,0.7)',
+                    fontFamily: "'Orbitron',sans-serif",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '6px 14px',
+                    marginBottom: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  ← Voltar
+                </button>
+                {/* Player header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)' }}>
+                  <img
+                    src={selectedConfronto.avatar}
+                    alt={selectedConfronto.name}
+                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(0,229,255,0.4)' }}
+                    onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
+                  />
+                  <div>
+                    <div style={{ color: '#00E5FF', fontFamily: "'Orbitron',sans-serif", fontWeight: 800, fontSize: 18 }}>{selectedConfronto.name}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron',sans-serif", fontSize: 12, marginTop: 2 }}>{selectedConfronto.rank} • {selectedConfronto.partidas} partidas</div>
+                  </div>
+                </div>
+                {/* Stats grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+                  {/* Vitórias */}
+                  <div style={{ background: 'rgba(0,255,0,0.06)', border: '1px solid rgba(0,255,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>VITÓRIAS</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                      <span style={{ color: '#00FF00', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.youWins}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>x</span>
+                      <span style={{ color: '#FF4444', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.opponentWins}</span>
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 4 }}>Você x Oponente</div>
+                  </div>
+                  {/* Winrate */}
+                  <div style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>WINRATE</div>
+                    <div style={{ color: '#00E5FF', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.winrate.toFixed(1)}%</div>
+                  </div>
+                  {/* Dano médio */}
+                  <div style={{ background: 'rgba(255,165,0,0.06)', border: '1px solid rgba(255,165,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>DANO MÉDIO</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ color: '#FFA500', fontSize: 16, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.avgDamageYou.toLocaleString('pt-BR')}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>vs {selectedConfronto.avgDamageOpponent.toLocaleString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  {/* Melhor sequência */}
+                  <div style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>MELHOR SEQUÊNCIA</div>
+                    <div style={{ color: '#FFD700', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.bestStreak}x</div>
+                  </div>
+                </div>
+                {/* Últimos resultados */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 10 }}>ÚLTIMOS RESULTADOS</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {selectedConfronto.lastResults.map((r, i) => (
+                      <div key={i} style={{
+                        width: 34, height: 34, borderRadius: 8,
+                        background: r === 'V' ? 'rgba(0,255,0,0.15)' : 'rgba(255,68,68,0.15)',
+                        border: `1.5px solid ${r === 'V' ? 'rgba(0,255,0,0.4)' : 'rgba(255,68,68,0.4)'}`,
+                        color: r === 'V' ? '#00FF00' : '#FF4444',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: "'Orbitron',sans-serif", fontWeight: 900, fontSize: 13,
+                      }}>{r}</div>
+                    ))}
+                  </div>
+                </div>
+                {/* Último encontro */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+                  <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 6 }}>ÚLTIMO ENCONTRO</div>
+                  <div style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 600 }}>{selectedConfronto.lastEncounter}</div>
+                </div>
+                {/* Compartilhar */}
+                <button
+                  onClick={() => {
+                    const text = `Confronto direto vs ${selectedConfronto.name}\nVocê ${selectedConfronto.youWins} x ${selectedConfronto.opponentWins}\nWinrate: ${selectedConfronto.winrate.toFixed(1)}%\nMelhor sequência: ${selectedConfronto.bestStreak}x\nÚltimo encontro: ${selectedConfronto.lastEncounter}`;
+                    if (navigator.share) {
+                      navigator.share({ title: 'Confronto Direto - ThorSpace', text });
+                    } else {
+                      navigator.clipboard.writeText(text).then(() => alert('Stats copiados!'));
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: 10,
+                    border: '1.5px solid rgba(0,229,255,0.4)',
+                    background: 'rgba(0,229,255,0.1)',
+                    color: '#00E5FF',
+                    fontFamily: "'Orbitron',sans-serif",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  ⬆ Compartilhar Stats
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
