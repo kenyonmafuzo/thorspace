@@ -498,12 +498,12 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   // This avoids all races with autoRefreshToken (no refreshSession() call).
   useEffect(() => {
     const handler = async () => {
+      // supabase.js only dispatches thor_wakeup_ready after confirming auth is valid.
+      // DO NOT call getSession() here — it can throw AbortError if Supabase's
+      // autoRefreshToken is simultaneously refreshing, which is exactly when this fires.
+      // refreshUserStats() has its own guard: if (!userId) return.
       console.log("[WAKE] UserStatsProvider thor_wakeup_ready received");
       try {
-        const { data } = await supabase.auth.getSession();
-        const uid = data?.session?.user?.id || null;
-        if (!uid) { setIsLoading(false); return; }
-        setUserId(uid);
         setIsLoading(false);
         await refreshUserStats("tab_visible");
         console.log("[WAKE] UserStatsProvider stats refreshed OK");
