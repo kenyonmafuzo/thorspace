@@ -69,42 +69,44 @@ export async function POST(request) {
       );
     }
 
-    // Determine winner
+    // Determine winner / draw
     let winner_id = null;
     let loser_id = null;
     let winner_score = 0;
     let loser_score = 0;
+    let is_draw = false;
 
     if (oppLost > myLost) {
-      // Host won
+      // Host won — host killed more opponent ships
       winner_id = match.player1_id;
-      loser_id = match.player2_id;
+      loser_id  = match.player2_id;
       winner_score = oppLost;
-      loser_score = myLost;
+      loser_score  = myLost;
     } else if (myLost > oppLost) {
       // Opponent won
       winner_id = match.player2_id;
-      loser_id = match.player1_id;
+      loser_id  = match.player1_id;
       winner_score = myLost;
-      loser_score = oppLost;
+      loser_score  = oppLost;
     } else {
-      // Draw - não tem winner/loser
-      return NextResponse.json(
-        { error: 'Draw not supported yet' },
-        { status: 400 }
-      );
+      // Draw — equal ships destroyed; store player1 score in winner_score slot
+      is_draw      = true;
+      winner_score = oppLost; // player1 (host) kills
+      loser_score  = myLost;  // player2 kills
     }
 
     // 🎯 CALL IDEMPOTENT RPC (authenticated client with RLS)
-    // RPC deve ter GRANT EXECUTE para authenticated users no Supabase
     const { data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
-      p_match_id: matchId,
-      p_winner_id: winner_id,
-      p_loser_id: loser_id,
+      p_match_id:    matchId,
+      p_winner_id:   winner_id,
+      p_loser_id:    loser_id,
       p_winner_score: winner_score,
-      p_loser_score: loser_score,
-      p_winner_xp: 0, // XP será calculado no frontend
-      p_loser_xp: 0
+      p_loser_score:  loser_score,
+      p_winner_xp:   0, // XP calculado no frontend
+      p_loser_xp:    0,
+      p_player1_id:  match.player1_id,
+      p_player2_id:  match.player2_id,
+      p_is_draw:     is_draw,
     });
 
     if (rpcError) {
@@ -122,6 +124,7 @@ export async function POST(request) {
       matchId,
       winner_id,
       loser_id,
+      is_draw,
       winner_score,
       loser_score,
       alreadyFinalized
@@ -131,6 +134,7 @@ export async function POST(request) {
       success: true,
       matchId,
       winner_id,
+      is_draw,
       alreadyFinalized
     });
 

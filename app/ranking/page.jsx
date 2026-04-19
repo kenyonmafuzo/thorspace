@@ -49,10 +49,11 @@ export default function RankingPage() {
   async function loadConfrontos(userId) {
     setLoadingConfrontos(true);
     try {
+      // Query inclui empates via player1_id/player2_id (winner/loser são NULL no empate)
       const { data: results, error } = await supabase
         .from('match_results')
-        .select('match_id, winner_id, loser_id, winner_score, loser_score, processed_at')
-        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
+        .select('match_id, winner_id, loser_id, winner_score, loser_score, processed_at, player1_id, player2_id, is_draw')
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
         .order('processed_at', { ascending: false });
 
       if (error || !results?.length) {
@@ -60,9 +61,13 @@ export default function RankingPage() {
         return;
       }
 
-      const opponentIds = [...new Set(results.map(r =>
-        r.winner_id === userId ? r.loser_id : r.winner_id
-      ))];
+      // Identificar oponentes (incluindo empates onde winner/loser são null)
+      const opponentIds = [...new Set(results.map(r => {
+        if (r.is_draw) {
+          return r.player1_id === userId ? r.player2_id : r.player1_id;
+        }
+        return r.winner_id === userId ? r.loser_id : r.winner_id;
+      }).filter(Boolean))];
 
       const [{ data: profiles }, { data: progressData }] = await Promise.all([
         supabase
@@ -80,19 +85,36 @@ export default function RankingPage() {
       const progressMap = {};
       (progressData || []).forEach(p => { progressMap[p.user_id] = p; });
 
-      // Group by opponent
+      // Agrupar por oponente — suporte completo a vitória, derrota e empate
       const h2hMap = {};
       results.forEach(r => {
-        const opponentId = r.winner_id === userId ? r.loser_id : r.winner_id;
-        const iWon = r.winner_id === userId;
-        const myScore = iWon ? r.winner_score : r.loser_score;
-        const oppScore = iWon ? r.loser_score : r.winner_score;
-        if (!h2hMap[opponentId]) {
-          h2hMap[opponentId] = { opponentId, matches: [], youWins: 0, opponentWins: 0 };
+        const isDraw = r.is_draw;
+        const opponentId = isDraw
+          ? (r.player1_id === userId ? r.player2_id : r.player1_id)
+          : (r.winner_id === userId ? r.loser_id : r.winner_id);
+        if (!opponentId) return;
+
+        // Para empates: winner_score = player1 kills, loser_score = player2 kills
+        const iAmPlayer1 = r.player1_id === userId;
+        let myScore, oppScore, result; // result: 'win' | 'loss' | 'draw'
+        if (isDraw) {
+          myScore  = iAmPlayer1 ? r.winner_score : r.loser_score;
+          oppScore = iAmPlayer1 ? r.loser_score  : r.winner_score;
+          result = 'draw';
+        } else {
+          const iWon = r.winner_id === userId;
+          myScore  = iWon ? r.winner_score : r.loser_score;
+          oppScore = iWon ? r.loser_score  : r.winner_score;
+          result = iWon ? 'win' : 'loss';
         }
-        h2hMap[opponentId].matches.push({ date: r.processed_at, myScore, oppScore, iWon });
-        if (iWon) h2hMap[opponentId].youWins++;
-        else h2hMap[opponentId].opponentWins++;
+
+        if (!h2hMap[opponentId]) {
+          h2hMap[opponentId] = { opponentId, matches: [], youWins: 0, opponentWins: 0, draws: 0 };
+        }
+        h2hMap[opponentId].matches.push({ date: r.processed_at, myScore, oppScore, result });
+        if (result === 'win')       h2hMap[opponentId].youWins++;
+        else if (result === 'loss') h2hMap[opponentId].opponentWins++;
+        else                        h2hMap[opponentId].draws++;
       });
 
       const data = Object.values(h2hMap).map(h2h => {
@@ -108,13 +130,17 @@ export default function RankingPage() {
         const avgScoreYou = Math.round(h2h.matches.reduce((s, m) => s + (m.myScore || 0), 0) / h2h.matches.length);
         const avgScoreOpp = Math.round(h2h.matches.reduce((s, m) => s + (m.oppScore || 0), 0) / h2h.matches.length);
 
+        // Melhor sequência de vitórias consecutivas
         let bestStreak = 0, curStreak = 0;
         sortedMatches.forEach(m => {
-          if (m.iWon) { curStreak++; bestStreak = Math.max(bestStreak, curStreak); }
+          if (m.result === 'win') { curStreak++; bestStreak = Math.max(bestStreak, curStreak); }
           else curStreak = 0;
         });
 
         const lastDate = lastMatch ? new Date(lastMatch.date) : null;
+        const lastResultLabel = lastMatch
+          ? `${lastMatch.myScore ?? 0} x ${lastMatch.oppScore ?? 0}${lastMatch.result === 'draw' ? ' (E)' : ''}`
+          : null;
 
         return {
           opponentId: h2h.opponentId,
@@ -126,15 +152,16 @@ export default function RankingPage() {
           partidas: h2h.matches.length,
           youWins: h2h.youWins,
           opponentWins: h2h.opponentWins,
+          draws: h2h.draws,
           lastMatchLabel: lastDate ? formatRelativeDate(lastDate) : null,
           lastMatchTimestamp: lastDate ? lastDate.getTime() : 0,
           winrate: h2h.matches.length > 0 ? (h2h.youWins / h2h.matches.length) * 100 : 0,
-          lastResults: lastFive.map(m => ({ myScore: m.myScore ?? 0, oppScore: m.oppScore ?? 0, iWon: m.iWon })),
+          lastResults: lastFive.map(m => ({ myScore: m.myScore ?? 0, oppScore: m.oppScore ?? 0, result: m.result })),
           avgScoreYou,
           avgScoreOpp,
           bestStreak,
           lastEncounterDate: lastDate ? lastDate.toLocaleDateString('pt-BR') : null,
-          lastEncounterResult: lastMatch ? `${lastMatch.myScore ?? 0} x ${lastMatch.oppScore ?? 0}` : null,
+          lastEncounterResult: lastResultLabel,
           is_vip: profile.is_vip || false,
           vip_name_color: profile.vip_name_color || '#FFD700',
           vip_frame_color: profile.vip_frame_color || '#FFD700',
@@ -814,6 +841,9 @@ export default function RankingPage() {
                                 <span style={{ color: '#00FF00', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>Você {player.youWins}</span>
                                 <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>x</span>
                                 <span style={{ color: '#FF4444', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 13 }}>{player.opponentWins}</span>
+                                {player.draws > 0 && (
+                                  <span style={{ color: '#FFD700', fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 11, marginLeft: 2 }}>({player.draws}E)</span>
+                                )}
                               </div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -887,13 +917,18 @@ export default function RankingPage() {
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div style={{ background: 'rgba(0,255,0,0.06)', border: '1px solid rgba(0,255,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>VITÓRIAS</div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>CONFRONTO DIRETO</div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
                       <span style={{ color: '#00FF00', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.youWins}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>–</span>
                       <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>x</span>
+                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>–</span>
                       <span style={{ color: '#FF4444', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.opponentWins}</span>
                     </div>
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 4 }}>Você x Oponente</div>
+                    {selectedConfronto.draws > 0 && (
+                      <div style={{ color: '#FFD700', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, marginBottom: 2 }}>{selectedConfronto.draws} empate{selectedConfronto.draws > 1 ? 's' : ''}</div>
+                    )}
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 2 }}>Você x Oponente</div>
                   </div>
                   <div style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>WINRATE</div>
@@ -917,13 +952,19 @@ export default function RankingPage() {
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
                   <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 10 }}>ÚLTIMOS RESULTADOS</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {selectedConfronto.lastResults.map((r, i) => (
+                    {selectedConfronto.lastResults.map((r, i) => {
+                      const isW = r.result === 'win';
+                      const isD = r.result === 'draw';
+                      const bg    = isD ? 'rgba(255,215,0,0.12)' : isW ? 'rgba(0,255,0,0.12)'  : 'rgba(255,68,68,0.12)';
+                      const bdr   = isD ? 'rgba(255,215,0,0.35)' : isW ? 'rgba(0,255,0,0.35)'  : 'rgba(255,68,68,0.35)';
+                      const color = isD ? '#FFD700'              : isW ? '#00FF00'             : '#FF4444';
+                      return (
                       <div key={i} style={{
                         padding: '6px 10px',
                         borderRadius: 8,
-                        background: r.iWon ? 'rgba(0,255,0,0.12)' : 'rgba(255,68,68,0.12)',
-                        border: `1.5px solid ${r.iWon ? 'rgba(0,255,0,0.35)' : 'rgba(255,68,68,0.35)'}`,
-                        color: r.iWon ? '#00FF00' : '#FF4444',
+                        background: bg,
+                        border: `1.5px solid ${bdr}`,
+                        color,
                         fontFamily: "'Orbitron',sans-serif",
                         fontWeight: 700,
                         fontSize: 12,
@@ -932,7 +973,8 @@ export default function RankingPage() {
                       }}>
                         {r.myScore} x {r.oppScore}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
                 {/* Último encontro */}
