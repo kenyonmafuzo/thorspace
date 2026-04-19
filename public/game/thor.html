@@ -729,10 +729,10 @@ background: rgba(0, 165, 242, 0.04);
     gap: 14px !important;
     margin-bottom: 10px !important;
   }
-  /* Shot type modal: centered lower on screen, scrollable */
+  /* Shot type modal: push content below MobileHeader, center in visible area */
   #shotTypeModal {
+    padding: 170px 8px 20px !important;
     align-items: center !important;
-    padding: max(60px, env(safe-area-inset-top, 0px) + 56px) 8px 20px !important;
     overflow-y: auto !important;
   }
   #shotTypeModalContent {
@@ -742,42 +742,20 @@ background: rgba(0, 165, 242, 0.04);
     padding: 14px 12px !important;
     border-radius: 12px !important;
   }
-  /* 1 card per row: vertical stacking */
+  /* 1 card per column — natural vertical stacking */
   #shotTypeModalContent > div:nth-child(3) {
     grid-template-columns: 1fr !important;
-    gap: 10px !important;
+    gap: 12px !important;
     margin-bottom: 14px !important;
   }
-  /* Each card: image on left, title on right (compact row layout) */
-  #shotTypeModalContent .shot-card {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 12px !important;
-    padding: 10px 12px !important;
-  }
-  /* Shot image box: compact square on the left */
+  /* Shrink the tall image box inside each card so 3 cards fit on screen */
   #shotTypeModalContent [style*="height:100px"] {
-    width: 64px !important;
-    min-width: 64px !important;
-    height: 64px !important;
-    flex-shrink: 0 !important;
-    margin-bottom: 0 !important;
+    height: 70px !important;
+    margin-bottom: 8px !important;
   }
-  /* Title text fills remaining width */
-  #shotTypeModalContent .shot-card > div[style*="font-size:15px"] {
-    font-size: 13px !important;
-    margin-bottom: 0 !important;
-    flex: 1 !important;
-  }
-  /* Hide description line to save vertical space */
+  /* Hide description text to save height */
   #shotTypeModalContent .shot-card > div[style*="font-size:11px"] {
     display: none !important;
-  }
-  /* Tutorial ? button: pull inside the viewport instead of overflowing right */
-  button[onclick*="openShipTutorial"] {
-    left: auto !important;
-    right: 0px !important;
   }
 }
 
@@ -1538,8 +1516,8 @@ background: rgba(0, 165, 242, 0.04);
         <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
       </div>
     </div>
-    <!-- Help button: absolutely positioned to the right, does not shift slots -->
-    <button onclick="openShipTutorial();" title="Como funciona?" style="position:absolute; left:calc(50% + 201px); top:50%; transform:translateY(-50%); width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s;">?</button>
+    <!-- Help button: sits in-flow right after the slots, never overflows -->
+    <button onclick="openShipTutorial();" title="Como funciona?" style="width:30px; height:30px; border-radius:50%; background:transparent; border:2px solid rgba(0,229,255,0.45); color:#00E5FF; font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:border-color 0.2s; margin-left:10px;">?</button>
   </div>
   <!-- Ship Selection Carousel -->
   <div id="naveCarouselOuter" style="display:flex; align-items:center; justify-content:center; gap:28px; width:100%; margin-bottom:16px;">
