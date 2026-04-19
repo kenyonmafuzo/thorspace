@@ -498,18 +498,29 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   // This avoids all races with autoRefreshToken (no refreshSession() call).
   useEffect(() => {
     const handler = async () => {
-      // supabase.js only dispatches thor_wakeup_ready after confirming auth is valid.
-      // DO NOT call getSession() here — it can throw AbortError if Supabase's
-      // autoRefreshToken is simultaneously refreshing, which is exactly when this fires.
-      // refreshUserStats() has its own guard: if (!userId) return.
+      // thor_wakeup_ready guarantees auth is valid — no getSession() needed here.
+      // refreshUserStats() guards itself with "if (!userId) return".
       console.log("[WAKE] UserStatsProvider thor_wakeup_ready received");
+      setIsLoading(false);
       try {
-        setIsLoading(false);
         await refreshUserStats("tab_visible");
         console.log("[WAKE] UserStatsProvider stats refreshed OK");
       } catch (e) {
-        console.warn("[WAKE] UserStatsProvider recovery error:", e);
-        setIsLoading(false);
+        if ((e as any)?.name === "AbortError") {
+          // Supabase's internal fetch was aborted mid-wakeup (auth still settling).
+          // Schedule a safe retry — by then the auth client will be fully ready.
+          console.log("[WAKE] fetch aborted — retrying in 2s");
+          setTimeout(async () => {
+            try {
+              await refreshUserStats("tab_visible");
+              console.log("[WAKE] retrying fetch — stats refreshed OK");
+            } catch (retryErr) {
+              console.warn("[WAKE] retry failed:", retryErr);
+            }
+          }, 2000);
+        } else {
+          console.warn("[WAKE] UserStatsProvider recovery error:", e);
+        }
       }
     };
     window.addEventListener("thor_wakeup_ready", handler);

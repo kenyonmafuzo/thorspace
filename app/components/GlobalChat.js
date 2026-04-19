@@ -216,35 +216,60 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     startRealtime();
 
     // Restore chat state when browser returns from background/minimize.
-    // Uses thor_wakeup_ready (fired by supabase.js once auth is confirmed) PLUS
-    // visibilitychange/focus for immediate sending-lock reset.
     //
-    // KEY: We ALWAYS recreate the channel on wakeup, regardless of .state.
-    // After a minimize, the WebSocket is silently dead but .state still shows
-    // "joined" — a zombie channel. The only reliable fix is to tear it down
-    // and rebuild it unconditionally every wakeup.
-    const recreateChatChannel = () => {
-      const ch = channelRef.current;
-      console.log(`[WAKE] GlobalChat recreating channel (was: ${ch?.state ?? "null"})`);
-      if (ch) {
-        try { supabase.removeChannel(ch); } catch (_) {}
-        channelRef.current = null;
-      }
-      startRealtime();
-      console.log("[WAKE] GlobalChat channel recreated");
-      fetchMessages();
-    };
+    // Strategy:
+    //   - visibilitychange / focus  → reset sending lock immediately (always safe)
+    //   - thor_wakeup_ready         → check channel health and act:
+    //       * state=joined/joining  → keep channel, just refetch missed messages
+    //       * state=dead/missing    → remove and recreate channel
+    //
+    // NEVER tear down a healthy (joined) channel — it causes a momentary
+    // disconnect during which message sends fail silently.
+    // A local wakeupLock prevents double-recovery if the event fires twice.
+    let _chatWakeLock = false;
 
     const handleWakeupReady = () => {
-      console.log("[WAKE] GlobalChat wakeup_ready — resetting and recreating");
+      if (_chatWakeLock) {
+        console.log("[WAKE] GlobalChat recovery already running — skipping");
+        return;
+      }
+      _chatWakeLock = true;
+      console.log("[WAKE] GlobalChat recovery started");
+
+      // Always reset throttle state — safe regardless of channel health
       setSending(false);
       lastMessageTimeRef.current = 0;
-      recreateChatChannel();
+
+      const ch = channelRef.current;
+      const state = ch?.state;
+      console.log(`[WAKE] chat channel state: ${state ?? "null"}`);
+
+      const isDead = !ch ||
+        state === "closed" ||
+        state === "errored" ||
+        state === "leaving" ||
+        state === "timed_out";
+
+      if (isDead) {
+        console.log("[WAKE] chat channel is dead — recreating");
+        if (ch) {
+          try { supabase.removeChannel(ch); } catch (_) {}
+          channelRef.current = null;
+        }
+        startRealtime();
+        console.log("[WAKE] chat channel recreated");
+      } else {
+        console.log("[WAKE] chat channel is healthy — keeping");
+      }
+
+      // Always refetch to catch any messages missed while in background
+      fetchMessages();
+      console.log("[WAKE] GlobalChat recovery finished");
+      setTimeout(() => { _chatWakeLock = false; }, 2000);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        // Reset sending lock immediately — don't wait for wakeup_ready
         setSending(false);
         lastMessageTimeRef.current = 0;
       }
