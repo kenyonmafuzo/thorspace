@@ -888,7 +888,7 @@ export default function RankingPage() {
               </>
             ) : (
               /* ── Stats Panel ── */
-              <div ref={statsRef}>
+              <div>
                 <button
                   onClick={() => setSelectedConfronto(null)}
                   style={{
@@ -910,8 +910,13 @@ export default function RankingPage() {
                 >
                   ← Voltar
                 </button>
-                {/* Player header */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)' }}>
+                <div ref={statsRef} style={{ background: '#0a0a0f', borderRadius: 14, overflow: 'hidden', paddingBottom: 16 }}>
+                  {/* Logo header for screenshot */}
+                  <div style={{ background: '#000', padding: '18px 24px 16px', textAlign: 'center', marginBottom: 16 }}>
+                    <span style={{ color: '#00E5FF', fontSize: 26, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", letterSpacing: 5, textShadow: '0 0 12px #00E5FF, 0 0 28px rgba(0,229,255,0.5), 0 0 50px rgba(0,191,255,0.3)' }}>THORSPACE</span>
+                  </div>
+                  {/* Player header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)', margin: '0 16px 24px' }}>
                   <img
                     src={selectedConfronto.avatar}
                     alt={selectedConfronto.name}
@@ -927,7 +932,7 @@ export default function RankingPage() {
                   </div>
                 </div>
                 {/* Stats grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16, margin: '0 16px 16px' }}>
                   <div style={{ gridColumn: '1 / -1', background: 'linear-gradient(135deg, rgba(0,255,0,0.12) 0%, rgba(255,68,68,0.08) 100%)', border: '1px solid rgba(0,255,0,0.4)', borderRadius: 12, padding: '18px 24px', boxShadow: '0 0 20px rgba(0,255,0,0.15), inset 0 0 30px rgba(0,0,0,0.2)' }}>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' }}>CONFRONTO DIRETO</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -982,7 +987,7 @@ export default function RankingPage() {
                   </div>
                 </div>
                 {/* Últimos resultados */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', margin: '0 16px 12px' }}>
                   <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 10 }}>ÚLTIMOS RESULTADOS</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {selectedConfronto.lastResults.map((r, i) => {
@@ -1010,6 +1015,7 @@ export default function RankingPage() {
                     })}
                   </div>
                 </div>
+                </div>{/* end statsRef */}
 
                 {/* Compartilhar */}
                 <button
