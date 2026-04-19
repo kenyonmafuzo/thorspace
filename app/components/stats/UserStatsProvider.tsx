@@ -136,9 +136,9 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         setLastUpdatedAt(Date.now());
       } catch (fetchErr: any) {
         if (fetchErr?.name === "AbortError" && !_isRetry) {
-          // Supabase fetch aborted during auth reinit — retry once after settle
-          setTimeout(() => refreshUserStats(reason, true), 2000);
-          return; // don't clear isLoading yet — retry will handle it
+          // Supabase fetch aborted during auth reinit — retry quickly after settle
+          setTimeout(() => refreshUserStats(reason, true), 300);
+          return;
         }
         throw fetchErr; // re-throw so callers can still handle
       } finally {
@@ -192,23 +192,19 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     
     let isMounted = true;
     
-    // Define timeout para evitar loading infinito
+    // Safety timeout — always ensure isLoading is cleared
     const timeout = setTimeout(() => {
       if (isMounted) setIsLoading(false);
     }, 3000);
 
-    // 800ms settle — same reason as wakeup: Supabase fires SIGNED_IN on every
-    // page load (part of its internal auth validation via autoRefreshToken).
-    // Any Supabase query started before SIGNED_IN completes gets AbortError.
-    // Waiting 800ms lets the auth reinit finish before the first data fetch.
-    const settle = setTimeout(() => {
-      if (isMounted) refreshUserStats("initial-load");
-    }, 800);
+    // Start immediately — no settle needed because:
+    // _isReload prevents daily XP RPC on F5 (which caused the AbortError cascade).
+    // If SIGNED_IN token-rotation still aborts the fetch, the 300ms retry handles it.
+    refreshUserStats("initial-load");
     
     return () => {
       isMounted = false;
       clearTimeout(timeout);
-      clearTimeout(settle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
@@ -222,10 +218,20 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     // Seed userId from localStorage immediately — no network needed.
     // Track whether user was already signed in so SIGNED_IN handler can
     // distinguish a wakeup re-auth from a fresh login.
-    const wasSignedInRef = { current: false };
+    // Detect F5/Ctrl+R synchronously — before any async auth event fires.
+    // On reload, Supabase fires SIGNED_IN (token re-validation) even with a
+    // valid session. Treating it as wakeup re-auth skips claim_daily_xp, which
+    // was running concurrently with data fetches and causing AbortErrors.
+    const _isReload = typeof window !== 'undefined' && (() => {
+      try {
+        return (performance.getEntriesByType('navigation') as PerformanceNavigationTiming[])[0]?.type === 'reload';
+      } catch { return false; }
+    })();
+    const wasSignedInRef = { current: _isReload };
     supabase.auth.getSession().then(({ data }) => {
       const uid = data?.session?.user?.id || null;
-      if (uid) wasSignedInRef.current = true;
+      // Don't set wasSignedInRef here — INITIAL_SESSION handler below sets it
+      // reliably before SIGNED_IN fires. Setting it here creates a race on F5.
       if (!cancelled) {
         setUserId(uid);
         if (!uid) setIsLoading(false);
