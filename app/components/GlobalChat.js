@@ -162,7 +162,14 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         .limit(50);
 
       if (error) {
-        console.error("Error fetching messages:", error);
+        // Check if AbortError came through as a response error (not thrown).
+        // This happens when Supabase's auth reinitialises during a running fetch.
+        if ((error?.name === 'AbortError' || error?.message?.includes('aborted')) && !isRetry) {
+          console.log('[WAKE_FETCH] aborted type=messages (response error) — retrying in 2s');
+          setTimeout(() => fetchMessages({ isRetry: true }), 2000);
+        } else {
+          console.warn('[WAKE_FETCH] gave up type=messages', error?.message);
+        }
         return;
       }
 

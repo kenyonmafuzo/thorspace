@@ -48,6 +48,19 @@ export default function MultiplayerPage() {
     }
   }, [contextUserId, authChecked]);
 
+  // Profile fast-path: always sync userStats → profile when profile is null.
+  // This covers two cases:
+  //   1. User navigates to /multiplayer and userStats is already loaded → instant profile, no fetch needed.
+  //   2. Safety timeout fired before profile fetch finished → profile was null.
+  //      When userStats recovers (thor_wakeup_ready), this effect fills it in immediately.
+  useEffect(() => {
+    if (!userStats?.username) return;
+    if (profile) return; // already populated, don't overwrite
+    console.log('[MP_STATE] loading end reason=userStats_context');
+    setProfile({ username: userStats.username, avatar_preset: userStats.avatar_preset });
+    setLoading(false);
+  }, [userStats?.username, userStats?.avatar_preset]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   // Adicionar animação CSS
   useEffect(() => {
@@ -155,13 +168,16 @@ export default function MultiplayerPage() {
       }
     }
 
-    // ✅ Timeout de segurança: se após 8s ainda estiver em loading, força false
+    // Safety timeout — last resort only. Must be longer than the entire
+    // profile fetch cycle (first try 5s + 1.5s wait + retry 8s = ~14.5s).
+    // If it fires, the userStats fast-path effect above will fill in profile
+    // as soon as UserStatsProvider has data, so the user won't be stuck.
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
-        console.warn("[Multiplayer] Loading timeout - forçando loading=false");
+        console.warn("[MP_STATE] loading end reason=safety_timeout (last resort)");
         setLoading(false);
       }
-    }, 8000);
+    }, 20000);
 
     let acceptedChannel = null;
     let invitesChannel = null;
@@ -177,95 +193,91 @@ export default function MultiplayerPage() {
             setAuthChecked(true);
           }
         } else {
-          const { data, error } = await supabase.auth.getSession();
-          if (error) console.error("getSession error:", error);
-          const session = data?.session ?? null;
-          user = session?.user ?? (await supabase.auth.getUser()).data?.user ?? null;
-          if (!user) {
-            console.warn("[Multiplayer] Sem usuário autenticado");
-            if (mounted) { setLoading(false); clearTimeout(safetyTimeout); }
-            router.replace("/login");
-            return;
-          }
-          if (mounted) {
-            console.log("[Multiplayer] Usuário autenticado:", user.id);
-            setCurrentUser(user);
-            setAuthChecked(true);
-          }
+        // Auth: avoid getUser() (network + AbortError risk). getSession() reads
+        // localStorage only. If session is null here, user is truly not logged in.
+        const { data, error } = await supabase.auth.getSession();
+        if (error) console.error("getSession error:", error);
+        const session = data?.session ?? null;
+        const sessionUser = session?.user ?? null;
+        if (!sessionUser) {
+          console.warn("[Multiplayer] Sem usuário autenticado");
+          if (mounted) { setLoading(false); clearTimeout(safetyTimeout); }
+          router.replace("/login");
+          return;
+        }
+        user = sessionUser;
+        if (mounted) {
+          console.log("[Multiplayer] Usuário autenticado:", user.id);
+          setCurrentUser(user);
+          setAuthChecked(true);
+        }
         }
 
         if (!mounted) return;
 
-        // Buscar profile com timeout próprio
+        // Profile fetch — resilient to AbortError and slow wakeup connections.
+        // Two-stage: 5s first try → 1.5s pause → 8s retry → localStorage fallback.
+        // The safetyTimeout (20s) is always longer than this cycle (~14.5s).
         let profileData = null;
-        let profileError = null;
-        
-        try {
-          const profilePromise = supabase
-            .from("profiles")
-            .select("username, avatar_preset")
-            .eq("id", user.id)
-            .maybeSingle();
-          
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Profile query timeout")), 15000)
-          );
-          
-          let result = await Promise.race([profilePromise, timeoutPromise]);
-          // Retry once on AbortError (Supabase auth reinit during wakeup)
-          if (!result?.data && result?.error == null && profileData == null) {
-            // no-op — result has data
-          }
-          profileData = result?.data ?? null;
-          profileError = result?.error ?? null;
 
-          if (!profileData && profileError?.name === "AbortError") {
-            console.log("[WAKE_FETCH] aborted type=profile(mp) — retrying in 2s");
-            await new Promise(res => setTimeout(res, 2000));
-            const retry = await supabase
-              .from("profiles")
-              .select("username, avatar_preset")
-              .eq("id", user.id)
-              .maybeSingle();
-            profileData = retry.data ?? null;
-            profileError = retry.error ?? null;
-            console.log(`[WAKE_FETCH] ${profileData ? 'success' : 'gave up'} type=profile(mp) retry`);
+        const doProfileFetch = async (timeoutMs) => {
+          const { data, error } = await Promise.race([
+            supabase.from("profiles").select("username, avatar_preset").eq("id", user.id).maybeSingle(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Profile query timeout")), timeoutMs)),
+          ]);
+          // AbortError can come through as response.error (not thrown) — normalise to throw
+          if (error?.name === "AbortError" || error?.message?.includes("aborted")) throw error;
+          return data ?? null;
+        };
+
+        try {
+          console.log("[MP_FETCH] profile start");
+          profileData = await doProfileFetch(5000);
+          if (profileData) {
+            console.log("[MP_FETCH] profile success");
+          } else {
+            console.log("[MP_FETCH] profile returned null — will use fallback");
           }
         } catch (err) {
-          console.error("[Multiplayer] Erro ao buscar profile:", err);
-          profileError = err;
+          const isAbort = err?.name === "AbortError" || err?.message?.includes("aborted");
+          const isTimeout = err?.message === "Profile query timeout";
+          if (isAbort || isTimeout) {
+            console.log(`[MP_FETCH] profile ${isAbort ? 'aborted' : 'timeout'} — retrying in 1.5s`);
+            await new Promise(res => setTimeout(res, 1500));
+            if (!mounted) return;
+            try {
+              console.log("[MP_FETCH] profile retrying");
+              profileData = await doProfileFetch(8000);
+              console.log(`[MP_FETCH] profile retry ${profileData ? 'success' : 'returned null'}`);
+            } catch (retryErr) {
+              console.warn("[MP_FETCH] profile gave up", retryErr?.message);
+            }
+          } else {
+            console.warn("[MP_FETCH] profile error", err?.message);
+          }
         }
-
-        if (profileError) console.error("profile fetch error:", profileError);
 
         if (!mounted) return;
-        
-        // Se não encontrou profile, usar fallback ou tentar criar
+
+        // Fallback to localStorage if both attempts returned null
         if (!profileData) {
-          console.warn("[Multiplayer] Profile não encontrado, usando fallback");
-          const fallbackUsername = localStorage.getItem("thor_username") || 
-                                  user.email?.split('@')[0] || 
+          const fallbackUsername = localStorage.getItem("thor_username") ||
+                                  user.email?.split('@')[0] ||
                                   "Player";
           profileData = { username: fallbackUsername, avatar_preset: "normal" };
-          
-          // Tentar criar profile em background (não bloqueia UI)
+          console.log("[MP_FETCH] profile fallback to localStorage:", fallbackUsername);
+
+          // Create profile in background — don't block UI
           supabase
             .from("profiles")
-            .insert({
-              id: user.id,
-              username: fallbackUsername,
-              avatar_preset: "normal",
-              created_at: new Date().toISOString(),
-            })
+            .insert({ id: user.id, username: fallbackUsername, avatar_preset: "normal", created_at: new Date().toISOString() })
             .then(({ error }) => {
               if (error) console.error("[Multiplayer] Erro ao criar profile:", error);
-              else console.log("[Multiplayer] Profile criado com sucesso");
             });
         }
-        
+
         setProfile(profileData);
-        
-        // ✅ SEMPRE seta loading false após buscar profile
+        console.log("[MP_STATE] loading end reason=profile_loaded");
         if (mounted) {
           setLoading(false);
           clearTimeout(safetyTimeout);
