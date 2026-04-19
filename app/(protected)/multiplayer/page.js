@@ -40,40 +40,6 @@ export default function MultiplayerPage() {
   setSelectedPlayer(null);
 };
 
-  // Reconnect Supabase realtime + refresh profile when browser comes back from background
-  useEffect(() => {
-    let refreshTimer = null;
-    const handleVisibility = async () => {
-      if (document.visibilityState !== 'visible') return;
-      try {
-        // Refresh token so subsequent queries work on re-wakeup
-        await supabase.auth.refreshSession();
-        // Reconnect all realtime channels
-        supabase.getChannels().forEach(ch => {
-          if (ch.state !== 'joined' && ch.state !== 'joining') {
-            ch.subscribe();
-          }
-        });
-        // Re-fetch profile if it failed on initial load
-        if (!profile && currentUser?.id) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('username, avatar_preset')
-            .eq('id', currentUser.id)
-            .maybeSingle();
-          if (data) setProfile(data);
-        }
-      } catch (e) {
-        console.warn('[Multiplayer] visibilitychange refresh error:', e);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility);
-      if (refreshTimer) clearTimeout(refreshTimer);
-    };
-  }, [profile, currentUser]);
-
   // Fast-path: assim que userId chega do contexto, libera a auth gate sem esperar rede
   useEffect(() => {
     if (contextUserId && !authChecked) {
