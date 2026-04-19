@@ -228,14 +228,10 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setUserId(uid);
           // No session → not logged in, stop loading so redirect fires fast
-          if (!uid) {
-            setIsLoading(false);
-          } else if (event === 'TOKEN_REFRESHED') {
-            // uid may be unchanged (same user) so React won't re-run effects —
-            // explicitly refresh stats so header/ranking show fresh data after wakeup
-            console.log('[UserStatsProvider] TOKEN_REFRESHED — refreshing stats silently');
-            refreshUserStats('realtime:token_refreshed');
-          }
+          if (!uid) setIsLoading(false);
+          // Note: TOKEN_REFRESHED wakeup stats refresh is driven by supabase.js
+          // firing thor_wakeup_ready (see useEffect below) — not triggered here
+          // to avoid double fetching and racing with the wakeup handler.
         }
       } else if (event === 'SIGNED_IN') {
         const uid = session?.user?.id || null;
@@ -495,58 +491,29 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("thor_stats_updated", handleStatsUpdated);
   }, [refreshUserStats]);
 
-  // Refresh on tab focus / browser wakeup.
-  // Uses getSession() (localStorage read — instant, no network) instead of
-  // getUser() so it works even before the token refresh network call completes.
-  // Also listens on focus + online for full wakeup coverage.
+  // Refresh stats after browser wakeup.
+  // supabase.js dispatches "thor_wakeup_ready" when auth is confirmed valid:
+  //   • Token still valid  → fires immediately on visibilitychange/focus
+  //   • Token was expired  → fires after Supabase's autoRefreshToken completes
+  // This avoids all races with autoRefreshToken (no refreshSession() call).
   useEffect(() => {
-    let _lock = false;
-    const handler = async (eventType: string) => {
-      if (document.visibilityState !== "visible") return;
-      if (_lock) return;
-      _lock = true;
-      console.log(`[WAKE] UserStatsProvider recover triggered by: ${eventType}`);
+    const handler = async () => {
+      console.log("[WAKE] UserStatsProvider thor_wakeup_ready received");
       try {
-        // getSession reads from localStorage — works instantly even before
-        // the global refreshSession() call in supabase.js completes.
         const { data } = await supabase.auth.getSession();
         const uid = data?.session?.user?.id || null;
-        console.log(`[WAKE] UserStatsProvider session uid: ${uid ?? "null"}`);
-        if (!uid) {
-          // No session at all — let onAuthStateChange handle SIGNED_OUT.
-          // We explicitly release isLoading so the protected layout
-          // doesn't stay black if the session is genuinely gone.
-          setIsLoading(false);
-          _lock = false;
-          return;
-        }
-        // Ensure userId is current (handles token refresh changing uid edge case)
+        if (!uid) { setIsLoading(false); return; }
         setUserId(uid);
-        // Release any stuck isLoading immediately before the async refresh
         setIsLoading(false);
-        // Silently refresh stats in background — won't set isLoading=true
         await refreshUserStats("tab_visible");
         console.log("[WAKE] UserStatsProvider stats refreshed OK");
       } catch (e) {
-        console.warn("[WAKE] UserStatsProvider recover error:", e);
-        // Always release stuck loading on error
+        console.warn("[WAKE] UserStatsProvider recovery error:", e);
         setIsLoading(false);
-      } finally {
-        // Short cooldown to prevent double-firing from simultaneous events
-        setTimeout(() => { _lock = false; }, 2000);
       }
     };
-    const onVisibility = () => handler("visibilitychange");
-    const onFocus = () => handler("focus");
-    const onOnline = () => handler("online");
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("focus", onFocus);
-    window.addEventListener("online", onOnline);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("focus", onFocus);
-      window.removeEventListener("online", onOnline);
-    };
+    window.addEventListener("thor_wakeup_ready", handler);
+    return () => window.removeEventListener("thor_wakeup_ready", handler);
   }, [refreshUserStats]);
 
   const value: UserStatsContextType = {
