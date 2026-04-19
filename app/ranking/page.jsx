@@ -913,7 +913,7 @@ export default function RankingPage() {
                 <div ref={statsRef} style={{ background: '#0a0a0f', borderRadius: 14, overflow: 'hidden', paddingBottom: 16 }}>
                   {/* Logo header - hidden on page, shown only in screenshot */}
                   <div id="screenshot-logo-header" style={{ display: 'none', background: '#000', padding: '24px', textAlign: 'center' }}>
-                    <img src="/game/images/thorspace.png" alt="ThorSpace" style={{ height: 80, objectFit: 'contain' }} />
+                    <img src="/game/images/thorspace.png" alt="ThorSpace" style={{ height: 160, objectFit: 'contain' }} />
                   </div>
                   {/* Player header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)', margin: '0 16px 24px' }}>
