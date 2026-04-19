@@ -49,11 +49,12 @@ export default function RankingPage() {
   async function loadConfrontos(userId) {
     setLoadingConfrontos(true);
     try {
-      // Query inclui empates via player1_id/player2_id (winner/loser são NULL no empate)
+      // Query uses winner_id/loser_id which always exist.
+      // After applying 20260419_draw_support.sql, also include player1_id/player2_id for draws.
       const { data: results, error } = await supabase
         .from('match_results')
         .select('match_id, winner_id, loser_id, winner_score, loser_score, processed_at, player1_id, player2_id, is_draw')
-        .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
         .order('processed_at', { ascending: false });
 
       if (error || !results?.length) {
@@ -61,13 +62,20 @@ export default function RankingPage() {
         return;
       }
 
-      // Identificar oponentes (incluindo empates onde winner/loser são null)
+      // Identify opponents — handle both draws (player1/player2) and normal results
       const opponentIds = [...new Set(results.map(r => {
-        if (r.is_draw) {
+        if (r.is_draw && r.player1_id && r.player2_id) {
           return r.player1_id === userId ? r.player2_id : r.player1_id;
         }
-        return r.winner_id === userId ? r.loser_id : r.winner_id;
+        if (r.winner_id === userId) return r.loser_id;
+        if (r.loser_id === userId) return r.winner_id;
+        return null;
       }).filter(Boolean))];
+
+      if (!opponentIds.length) {
+        setConfrontosData([]);
+        return;
+      }
 
       const [{ data: profiles }, { data: progressData }] = await Promise.all([
         supabase
