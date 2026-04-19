@@ -228,7 +228,14 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setUserId(uid);
           // No session → not logged in, stop loading so redirect fires fast
-          if (!uid) setIsLoading(false);
+          if (!uid) {
+            setIsLoading(false);
+          } else if (event === 'TOKEN_REFRESHED') {
+            // uid may be unchanged (same user) so React won't re-run effects —
+            // explicitly refresh stats so header/ranking show fresh data after wakeup
+            console.log('[UserStatsProvider] TOKEN_REFRESHED — refreshing stats silently');
+            refreshUserStats('realtime:token_refreshed');
+          }
         }
       } else if (event === 'SIGNED_IN') {
         const uid = session?.user?.id || null;
