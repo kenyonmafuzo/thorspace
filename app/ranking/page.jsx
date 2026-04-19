@@ -133,7 +133,7 @@ export default function RankingPage() {
 
         const sortedMatches = [...h2h.matches].sort((a, b) => new Date(b.date) - new Date(a.date));
         const lastMatch = sortedMatches[0];
-        const lastFive = sortedMatches.slice(0, 5);
+        const lastFive = sortedMatches.slice(0, 10);
 
         const avgScoreYou = Math.round(h2h.matches.reduce((s, m) => s + (m.myScore || 0), 0) / h2h.matches.length);
         const avgScoreOpp = Math.round(h2h.matches.reduce((s, m) => s + (m.oppScore || 0), 0) / h2h.matches.length);
@@ -924,19 +924,20 @@ export default function RankingPage() {
                 </div>
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16 }}>
-                  <div style={{ background: 'rgba(0,255,0,0.06)', border: '1px solid rgba(0,255,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>CONFRONTO DIRETO</div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
-                      <span style={{ color: '#00FF00', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.youWins}</span>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>–</span>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>x</span>
-                      <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>–</span>
-                      <span style={{ color: '#FF4444', fontSize: 22, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.opponentWins}</span>
+                  <div style={{ gridColumn: '1 / -1', background: 'linear-gradient(135deg, rgba(0,255,0,0.12) 0%, rgba(255,68,68,0.08) 100%)', border: '1px solid rgba(0,255,0,0.4)', borderRadius: 12, padding: '18px 24px', boxShadow: '0 0 20px rgba(0,255,0,0.15), inset 0 0 30px rgba(0,0,0,0.2)' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' }}>CONFRONTO DIRETO</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                      <span style={{ color: '#00FF00', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)' }}>{selectedConfronto.youWins}</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>VOCÊ</span>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>VS</span>
+                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>OPO</span>
+                      </div>
+                      <span style={{ color: '#FF4444', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)' }}>{selectedConfronto.opponentWins}</span>
                     </div>
                     {selectedConfronto.draws > 0 && (
-                      <div style={{ color: '#FFD700', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, marginBottom: 2 }}>{selectedConfronto.draws} empate{selectedConfronto.draws > 1 ? 's' : ''}</div>
+                      <div style={{ color: '#FFD700', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, marginTop: 8, textAlign: 'center' }}>{selectedConfronto.draws} empate{selectedConfronto.draws > 1 ? 's' : ''}</div>
                     )}
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 2 }}>Você x Oponente</div>
                   </div>
                   <div style={{ background: 'rgba(0,229,255,0.06)', border: '1px solid rgba(0,229,255,0.2)', borderRadius: 10, padding: '14px 16px' }}>
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>WINRATE</div>
@@ -988,14 +989,18 @@ export default function RankingPage() {
                 {/* Último encontro */}
                 {selectedConfronto.lastEncounterDate && (
                   <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 6 }}>ÚLTIMO ENCONTRO</div>
-                    <div style={{ color: '#fff', fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 600 }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>ÚLTIMO ENCONTRO</div>
+                    {selectedConfronto.lastEncounterResult && (() => {
+                      const lr = selectedConfronto.lastResults[0];
+                      const c = lr?.result === 'win' ? '#00FF00' : lr?.result === 'draw' ? '#FFD700' : '#FF4444';
+                      return (
+                        <div style={{ color: c, fontSize: 28, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", marginBottom: 4, textShadow: `0 0 10px ${c}60` }}>
+                          {selectedConfronto.lastEncounterResult}
+                        </div>
+                      );
+                    })()}
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 400 }}>
                       {selectedConfronto.lastEncounterDate}
-                      {selectedConfronto.lastEncounterResult && (
-                        <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400, fontSize: 12, marginLeft: 10 }}>
-                          • {selectedConfronto.lastEncounterResult}
-                        </span>
-                      )}
                     </div>
                   </div>
                 )}
