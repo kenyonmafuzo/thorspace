@@ -215,37 +215,57 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
     startRealtime();
 
-    // Restaura o estado do chat ao voltar do background/minimize.
-    // Usa TANTO visibilitychange QUANTO window.focus para cobrir todos os
-    // cenários: minimize via botão amarelo, Cmd+H, Mission Control, etc.
-    const handleRestoreFromBackground = () => {
-      // Chrome throttle timers em abas background — resetamos diretamente
-      // sem depender de setTimeout.
+    // Restore chat state when browser returns from background/minimize.
+    // Uses visibilitychange + window.focus + window.online for full coverage.
+    const handleRestoreFromBackground = (eventType) => {
+      console.log(`[WAKE] GlobalChat restore triggered by: ${eventType}`);
+
+      // Always reset sending lock — Chrome may have frozen it during background
       setSending(false);
       lastMessageTimeRef.current = 0;
 
-      // Re-fetch mensagens perdidas durante o background
-      fetchMessages();
+      // Check if the chat channel is alive
+      const ch = channelRef.current;
+      const state = ch?.state;
+      console.log(`[WAKE] chat channel state: ${state ?? "null"}`);
 
-      // Supabase realtime tem reconexão automática built-in.
-      // Só recriamos o canal se ele foi explicitamente removido (null).
-      if (!channelRef.current) {
+      const isDead = !ch ||
+        state === "closed" ||
+        state === "errored" ||
+        state === "leaving" ||
+        state === "timed_out";
+
+      if (isDead) {
+        console.log("[WAKE] chat channel is dead — removing and recreating");
+        if (ch) {
+          try { supabase.removeChannel(ch); } catch (_) {}
+          channelRef.current = null;
+        }
         startRealtime();
+        console.log("[WAKE] chat channel recreated");
+      } else {
+        console.log("[WAKE] chat channel is healthy — skipping recreate");
       }
+
+      // Always refetch recent messages to catch anything missed in background
+      fetchMessages();
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') handleRestoreFromBackground();
+      if (document.visibilityState === "visible") handleRestoreFromBackground("visibilitychange");
     };
+    const handleFocus = () => handleRestoreFromBackground("focus");
+    const handleOnline = () => handleRestoreFromBackground("online");
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    // window.focus é o fallback mais confiável para janela minimizada no macOS
-    window.addEventListener('focus', handleRestoreFromBackground);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       window.removeEventListener("refresh_chat", handleRefreshChat);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleRestoreFromBackground);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('online', handleOnline);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
