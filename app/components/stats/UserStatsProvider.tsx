@@ -79,7 +79,6 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
       if (!userId) return;
       const silent = !!reason && SILENT_REASONS.some(r => reason.startsWith(r));
       if (!silent) setIsLoading(true);
-      console.log(`[WAKE_FETCH] start type=profile${_isRetry ? ' (retry)' : ''}`);
       try {
         if (process.env.NODE_ENV !== "production") {
           // ...existing code...
@@ -134,15 +133,12 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
         setPlayerStats(statsData ?? null);
         setStatsVersion(v => v + 1);
         setLastUpdatedAt(Date.now());
-        console.log("[WAKE_FETCH] success type=profile");
       } catch (fetchErr: any) {
         if (fetchErr?.name === "AbortError" && !_isRetry) {
           // Supabase fetch aborted during auth reinit — retry once after settle
-          console.log("[WAKE_FETCH] aborted type=profile — retrying in 2s");
           setTimeout(() => refreshUserStats(reason, true), 2000);
           return; // don't clear isLoading yet — retry will handle it
         }
-        console.warn(`[WAKE_FETCH] ${_isRetry ? 'gave up' : 'error'} type=profile`, fetchErr);
         throw fetchErr; // re-throw so callers can still handle
       } finally {
         if (!silent) setIsLoading(false);
@@ -519,14 +515,11 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const handler = async () => {
       // thor_wakeup_ready guarantees auth is valid — no getSession() needed here.
       // refreshUserStats() already handles AbortError internally with a 2s retry.
-      console.log("[WAKE] UserStatsProvider thor_wakeup_ready received");
       setIsLoading(false);
       try {
         await refreshUserStats("tab_visible");
-        // success log is printed inside refreshUserStats
       } catch (e) {
         // Only reaches here if the retry inside refreshUserStats also failed
-        console.warn("[WAKE] UserStatsProvider recovery gave up:", e);
       }
     };
     window.addEventListener("thor_wakeup_ready", handler);

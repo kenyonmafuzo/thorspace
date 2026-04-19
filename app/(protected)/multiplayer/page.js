@@ -56,7 +56,6 @@ export default function MultiplayerPage() {
   useEffect(() => {
     if (!userStats?.username) return;
     if (profile) return; // already populated, don't overwrite
-    console.log('[MP_STATE] loading end reason=userStats_context');
     setProfile({ username: userStats.username, avatar_preset: userStats.avatar_preset });
     setLoading(false);
   }, [userStats?.username, userStats?.avatar_preset]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -174,7 +173,6 @@ export default function MultiplayerPage() {
     // as soon as UserStatsProvider has data, so the user won't be stuck.
     const safetyTimeout = setTimeout(() => {
       if (mounted) {
-        console.warn("[MP_STATE] loading end reason=safety_timeout (last resort)");
         setLoading(false);
       }
     }, 20000);
@@ -231,29 +229,18 @@ export default function MultiplayerPage() {
         };
 
         try {
-          console.log("[MP_FETCH] profile start");
           profileData = await doProfileFetch(5000);
-          if (profileData) {
-            console.log("[MP_FETCH] profile success");
-          } else {
-            console.log("[MP_FETCH] profile returned null — will use fallback");
-          }
         } catch (err) {
           const isAbort = err?.name === "AbortError" || err?.message?.includes("aborted");
           const isTimeout = err?.message === "Profile query timeout";
           if (isAbort || isTimeout) {
-            console.log(`[MP_FETCH] profile ${isAbort ? 'aborted' : 'timeout'} — retrying in 1.5s`);
             await new Promise(res => setTimeout(res, 1500));
             if (!mounted) return;
             try {
-              console.log("[MP_FETCH] profile retrying");
               profileData = await doProfileFetch(8000);
-              console.log(`[MP_FETCH] profile retry ${profileData ? 'success' : 'returned null'}`);
             } catch (retryErr) {
-              console.warn("[MP_FETCH] profile gave up", retryErr?.message);
+              // gave up — will use localStorage fallback below
             }
-          } else {
-            console.warn("[MP_FETCH] profile error", err?.message);
           }
         }
 
@@ -265,7 +252,6 @@ export default function MultiplayerPage() {
                                   user.email?.split('@')[0] ||
                                   "Player";
           profileData = { username: fallbackUsername, avatar_preset: "normal" };
-          console.log("[MP_FETCH] profile fallback to localStorage:", fallbackUsername);
 
           // Create profile in background — don't block UI
           supabase
@@ -277,7 +263,6 @@ export default function MultiplayerPage() {
         }
 
         setProfile(profileData);
-        console.log("[MP_STATE] loading end reason=profile_loaded");
         if (mounted) {
           setLoading(false);
           clearTimeout(safetyTimeout);

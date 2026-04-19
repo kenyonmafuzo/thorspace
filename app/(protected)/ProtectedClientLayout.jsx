@@ -27,7 +27,6 @@ export default function ProtectedClientLayout({ children }) {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === "visible") {
-        console.log("[WAKE] ProtectedClientLayout wakeup recorded");
         wakeupTs.current = Date.now();
       }
     };
@@ -46,7 +45,6 @@ export default function ProtectedClientLayout({ children }) {
       const msSinceWakeup = Date.now() - wakeupTs.current;
       if (msSinceWakeup < 6000) {
         // Just woke up — give UserStatsProvider time to restore session from localStorage
-        console.log(`[WAKE] ProtectedClientLayout: skipping redirect (${msSinceWakeup}ms since wakeup)`);
         return;
       }
       // If we previously had a valid session, it expired due to inactivity

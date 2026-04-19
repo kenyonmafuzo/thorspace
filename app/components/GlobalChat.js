@@ -152,7 +152,6 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
   };
 
   const fetchMessages = async ({ isRetry = false } = {}) => {
-    console.log(`[WAKE_FETCH] start type=messages${isRetry ? ' (retry)' : ''}`);
     try {
       // Buscar últimas 50 mensagens (mais recentes primeiro, depois invertemos)
       const { data, error } = await supabase
@@ -165,10 +164,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         // Check if AbortError came through as a response error (not thrown).
         // This happens when Supabase's auth reinitialises during a running fetch.
         if ((error?.name === 'AbortError' || error?.message?.includes('aborted')) && !isRetry) {
-          console.log('[WAKE_FETCH] aborted type=messages (response error) — retrying in 2s');
           setTimeout(() => fetchMessages({ isRetry: true }), 2000);
-        } else {
-          console.warn('[WAKE_FETCH] gave up type=messages', error?.message);
         }
         return;
       }
@@ -176,17 +172,14 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       // Inverter para ordem cronológica (mais antiga primeiro)
       setMessages((data || []).reverse());
       setLoading(false);
-      console.log("[WAKE_FETCH] success type=messages");
 
       // Scroll to bottom after messages load
       setTimeout(scrollToBottom, 100);
     } catch (err) {
       if (err?.name === "AbortError" && !isRetry) {
         // Supabase internal fetch aborted during auth reinit — retry once after settle
-        console.log("[WAKE_FETCH] aborted type=messages — retrying in 2s");
         setTimeout(() => fetchMessages({ isRetry: true }), 2000);
       } else {
-        console.warn(`[WAKE_FETCH] ${isRetry ? 'gave up' : 'error'} type=messages`, err);
         setLoading(false);
       }
     }
@@ -245,11 +238,9 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
     const handleWakeupReady = () => {
       if (_chatWakeLock) {
-        console.log("[WAKE] GlobalChat recovery already running — skipping");
         return;
       }
       _chatWakeLock = true;
-      console.log("[WAKE] GlobalChat recovery started");
 
       // Always reset throttle state — safe regardless of channel health
       setSending(false);
@@ -257,8 +248,6 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
 
       const ch = channelRef.current;
       const state = ch?.state;
-      console.log(`[WAKE] chat channel state: ${state ?? "null"}`);
-
       const isDead = !ch ||
         state === "closed" ||
         state === "errored" ||
@@ -266,20 +255,15 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         state === "timed_out";
 
       if (isDead) {
-        console.log("[WAKE] chat channel is dead — recreating");
         if (ch) {
           try { supabase.removeChannel(ch); } catch (_) {}
           channelRef.current = null;
         }
         startRealtime();
-        console.log("[WAKE] chat channel recreated");
-      } else {
-        console.log("[WAKE] chat channel is healthy — keeping");
       }
 
       // Always refetch to catch any messages missed while in background
       fetchMessages();
-      console.log("[WAKE] GlobalChat recovery finished");
       setTimeout(() => { _chatWakeLock = false; }, 2000);
     };
 

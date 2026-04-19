@@ -181,13 +181,10 @@ export default function RankingPage() {
       });
 
       setConfrontosData(data);
-      console.log("[WAKE_FETCH] success type=confrontos");
     } catch (err) {
       if (err?.name === "AbortError") {
-        console.log("[WAKE_FETCH] aborted type=confrontos — retrying in 2s");
         setTimeout(() => loadConfrontos(userId), 2000);
       } else {
-        console.warn("[WAKE_FETCH] gave up type=confrontos", err);
         setConfrontosData([]);
       }
     } finally {
@@ -272,11 +269,9 @@ export default function RankingPage() {
       } catch (err) {
         if (err?.name === "AbortError" && isMounted) {
           // Auth reinit aborted the fetch — retry once after settle
-          console.log("[WAKE_FETCH] aborted type=ranking — retrying in 2s");
           setTimeout(() => { if (isMounted) loadRanking(); }, 2000);
         } else {
           if (isMounted) setError("Erro ao carregar ranking. Tente novamente.");
-          console.warn("[WAKE_FETCH] gave up type=ranking", err);
         }
       } finally {
         if (isMounted) setLoadingRanking(false);
@@ -312,7 +307,6 @@ export default function RankingPage() {
     // Refetch ranking data when supabase.js confirms auth is ready after wakeup
     const onWakeupReady = async () => {
       if (!isMounted) return;
-      console.log("[WAKE] RankingPage thor_wakeup_ready received");
       const { data } = await supabase.auth.getSession();
       const uid = data?.session?.user?.id;
       if (!uid || !isMounted) return;
