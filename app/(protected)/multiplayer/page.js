@@ -208,12 +208,29 @@ export default function MultiplayerPage() {
             .maybeSingle();
           
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Profile query timeout")), 10000)
+            setTimeout(() => reject(new Error("Profile query timeout")), 15000)
           );
           
-          const result = await Promise.race([profilePromise, timeoutPromise]);
-          profileData = result.data;
-          profileError = result.error;
+          let result = await Promise.race([profilePromise, timeoutPromise]);
+          // Retry once on AbortError (Supabase auth reinit during wakeup)
+          if (!result?.data && result?.error == null && profileData == null) {
+            // no-op — result has data
+          }
+          profileData = result?.data ?? null;
+          profileError = result?.error ?? null;
+
+          if (!profileData && profileError?.name === "AbortError") {
+            console.log("[WAKE_FETCH] aborted type=profile(mp) — retrying in 2s");
+            await new Promise(res => setTimeout(res, 2000));
+            const retry = await supabase
+              .from("profiles")
+              .select("username, avatar_preset")
+              .eq("id", user.id)
+              .maybeSingle();
+            profileData = retry.data ?? null;
+            profileError = retry.error ?? null;
+            console.log(`[WAKE_FETCH] ${profileData ? 'success' : 'gave up'} type=profile(mp) retry`);
+          }
         } catch (err) {
           console.error("[Multiplayer] Erro ao buscar profile:", err);
           profileError = err;

@@ -151,7 +151,8 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     }
   };
 
-  const fetchMessages = async () => {
+  const fetchMessages = async ({ isRetry = false } = {}) => {
+    console.log(`[WAKE_FETCH] start type=messages${isRetry ? ' (retry)' : ''}`);
     try {
       // Buscar últimas 50 mensagens (mais recentes primeiro, depois invertemos)
       const { data, error } = await supabase
@@ -168,12 +169,19 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
       // Inverter para ordem cronológica (mais antiga primeiro)
       setMessages((data || []).reverse());
       setLoading(false);
+      console.log("[WAKE_FETCH] success type=messages");
 
       // Scroll to bottom after messages load
       setTimeout(scrollToBottom, 100);
     } catch (err) {
-      console.error("Exception fetching messages:", err);
-      setLoading(false);
+      if (err?.name === "AbortError" && !isRetry) {
+        // Supabase internal fetch aborted during auth reinit — retry once after settle
+        console.log("[WAKE_FETCH] aborted type=messages — retrying in 2s");
+        setTimeout(() => fetchMessages({ isRetry: true }), 2000);
+      } else {
+        console.warn(`[WAKE_FETCH] ${isRetry ? 'gave up' : 'error'} type=messages`, err);
+        setLoading(false);
+      }
     }
   };
 

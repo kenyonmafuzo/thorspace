@@ -181,9 +181,15 @@ export default function RankingPage() {
       });
 
       setConfrontosData(data);
+      console.log("[WAKE_FETCH] success type=confrontos");
     } catch (err) {
-      console.error('[loadConfrontos]', err);
-      setConfrontosData([]);
+      if (err?.name === "AbortError") {
+        console.log("[WAKE_FETCH] aborted type=confrontos — retrying in 2s");
+        setTimeout(() => loadConfrontos(userId), 2000);
+      } else {
+        console.warn("[WAKE_FETCH] gave up type=confrontos", err);
+        setConfrontosData([]);
+      }
     } finally {
       setLoadingConfrontos(false);
     }
@@ -264,7 +270,14 @@ export default function RankingPage() {
         });
         if (isMounted) setMultiplayerData(merged);
       } catch (err) {
-        if (isMounted) setError("Erro ao carregar ranking. Tente novamente.");
+        if (err?.name === "AbortError" && isMounted) {
+          // Auth reinit aborted the fetch — retry once after settle
+          console.log("[WAKE_FETCH] aborted type=ranking — retrying in 2s");
+          setTimeout(() => { if (isMounted) loadRanking(); }, 2000);
+        } else {
+          if (isMounted) setError("Erro ao carregar ranking. Tente novamente.");
+          console.warn("[WAKE_FETCH] gave up type=ranking", err);
+        }
       } finally {
         if (isMounted) setLoadingRanking(false);
       }
