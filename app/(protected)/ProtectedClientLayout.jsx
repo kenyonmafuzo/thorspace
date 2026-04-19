@@ -16,14 +16,39 @@ export default function ProtectedClientLayout({ children }) {
   const isReady = !!(userStats && (userStats.user_id || userStats.id) && userStats.username);
   // Track whether we ever had an authenticated session in this page lifecycle
   const hadSession = useRef(false);
+  // Timestamp of last wakeup — suppresses premature logout redirect during recovery
+  const wakeupTs = useRef(0);
 
   useEffect(() => {
     if (userId) hadSession.current = true;
   }, [userId]);
 
+  // Record wakeup timestamp so the redirect below knows to wait
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        console.log("[WAKE] ProtectedClientLayout wakeup recorded");
+        wakeupTs.current = Date.now();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, []);
+
   // Redirecionar para login se auth resolveu sem usuário
+  // BUT: skip redirect for 6s after wakeup to let UserStatsProvider recover session
   useEffect(() => {
     if (!isLoading && !userId) {
+      const msSinceWakeup = Date.now() - wakeupTs.current;
+      if (msSinceWakeup < 6000) {
+        // Just woke up — give UserStatsProvider time to restore session from localStorage
+        console.log(`[WAKE] ProtectedClientLayout: skipping redirect (${msSinceWakeup}ms since wakeup)`);
+        return;
+      }
       // If we previously had a valid session, it expired due to inactivity
       if (hadSession.current) {
         router.replace("/login?reason=idle");
@@ -66,7 +91,11 @@ export default function ProtectedClientLayout({ children }) {
   }, [userId, router]);
 
   // Enquanto carrega ou sem usuário: tela preta (sem flash de conteúdo)
-  if (isLoading || !userId) {
+  // Exception: if we just woke up from background (within 6s), DON'T show black
+  // screen — the session is still valid, UserStatsProvider is just recovering.
+  const msSinceWakeup = Date.now() - wakeupTs.current;
+  const isWakingUp = msSinceWakeup < 6000 && hadSession.current;
+  if ((isLoading || !userId) && !isWakingUp) {
     return (
       <div style={{
         position: "fixed",

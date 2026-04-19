@@ -295,9 +295,38 @@ export default function RankingPage() {
         );
       });
     }
+
+    // Refetch ranking data when browser wakes from background
+    let wakeupLock = false;
+    const handleWakeup = async (eventType) => {
+      if (document.visibilityState !== "visible") return;
+      if (wakeupLock) return;
+      wakeupLock = true;
+      console.log(`[WAKE] RankingPage refetch triggered by: ${eventType}`);
+      try {
+        const { data } = await supabase.auth.getSession();
+        const uid = data?.session?.user?.id;
+        if (!uid) { wakeupLock = false; return; }
+        if (!isMounted) { wakeupLock = false; return; }
+        setCurrentUserId(uid);
+        loadRanking();
+        loadConfrontos(uid);
+      } catch (e) {
+        console.warn("[WAKE] RankingPage wakeup error:", e);
+      } finally {
+        setTimeout(() => { wakeupLock = false; }, 3000);
+      }
+    };
+    const onVisibility = () => handleWakeup("visibilitychange");
+    const onOnline = () => handleWakeup("online");
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("online", onOnline);
+
     window.addEventListener("thor_stats_updated", handleStatsUpdated);
     return () => {
       isMounted = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("thor_stats_updated", handleStatsUpdated);
     };
   }, [router]);

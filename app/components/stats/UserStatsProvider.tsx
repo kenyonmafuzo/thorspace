@@ -488,31 +488,58 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("thor_stats_updated", handleStatsUpdated);
   }, [refreshUserStats]);
 
-  // Refresh on tab focus — re-validates session first to handle expired tokens
+  // Refresh on tab focus / browser wakeup.
+  // Uses getSession() (localStorage read — instant, no network) instead of
+  // getUser() so it works even before the token refresh network call completes.
+  // Also listens on focus + online for full wakeup coverage.
   useEffect(() => {
-    const handler = async () => {
+    let _lock = false;
+    const handler = async (eventType: string) => {
       if (document.visibilityState !== "visible") return;
+      if (_lock) return;
+      _lock = true;
+      console.log(`[WAKE] UserStatsProvider recover triggered by: ${eventType}`);
       try {
-        // Validar sessão sem bloquear UI. Nunca setamos userId=null aqui:
-        // se o usuário realmente fez logout, onAuthStateChange dispara SIGNED_OUT
-        // e trata isso corretamente. Setar null aqui causaria tela preta + remount.
-        const { data } = await supabase.auth.getUser();
-        const uid = data?.user?.id || null;
+        // getSession reads from localStorage — works instantly even before
+        // the global refreshSession() call in supabase.js completes.
+        const { data } = await supabase.auth.getSession();
+        const uid = data?.session?.user?.id || null;
+        console.log(`[WAKE] UserStatsProvider session uid: ${uid ?? "null"}`);
         if (!uid) {
-          // Sessão possivelmente expirada — deixa onAuthStateChange tratar
-          // Não faz nada aqui para evitar tela preta desnecessária
+          // No session at all — let onAuthStateChange handle SIGNED_OUT.
+          // We explicitly release isLoading so the protected layout
+          // doesn't stay black if the session is genuinely gone.
+          setIsLoading(false);
+          _lock = false;
           return;
         }
-        // Garantir que userId está correto e fazer refresh silencioso
+        // Ensure userId is current (handles token refresh changing uid edge case)
         setUserId(uid);
-        refreshUserStats("tab_visible");
+        // Release any stuck isLoading immediately before the async refresh
+        setIsLoading(false);
+        // Silently refresh stats in background — won't set isLoading=true
+        await refreshUserStats("tab_visible");
+        console.log("[WAKE] UserStatsProvider stats refreshed OK");
       } catch (e) {
-        // Erro de rede ao restaurar — não bloquear UI
-        // onAuthStateChange cuidará de qualquer mudança de sessão real
+        console.warn("[WAKE] UserStatsProvider recover error:", e);
+        // Always release stuck loading on error
+        setIsLoading(false);
+      } finally {
+        // Short cooldown to prevent double-firing from simultaneous events
+        setTimeout(() => { _lock = false; }, 2000);
       }
     };
-    document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+    const onVisibility = () => handler("visibilitychange");
+    const onFocus = () => handler("focus");
+    const onOnline = () => handler("online");
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
+    };
   }, [refreshUserStats]);
 
   const value: UserStatsContextType = {
