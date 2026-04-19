@@ -654,26 +654,40 @@ background: rgba(0, 165, 242, 0.04);
   #shipReadyBtnWrapper {
     width: 100% !important;
   }
+  /* No horizontal scroll anywhere on the ship select screen */
+  #shipSelectContent {
+    overflow-x: hidden !important;
+  }
   #naveCarouselOuter {
-    gap: 10px !important;
+    gap: 8px !important;
     padding: 0 2px !important;
+    overflow: hidden !important; /* clip track overflow inside outer */
   }
-  /* Viewport fills available width minus the two arrow buttons */
+  /* Arrows: 44px each + 8px gap each side = 104px total reserved.
+     Viewport gets the remaining width, with 4px padding each side. */
   #naveCarouselViewport {
-    width: calc(100vw - 124px) !important; /* 2*52px btn + 2*10px gap */
-    padding: 70px 6px 0 6px !important;
+    width: calc(100vw - 112px) !important; /* 2*44px btn + 2*8px gap + 8px margin */
+    padding: 70px 4px 0 4px !important;
     margin-top: -70px !important;
+    overflow: hidden !important;
   }
-  /* Each slot = one full card fills the viewport */
+  /* Arrow buttons a bit smaller so they don't push off screen */
+  .carousel-arrow-btn {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+    flex-shrink: 0 !important;
+  }
+  /* Each slot fills the viewport exactly */
   .nave-card-slot {
-    width: calc(100vw - 136px) !important; /* viewport - 2*6px viewport padding */
+    width: calc(100vw - 120px) !important; /* viewport - 2*(44+8+4)px */
   }
   .nave-card {
-    padding: 18px 16px !important;
+    padding: 18px 14px !important;
   }
   /* Bigger ship image */
   .nave-img {
-    width: min(200px, 55vw) !important;
+    width: min(190px, 52vw) !important;
     margin-top: -68px !important;
     margin-bottom: 10px !important;
   }
@@ -698,6 +712,20 @@ background: rgba(0, 165, 242, 0.04);
   #previewArea {
     gap: 22px !important;
     margin-bottom: 28px !important;
+  }
+  /* Shot type modal: larger, pushed below any header, no transform */
+  #shotTypeModal {
+    align-items: flex-start !important;
+    padding: 12px 8px 12px !important;
+    padding-top: max(60px, env(safe-area-inset-top, 0px) + 56px) !important;
+    overflow-y: auto !important;
+  }
+  #shotTypeModalContent {
+    transform: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 16px 14px !important;
+    border-radius: 12px !important;
   }
 }
 
@@ -10212,6 +10240,50 @@ function naveCarouselMove(dir) {
   naveCarouselOffset += dir;
   updateNaveCarousel();
 }
+
+// ── Carousel swipe (mobile touch) ───────────────────────
+// Swipe left/right on the carousel viewport to navigate one card at a time.
+// Only active on touch devices; never interferes with the game canvas
+// (the game canvas and #shipSelectContent are mutually exclusive in visibility).
+(function() {
+  if (typeof window === 'undefined') return;
+  var viewport = document.getElementById('naveCarouselViewport');
+  if (!viewport) return;
+  var _swipeStartX = 0;
+  var _swipeStartY = 0;
+  var _swipeActive = false;
+  var SWIPE_THRESHOLD = 40; // px of horizontal movement to count as swipe
+
+  viewport.addEventListener('touchstart', function(e) {
+    var t = e.changedTouches[0];
+    _swipeStartX = t.clientX;
+    _swipeStartY = t.clientY;
+    _swipeActive = true;
+  }, { passive: true });
+
+  viewport.addEventListener('touchmove', function(e) {
+    if (!_swipeActive) return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - _swipeStartX;
+    var dy = t.clientY - _swipeStartY;
+    // If mostly horizontal, prevent page scroll so the swipe feels snappy
+    if (Math.abs(dx) > Math.abs(dy) * 0.8) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+
+  viewport.addEventListener('touchend', function(e) {
+    if (!_swipeActive) return;
+    _swipeActive = false;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - _swipeStartX;
+    var dy = t.clientY - _swipeStartY;
+    // Only count as swipe if horizontal movement dominates
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    naveCarouselMove(dx < 0 ? 1 : -1);
+  }, { passive: true });
+})();
+
 // Expose to global scope so inline onclick handlers can reach them
 window.initNaveCarousel = initNaveCarousel;
 window.updateNaveCarousel = updateNaveCarousel;
@@ -10964,14 +11036,21 @@ if (typeof window !== 'undefined') {
     var smc = document.getElementById('shotTypeModalContent');
     var smcModal = document.getElementById('shotTypeModal');
     if (smc && smcModal && smcModal.style.display !== 'none') {
-      // Reset transform so we measure the real natural dimensions
-      smc.style.transform = 'none';
-      var smcNaturalH = smc.offsetHeight;
-      // 860 = natural modal width (800px content + ~60px outer padding)
-      // 40  = vertical clearance (20px top + 20px bottom wrapper padding)
-      var smcScale = Math.min(1, vw / 860, (availH - 40) / smcNaturalH);
-      smc.style.transformOrigin = 'center center';
-      smc.style.transform       = 'scale(' + smcScale.toFixed(5) + ')';
+      var isMobilePortrait = vw <= 600 && vh > vw;
+      if (isMobilePortrait) {
+        // On mobile: full width, no scale. CSS media query handles padding-top.
+        smc.style.transform       = 'none';
+        smc.style.transformOrigin = 'center center';
+      } else {
+        // Reset transform so we measure the real natural dimensions
+        smc.style.transform = 'none';
+        var smcNaturalH = smc.offsetHeight;
+        // 860 = natural modal width (800px content + ~60px outer padding)
+        // 40  = vertical clearance (20px top + 20px bottom wrapper padding)
+        var smcScale = Math.min(1, vw / 860, (availH - 40) / smcNaturalH);
+        smc.style.transformOrigin = 'center center';
+        smc.style.transform       = 'scale(' + smcScale.toFixed(5) + ')';
+      }
     }
   }
 
