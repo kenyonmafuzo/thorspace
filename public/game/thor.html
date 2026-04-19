@@ -6865,6 +6865,145 @@ canvas.addEventListener('click', function(event) {
   handleCanvasClick(event);
 });
 
+// ============================================================
+// MOBILE DRAG-TO-MOVE / DRAG-TO-SHOOT
+// Only active on touch devices (pointer: coarse).
+// Desktop path (mouse click) is completely unchanged.
+//
+// Phases mirror handleCanvasClick:
+//   touchstart  → Phase 1: select ship under finger
+//   touchmove   → update mouseX/mouseY so the canvas draw loop
+//                 shows the live range/target preview for free
+//   touchend    → Phase 2 (movement) or Phase 3 (shot) confirm
+//                 using the finger's final position
+//
+// preventDefault() on touchmove stops page scroll during drag.
+// passive:false is required for preventDefault to work on canvas.
+// ============================================================
+(function() {
+  if (typeof window === 'undefined') return;
+  // Only install on touch devices
+  if (!window.matchMedia('(pointer: coarse)').matches) return;
+
+  let _touchDragging = false;   // true once finger moves > threshold
+  let _touchStartX = 0;
+  let _touchStartY = 0;
+  const DRAG_THRESHOLD = 8; // px in canvas space before drag activates
+
+  function _canvasCoords(touch) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (touch.clientX - rect.left) * scaleX,
+      y: (touch.clientY - rect.top)  * scaleY,
+    };
+  }
+
+  canvas.addEventListener('touchstart', function(e) {
+    if (roundLocked) return;
+    if (phase === "wait" || phase === "roundText" || phase === "pauseReadyGo") return;
+
+    const touch = e.changedTouches[0];
+    const { x, y } = _canvasCoords(touch);
+
+    _touchDragging = false;
+    _touchStartX = x;
+    _touchStartY = y;
+
+    // Phase 1: try to select a ship under the finger
+    if (selectedNave === null && (phase === "selectMove" || phase === "select")) {
+      for (let i = 0; i < playerNaves.length; i++) {
+        const nave = playerNaves[i];
+        if (nave.hp <= 0) continue;
+        if (nave.target && nave.shot) continue;
+        if (Math.hypot(x - nave.x, y - nave.y) < 60) { // slightly larger hit area for fingers
+          selectedNave = nave;
+          document.getElementById("legendArea").textContent = t('chooseDestination');
+          showTutorialHint(t('chooseDestination'));
+          // Seed mouseX/mouseY so the range ring appears immediately
+          mouseX = x;
+          mouseY = y;
+          e.preventDefault();
+          return;
+        }
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', function(e) {
+    if (selectedNave === null) return; // nothing selected — let scroll happen
+    e.preventDefault(); // suppress page scroll only when a ship is selected
+
+    const touch = e.changedTouches[0];
+    const { x, y } = _canvasCoords(touch);
+
+    // Activate drag once finger has moved enough
+    if (!_touchDragging) {
+      const dist = Math.hypot(x - _touchStartX, y - _touchStartY);
+      if (dist >= DRAG_THRESHOLD) _touchDragging = true;
+    }
+
+    // Update shared mouse position → draw loop renders live preview for free
+    mouseX = x;
+    mouseY = y;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', function(e) {
+    if (roundLocked) return;
+    if (selectedNave === null) return;
+
+    const touch = e.changedTouches[0];
+    const { x, y } = _canvasCoords(touch);
+
+    // If finger never moved (tap, not drag), fall through to the normal
+    // click event that the browser will fire ~300ms later — don't double-act.
+    if (!_touchDragging) {
+      _touchDragging = false;
+      return;
+    }
+
+    _touchDragging = false;
+
+    // Suppress the synthetic click the browser fires after touchend
+    // so handleCanvasClick doesn't run a second time.
+    const suppressNext = function(ev) {
+      ev.stopImmediatePropagation();
+      canvas.removeEventListener('click', suppressNext, true);
+    };
+    canvas.addEventListener('click', suppressNext, true);
+
+    // Phase 2 confirm: movement target
+    if ((phase === "selectMove" || phase === "select") && !selectedNave.target) {
+      const dist = Math.hypot(x - selectedNave.x, y - selectedNave.y);
+      if (dist <= selectedNave.alcance) {
+        selectedNave.target = { x, y };
+        if (!multiplayerMode) phase = "selectShot";
+        document.getElementById("legendArea").textContent = t('chooseTarget');
+        showTutorialHint(t('chooseTarget'));
+      }
+      // If out of range just deselect — user can try again
+      else {
+        selectedNave = null;
+        document.getElementById("legendArea").textContent = t('clickShipToMove');
+        showTutorialHint(t('clickShipToMove'));
+      }
+      return;
+    }
+
+    // Phase 3 confirm: shot target
+    if (selectedNave.target !== null && (phase === "selectShot" || phase === "select")) {
+      // Reuse the exact same logic as handleCanvasClick Phase 3
+      // by constructing a synthetic event object
+      const syntheticEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+      };
+      handleCanvasClick(syntheticEvent);
+    }
+  }, { passive: false });
+})();
+
 
 function isCritical(nave) {
   return nave.hp > 0 && nave.hp <= 33; // 33 ou menos, pronto para explodir no próximo tiro
