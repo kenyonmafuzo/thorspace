@@ -217,13 +217,15 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    // Seed userId immediately from local storage (no network) so the first
-    // render already has it. getSession() reads only from storage — instant.
+    // Seed userId from localStorage immediately — no network needed.
+    // Track whether user was already signed in so SIGNED_IN handler can
+    // distinguish a wakeup re-auth from a fresh login.
+    const wasSignedInRef = { current: false };
     supabase.auth.getSession().then(({ data }) => {
       const uid = data?.session?.user?.id || null;
+      if (uid) wasSignedInRef.current = true;
       if (!cancelled) {
         setUserId(uid);
-        // No session in storage → not logged in, stop loading immediately
         if (!uid) setIsLoading(false);
       }
     });
@@ -234,21 +236,27 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[UserStatsProvider] Auth state changed:', event, session?.user?.id);
       if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
-        // Page refresh / session restored from storage — set userId immediately
         const uid = session?.user?.id || null;
         if (!cancelled) {
+          if (uid) wasSignedInRef.current = true;
           setUserId(uid);
-          // No session → not logged in, stop loading so redirect fires fast
           if (!uid) setIsLoading(false);
-          // Note: TOKEN_REFRESHED wakeup stats refresh is driven by supabase.js
-          // firing thor_wakeup_ready (see useEffect below) — not triggered here
-          // to avoid double fetching and racing with the wakeup handler.
         }
       } else if (event === 'SIGNED_IN') {
         const uid = session?.user?.id || null;
         if (!cancelled && uid) {
+          const isWakeupReauth = wasSignedInRef.current;
+          wasSignedInRef.current = true;
           setUserId(uid);
-          // Claim daily XP only on explicit sign-in (not on page refresh)
+          // Wakeup re-auth: Supabase fires SIGNED_IN on every tab-restore even
+          // when the user was already signed in. Skip claim_daily_xp — it would
+          // fire a concurrent RPC during auth reinit causing AbortErrors for all
+          // other in-flight Supabase queries.
+          if (isWakeupReauth) {
+            console.log('[UserStatsProvider] SIGNED_IN is wakeup re-auth — skipping daily XP claim');
+            return;
+          }
+          // Fresh sign-in — claim daily XP
           try {
             const { data: claimRes, error: claimErr } = await supabase.rpc('claim_daily_xp');
             const row = Array.isArray(claimRes) ? claimRes[0] : claimRes;
