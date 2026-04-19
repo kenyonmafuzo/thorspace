@@ -216,56 +216,53 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     startRealtime();
 
     // Restore chat state when browser returns from background/minimize.
-    // Uses visibilitychange + window.focus + window.online for full coverage.
-    const handleRestoreFromBackground = (eventType) => {
-      console.log(`[WAKE] GlobalChat restore triggered by: ${eventType}`);
-
-      // Always reset sending lock — Chrome may have frozen it during background
-      setSending(false);
-      lastMessageTimeRef.current = 0;
-
-      // Check if the chat channel is alive
+    // Uses thor_wakeup_ready (fired by supabase.js once auth is confirmed) PLUS
+    // visibilitychange/focus for immediate sending-lock reset.
+    //
+    // KEY: We ALWAYS recreate the channel on wakeup, regardless of .state.
+    // After a minimize, the WebSocket is silently dead but .state still shows
+    // "joined" — a zombie channel. The only reliable fix is to tear it down
+    // and rebuild it unconditionally every wakeup.
+    const recreateChatChannel = () => {
       const ch = channelRef.current;
-      const state = ch?.state;
-      console.log(`[WAKE] chat channel state: ${state ?? "null"}`);
-
-      const isDead = !ch ||
-        state === "closed" ||
-        state === "errored" ||
-        state === "leaving" ||
-        state === "timed_out";
-
-      if (isDead) {
-        console.log("[WAKE] chat channel is dead — removing and recreating");
-        if (ch) {
-          try { supabase.removeChannel(ch); } catch (_) {}
-          channelRef.current = null;
-        }
-        startRealtime();
-        console.log("[WAKE] chat channel recreated");
-      } else {
-        console.log("[WAKE] chat channel is healthy — skipping recreate");
+      console.log(`[WAKE] GlobalChat recreating channel (was: ${ch?.state ?? "null"})`);
+      if (ch) {
+        try { supabase.removeChannel(ch); } catch (_) {}
+        channelRef.current = null;
       }
-
-      // Always refetch recent messages to catch anything missed in background
+      startRealtime();
+      console.log("[WAKE] GlobalChat channel recreated");
       fetchMessages();
     };
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") handleRestoreFromBackground("visibilitychange");
+    const handleWakeupReady = () => {
+      console.log("[WAKE] GlobalChat wakeup_ready — resetting and recreating");
+      setSending(false);
+      lastMessageTimeRef.current = 0;
+      recreateChatChannel();
     };
-    const handleFocus = () => handleRestoreFromBackground("focus");
-    const handleOnline = () => handleRestoreFromBackground("online");
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('online', handleOnline);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Reset sending lock immediately — don't wait for wakeup_ready
+        setSending(false);
+        lastMessageTimeRef.current = 0;
+      }
+    };
+    const handleFocus = () => {
+      setSending(false);
+      lastMessageTimeRef.current = 0;
+    };
+
+    window.addEventListener("thor_wakeup_ready", handleWakeupReady);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
       window.removeEventListener("refresh_chat", handleRefreshChat);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('online', handleOnline);
+      window.removeEventListener("thor_wakeup_ready", handleWakeupReady);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
