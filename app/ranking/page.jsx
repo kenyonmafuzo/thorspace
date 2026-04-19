@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import html2canvas from "html2canvas";
 import { useRouter } from "next/navigation";
 import UserHeader from "@/app/components/UserHeader";
 import MobileHeader from "@/app/components/MobileHeader";
@@ -26,6 +27,7 @@ export default function RankingPage() {
   const [selectedConfronto, setSelectedConfronto] = useState(null);
   const [confrontosData, setConfrontosData] = useState([]);
   const [loadingConfrontos, setLoadingConfrontos] = useState(false);
+  const statsRef = useRef(null);
 
   function formatRelativeDate(date) {
     const diff = Date.now() - date.getTime();
@@ -137,6 +139,7 @@ export default function RankingPage() {
 
         const avgScoreYou = Math.round(h2h.matches.reduce((s, m) => s + (m.myScore || 0), 0) / h2h.matches.length);
         const avgScoreOpp = Math.round(h2h.matches.reduce((s, m) => s + (m.oppScore || 0), 0) / h2h.matches.length);
+        const cleanWins = h2h.matches.filter(m => m.result === 'win' && m.oppScore === 0).length;
 
         // Melhor sequência de vitórias consecutivas
         let bestStreak = 0, curStreak = 0;
@@ -168,6 +171,7 @@ export default function RankingPage() {
           avgScoreYou,
           avgScoreOpp,
           bestStreak,
+          cleanWins,
           lastEncounterDate: lastDate ? lastDate.toLocaleDateString('pt-BR') : null,
           lastEncounterResult: lastResultLabel,
           is_vip: profile.is_vip || false,
@@ -884,7 +888,7 @@ export default function RankingPage() {
               </>
             ) : (
               /* ── Stats Panel ── */
-              <div>
+              <div ref={statsRef}>
                 <button
                   onClick={() => setSelectedConfronto(null)}
                   style={{
@@ -956,6 +960,26 @@ export default function RankingPage() {
                     <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>MELHOR SEQUÊNCIA</div>
                     <div style={{ color: '#FFD700', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.bestStreak}x</div>
                   </div>
+                  {selectedConfronto.lastEncounterDate && (() => {
+                    const lr = selectedConfronto.lastResults[0];
+                    const c = lr?.result === 'win' ? '#00FF00' : lr?.result === 'draw' ? '#FFD700' : '#FF4444';
+                    return (
+                      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 16px' }}>
+                        <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>ÚLTIMO ENCONTRO</div>
+                        <div style={{ color: c, fontSize: 20, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", marginBottom: 4, textShadow: `0 0 8px ${c}60` }}>
+                          {selectedConfronto.lastEncounterResult}
+                        </div>
+                        <div style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Orbitron',sans-serif", fontSize: 10 }}>
+                          {selectedConfronto.lastEncounterDate}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div style={{ background: 'rgba(0,255,0,0.04)', border: '1px solid rgba(0,255,0,0.2)', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>VITÓRIAS 3x0</div>
+                    <div style={{ color: '#00FF00', fontSize: 24, fontWeight: 900, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.cleanWins}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", marginTop: 4 }}>duelos perfeitos</div>
+                  </div>
                 </div>
                 {/* Últimos resultados */}
                 <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 12 }}>
@@ -986,32 +1010,29 @@ export default function RankingPage() {
                     })}
                   </div>
                 </div>
-                {/* Último encontro */}
-                {selectedConfronto.lastEncounterDate && (
-                  <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
-                    <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 0.5, marginBottom: 8 }}>ÚLTIMO ENCONTRO</div>
-                    {selectedConfronto.lastEncounterResult && (() => {
-                      const lr = selectedConfronto.lastResults[0];
-                      const c = lr?.result === 'win' ? '#00FF00' : lr?.result === 'draw' ? '#FFD700' : '#FF4444';
-                      return (
-                        <div style={{ color: c, fontSize: 28, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", marginBottom: 4, textShadow: `0 0 10px ${c}60` }}>
-                          {selectedConfronto.lastEncounterResult}
-                        </div>
-                      );
-                    })()}
-                    <div style={{ color: 'rgba(255,255,255,0.35)', fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 400 }}>
-                      {selectedConfronto.lastEncounterDate}
-                    </div>
-                  </div>
-                )}
+
                 {/* Compartilhar */}
                 <button
-                  onClick={() => {
-                    const text = `Confronto direto vs ${selectedConfronto.name}\nVocê ${selectedConfronto.youWins} x ${selectedConfronto.opponentWins}\nWinrate: ${selectedConfronto.winrate.toFixed(1)}%\nMelhor sequência: ${selectedConfronto.bestStreak}x${selectedConfronto.lastEncounterDate ? `\nÚltimo encontro: ${selectedConfronto.lastEncounterDate} • ${selectedConfronto.lastEncounterResult}` : ''}`;
-                    if (navigator.share) {
-                      navigator.share({ title: 'Confronto Direto - ThorSpace', text });
-                    } else {
-                      navigator.clipboard.writeText(text).then(() => alert('Stats copiados!'));
+                  onClick={async () => {
+                    if (!statsRef.current) return;
+                    try {
+                      const canvas = await html2canvas(statsRef.current, {
+                        backgroundColor: '#0a0a0f',
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                      });
+                      canvas.toBlob(blob => {
+                        if (!blob) return;
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `confronto_${selectedConfronto.name.replace(/\s+/g, '_')}.jpg`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }, 'image/jpeg', 0.92);
+                    } catch (e) {
+                      console.error('Screenshot error', e);
                     }
                   }}
                   style={{
