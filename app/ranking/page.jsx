@@ -53,9 +53,9 @@ export default function RankingPage() {
       // After applying 20260419_draw_support.sql, also include player1_id/player2_id for draws.
       const { data: results, error } = await supabase
         .from('match_results')
-        .select('match_id, winner_id, loser_id, winner_score, loser_score, processed_at, player1_id, player2_id, is_draw')
+        .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at')
         .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
-        .order('processed_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error || !results?.length) {
         setConfrontosData([]);
@@ -119,7 +119,7 @@ export default function RankingPage() {
         if (!h2hMap[opponentId]) {
           h2hMap[opponentId] = { opponentId, matches: [], youWins: 0, opponentWins: 0, draws: 0 };
         }
-        h2hMap[opponentId].matches.push({ date: r.processed_at, myScore, oppScore, result });
+        h2hMap[opponentId].matches.push({ date: r.created_at, myScore, oppScore, result });
         if (result === 'win')       h2hMap[opponentId].youWins++;
         else if (result === 'loss') h2hMap[opponentId].opponentWins++;
         else                        h2hMap[opponentId].draws++;
