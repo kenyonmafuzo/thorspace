@@ -88,12 +88,14 @@ export default function ProtectedClientLayout({ children }) {
     };
   }, [userId, router]);
 
-  // Enquanto carrega ou sem usuário: tela preta (sem flash de conteúdo)
-  // Exception: if we just woke up from background (within 6s), DON'T show black
-  // screen — the session is still valid, UserStatsProvider is just recovering.
+  // Tela preta apenas enquanto userId não foi confirmado (autenticação pendente).
+  // isLoading=true apenas significa que os dados do DB ainda estão chegando —
+  // o usuário JÁ está autenticado (userId vem do localStorage via getSession em ~10ms).
+  // Cada componente (UserHeader, etc.) lida com seu próprio esqueleto de carregamento.
+  // Exception: wakeup (within 6s) também passa.
   const msSinceWakeup = Date.now() - wakeupTs.current;
   const isWakingUp = msSinceWakeup < 6000 && hadSession.current;
-  if ((isLoading || !userId) && !isWakingUp) {
+  if (!userId && !isWakingUp) {
     return (
       <div style={{
         position: "fixed",

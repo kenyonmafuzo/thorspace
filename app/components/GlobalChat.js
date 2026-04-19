@@ -189,7 +189,13 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
   };
 
   useEffect(() => {
-    fetchMessages();
+    // Settle 300ms before the initial REST fetch.
+    // Supabase fires SIGNED_IN at ~100ms on every page load / F5 as part of
+    // autoRefreshToken. Any fetch in-flight during that reinit gets AbortError.
+    // 300ms guarantees auth is stable before we make the first HTTP query.
+    // The wakeup path (handleWakeupReady) skips this timer — it only fires
+    // after lib/supabase.js has already waited its own 800ms settle.
+    const initFetchTimer = setTimeout(() => fetchMessages(), 300);
 
     // ✅ Re-busca mensagens quando o vencedor insere o resultado da partida
     // (evita race condition: insert termina depois do fetch inicial)
@@ -286,6 +292,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      clearTimeout(initFetchTimer);
       window.removeEventListener("refresh_chat", handleRefreshChat);
       window.removeEventListener("thor_wakeup_ready", handleWakeupReady);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
