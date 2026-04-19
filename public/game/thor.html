@@ -658,18 +658,27 @@ background: rgba(0, 165, 242, 0.04);
   #shipSelectContent {
     overflow-x: hidden !important;
   }
+  /* Reduce wrapper margin-bottom so preview slots sit closer to carousel */
+  #shipSelectContent > div:nth-child(2) {
+    margin-bottom: 10px !important;
+  }
   #naveCarouselOuter {
     gap: 8px !important;
     padding: 0 2px !important;
-    overflow: hidden !important; /* clip track overflow inside outer */
-  }
-  /* Arrows: 44px each + 8px gap each side = 104px total reserved.
-     Viewport gets the remaining width, with 4px padding each side. */
-  #naveCarouselViewport {
-    width: calc(100vw - 112px) !important; /* 2*44px btn + 2*8px gap + 8px margin */
-    padding: 70px 4px 0 4px !important;
-    margin-top: -70px !important;
     overflow: hidden !important;
+  }
+  /* No negative margin-top: keeps carousel below the preview slots (no overlap).
+     30px padding-top leaves room for the ship image overhang. */
+  #naveCarouselViewport {
+    width: calc(100vw - 112px) !important;
+    padding: 30px 4px 0 4px !important;
+    margin-top: 0 !important;
+    overflow: hidden !important;
+  }
+  /* Match track padding/margin to the 30px viewport padding */
+  #naveCarouselTrack {
+    padding-top: 30px !important;
+    margin-top: -30px !important;
   }
   /* Arrow buttons a bit smaller so they don't push off screen */
   .carousel-arrow-btn {
@@ -680,40 +689,47 @@ background: rgba(0, 165, 242, 0.04);
   }
   /* Each slot fills the viewport exactly */
   .nave-card-slot {
-    width: calc(100vw - 120px) !important; /* viewport - 2*(44+8+4)px */
+    width: calc(100vw - 120px) !important;
   }
   .nave-card {
-    padding: 18px 14px !important;
+    padding: 14px 12px !important;
   }
-  /* Bigger ship image */
+  /* Disable hover/active scale on touch — prevents card overflowing the screen */
+  .nave-card:hover,
+  .nave-card:active {
+    transform: none !important;
+    z-index: 1 !important;
+  }
+  /* Ship image: smaller overhang that stays within the 30px padding zone */
   .nave-img {
-    width: min(190px, 52vw) !important;
-    margin-top: -68px !important;
-    margin-bottom: 10px !important;
+    width: min(140px, 40vw) !important;
+    margin-top: -30px !important;
+    margin-bottom: 8px !important;
   }
-  /* Always show description on mobile (can't hover) */
+  /* Always show description on mobile (can't hover); compact size */
   .nave-description {
     opacity: 1 !important;
-    max-height: 140px !important;
+    max-height: 100px !important;
     pointer-events: auto !important;
     position: relative;
     z-index: 2;
+    font-size: 11px !important;
   }
   .bar-label {
-    font-size: 13px !important;
+    font-size: 12px !important;
   }
   .bar-container {
-    height: 9px !important;
+    height: 8px !important;
   }
-  /* Smaller preview ship images to save vertical space */
+  /* Preview slot images: smaller so row is compact */
   #previewArea > div > img:first-of-type {
-    width: 62px !important;
+    width: 52px !important;
   }
   #previewArea {
-    gap: 22px !important;
-    margin-bottom: 28px !important;
+    gap: 14px !important;
+    margin-bottom: 10px !important;
   }
-  /* Shot type modal: larger, pushed below any header, no transform */
+  /* Shot type modal: pushed below header, scrollable */
   #shotTypeModal {
     align-items: flex-start !important;
     padding: 12px 8px 12px !important;
@@ -724,18 +740,32 @@ background: rgba(0, 165, 242, 0.04);
     transform: none !important;
     max-width: 100% !important;
     width: 100% !important;
-    padding: 16px 14px !important;
+    padding: 12px 10px !important;
     border-radius: 12px !important;
   }
-}
-
-#loadingScreen {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background: #000;
-  display: flex;
-  flex-direction: column;
+  /* 3 shot cards side by side so all fit in one screen */
+  #shotTypeModalContent > div:nth-child(3) {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  /* Shrink image preview box inside each shot card */
+  #shotTypeModalContent [style*="height:100px"] {
+    height: 52px !important;
+    margin-bottom: 6px !important;
+  }
+  /* Compact shot card padding */
+  #shotTypeModalContent .shot-card {
+    padding: 8px 6px !important;
+  }
+  /* Smaller title text */
+  #shotTypeModalContent .shot-card > div[style*="font-size:15px"] {
+    font-size: 10px !important;
+    margin-bottom: 2px !important;
+  }
+  /* Hide description line to save vertical space */
+  #shotTypeModalContent .shot-card > div[style*="font-size:11px"] {
+    display: none !important;
   align-items: center;
   justify-content: center;
   z-index: 5000;
