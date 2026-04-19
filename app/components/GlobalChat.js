@@ -165,6 +165,9 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         // This happens when Supabase's auth reinitialises during a running fetch.
         if ((error?.name === 'AbortError' || error?.message?.includes('aborted')) && !isRetry) {
           setTimeout(() => fetchMessages({ isRetry: true }), 2000);
+        } else {
+          // Give up — always clear loading so the chat area doesn't stay stuck
+          setLoading(false);
         }
         return;
       }

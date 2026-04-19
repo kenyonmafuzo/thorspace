@@ -77,7 +77,8 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     // Função de refresh precisa ser declarada após userId e antes de qualquer useEffect que a utilize
     const refreshUserStats = useCallback(async (reason?: string, _isRetry = false) => {
       if (!userId) return;
-      const silent = !!reason && SILENT_REASONS.some(r => reason.startsWith(r));
+      // Retries are always silent — prevent setIsLoading(true) from re-showing black screen
+      const silent = _isRetry || (!!reason && SILENT_REASONS.some(r => reason.startsWith(r)));
       if (!silent) setIsLoading(true);
       try {
         if (process.env.NODE_ENV !== "production") {
@@ -193,16 +194,21 @@ export function UserStatsProvider({ children }: { children: React.ReactNode }) {
     
     // Define timeout para evitar loading infinito
     const timeout = setTimeout(() => {
-      if (isMounted && isLoading) {
-        setIsLoading(false);
-      }
-    }, 3000); // 3 segundos max
-    
-    refreshUserStats("initial-load");
+      if (isMounted) setIsLoading(false);
+    }, 3000);
+
+    // 800ms settle — same reason as wakeup: Supabase fires SIGNED_IN on every
+    // page load (part of its internal auth validation via autoRefreshToken).
+    // Any Supabase query started before SIGNED_IN completes gets AbortError.
+    // Waiting 800ms lets the auth reinit finish before the first data fetch.
+    const settle = setTimeout(() => {
+      if (isMounted) refreshUserStats("initial-load");
+    }, 800);
     
     return () => {
       isMounted = false;
       clearTimeout(timeout);
+      clearTimeout(settle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);

@@ -18,8 +18,7 @@ import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
 
 export default function UserHeader() {
   // Todos os hooks e lógica primeiro
-  const { userStats, playerProgress, isLoading, refreshUserStats } = useUserStats();
-  const [userId, setUserId] = useState(null);
+  const { userStats, playerProgress, isLoading, refreshUserStats, userId } = useUserStats();
   const hasUnreadInvites = useUnreadInvites(userId);
   const hasUnreadInbox = useUnreadInboxNotifications(userId);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -36,13 +35,6 @@ export default function UserHeader() {
   const dropdownRef = useRef(null);
   const router = useRouter();
   const { t } = useI18n();
-
-  // Obter userId da auth
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data?.user?.id || null);
-    });
-  }, []);
 
   // Fetch VIP status when userId is ready
   useEffect(() => {
