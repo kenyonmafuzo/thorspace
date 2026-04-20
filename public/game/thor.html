@@ -1875,7 +1875,7 @@ function showGameHUD(timerValue, legendText) {
     legendArea.textContent = legendText || '';
     // Hide timer display in solo/practice mode
     const timerArea = document.getElementById('timerArea');
-    if (timerArea) timerArea.style.visibility = multiplayerMode ? 'visible' : 'hidden';
+    if (timerArea) timerArea.style.display = multiplayerMode ? '' : 'none';
   }
 }
 function hideGameHUD() {
