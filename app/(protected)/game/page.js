@@ -10,11 +10,14 @@ export default function GamePage() {
   const router = useRouter();
   const { addXp, setTotalXp } = useProgress();
   const finalizedRef = useRef(false);
+  const iframeRef = useRef(null);
   const [iframeUrl, setIframeUrl] = useState(null);
 
   useEffect(() => {
+    let isMounted = true;
     (async () => {
       const { data } = await supabase.auth.getSession();
+      if (!isMounted) return;
       const session = data?.session;
 
       if (!session) {
@@ -38,14 +41,22 @@ export default function GamePage() {
         const accessToken = encodeURIComponent(session?.access_token || '');
         const refreshToken = encodeURIComponent(session?.refresh_token || '');
         const userId = encodeURIComponent(session?.user?.id || '');
-        setIframeUrl(`/game/thor.html?mode=multiplayer&matchId=${matchId}&supabaseUrl=${supabaseUrl}&supabaseKey=${supabaseKey}&access_token=${accessToken}&refresh_token=${refreshToken}&userId=${userId}`);
+        if (isMounted) setIframeUrl(`/game/thor.html?mode=multiplayer&matchId=${matchId}&supabaseUrl=${supabaseUrl}&supabaseKey=${supabaseKey}&access_token=${accessToken}&refresh_token=${refreshToken}&userId=${userId}`);
       } else {
-        setIframeUrl("/game/thor.html");
+        if (isMounted) setIframeUrl("/game/thor.html");
       }
     })();
+    return () => { isMounted = false; };
   }, [router]);
 
-  const iframeRef = useRef(null);
+  // Stop iframe download immediately when navigating away
+  useEffect(() => {
+    return () => {
+      if (iframeRef.current) {
+        iframeRef.current.src = 'about:blank';
+      }
+    };
+  }, []);
 
   // Track as "playing" in the shared presence channel while on game screen
   useEffect(() => {
