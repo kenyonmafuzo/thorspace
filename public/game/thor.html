@@ -1177,12 +1177,6 @@ background: rgba(0, 165, 242, 0.04);
 @media (max-width: 600px) {
   #modeTitle {
     font-size: 18px !important;
-    margin-bottom: 28px !important;
-    text-align: center !important;
-    align-self: stretch !important;
-    width: 100% !important;
-    padding: 0 20px !important;
-    box-sizing: border-box !important;
   }
 }
 
@@ -1389,7 +1383,9 @@ background: rgba(0, 165, 242, 0.04);
 
   <!-- 🎮 TELA DE MODOS DE JOGO – FORA do startContainer -->
   <div id="modeSelectionScreen" style="display:none;">
-    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px;">Escolha o modo de jogo</h2>
+    <div style="width:100%; box-sizing:border-box; padding:0 24px; text-align:center; margin-bottom:50px;">
+      <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; display:inline;">Escolha o modo de jogo</h2>
+    </div>
 
     <div style="display: flex; flex-direction: column; align-items: center; align-self: center; gap: 20px;">
     <button id="practiceBtn" class="mode-btn">Praticar</button>
