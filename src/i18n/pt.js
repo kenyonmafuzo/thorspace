@@ -251,7 +251,7 @@ export default {
       { icon: "💎", title: "Ícone Diamante",        desc: "Um ícone de diamante premium aparece ao lado do seu nome, identificando instantaneamente seu status VIP" },
       { icon: "🚀", title: "Naves Premium",         desc: "Desbloqueie skins exclusivas de naves com visuais únicos para se destacar nas batalhas" },
       { icon: "🎨", title: "Ícones de Perfil",      desc: "Coleção de avatares e ícones exclusivos disponíveis apenas para jogadores VIP" },
-      { icon: "😎", title: "Emojis Especiais",      desc: "Use emojis exclusivos no chat para se expressar durante as partidas" }
+      { icon: "😎", title: "Emojis Especiais",      desc: "Use emojis exclusivos no chat" }
     ]
   },
 };
