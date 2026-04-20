@@ -1149,7 +1149,10 @@ background: rgba(0, 165, 242, 0.04);
     font-size: 18px !important;
     margin-bottom: 28px !important;
     text-align: center !important;
-    width: 100% !important;
+    width: 100vw !important;
+    align-self: stretch !important;
+    padding: 0 20px !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -1356,7 +1359,7 @@ background: rgba(0, 165, 242, 0.04);
 
   <!-- 🎮 TELA DE MODOS DE JOGO – FORA do startContainer -->
   <div id="modeSelectionScreen" style="display:none;">
-    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px; text-align:center; width:100%;">Escolha o modo de jogo</h2>
+    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px; text-align:center; width:100vw; align-self:stretch; padding:0 24px; box-sizing:border-box;">Escolha o modo de jogo</h2>
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
     <button id="practiceBtn" class="mode-btn">Praticar</button>
@@ -1759,7 +1762,7 @@ background: rgba(0, 165, 242, 0.04);
     <button id="startGameBtn" onclick="startGameAfterSelection()" style="display:none; background: linear-gradient(90deg, #07d8ff, #005ea8 70%); color: #fff; font-family: 'Orbitron', sans-serif; font-size: 22px; border: none; border-radius: 8px; padding: 10px 44px; letter-spacing: 2px; box-shadow: 0 0 20px #0ff5; cursor: pointer; transition: background 0.3s;">Iniciar Jogo</button>
 
     <!-- Timer de seleção multiplayer -->
-    <div id="selectionTimerWrapper" style="display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
+    <div id="selectionTimerWrapper" style="display:none; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
       <span id="selectionTimerText" style="font-family:'Orbitron',sans-serif; font-size:22px; color:#FFB84D; min-width:32px; text-align:center; letter-spacing:1px; display:inline-block; visibility:hidden;"></span>
     </div>
   </div><!-- end #shipReadyBtnWrapper -->
@@ -1990,6 +1993,8 @@ function startSelectionTimer() {
   cancelSelectionTimer();
   selectionTimerStarted = true;
   selectionTimeRemaining = secondsLeft;
+  const tw = document.getElementById('selectionTimerWrapper');
+  if (tw) tw.style.display = 'flex';
   showSelectionTimer(secondsLeft);
   if (selectionTimerInterval) clearInterval(selectionTimerInterval);
   selectionTimerInterval = setInterval(() => {
