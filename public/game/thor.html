@@ -1136,16 +1136,13 @@ background: rgba(0, 165, 242, 0.04);
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: stretch;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
     background: transparent;
-    align-items: stretch;
     z-index: 99999;
-}
-#modeSelectionScreen > * {
-    align-self: center;
 }
 #modeTitle {
     text-align: center;
@@ -1371,7 +1368,7 @@ background: rgba(0, 165, 242, 0.04);
   <div id="modeSelectionScreen" style="display:none;">
     <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px;">Escolha o modo de jogo</h2>
 
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+    <div style="display: flex; flex-direction: column; align-items: center; align-self: center; gap: 20px;">
     <button id="practiceBtn" class="mode-btn">Praticar</button>
     <button id="multiplayerBtn" class="mode-btn">Multiplayer</button>
     <button id="campaignBtn" class="mode-btn" disabled>Modo Campanha</button>
@@ -1852,6 +1849,9 @@ function showGameHUD(timerValue, legendText) {
     hudTop.style.opacity = '1';
     timerText.textContent = timerValue || '';
     legendArea.textContent = legendText || '';
+    // Hide timer display in solo/practice mode
+    const timerArea = document.getElementById('timerArea');
+    if (timerArea) timerArea.style.visibility = multiplayerMode ? 'visible' : 'hidden';
   }
 }
 function hideGameHUD() {
@@ -8235,10 +8235,12 @@ if (!winner) {
   phase = "pauseReadyGo"; // nova fase pausa!
 }
 
-const timerSpan = document.getElementById("timerText");
-timerSpan.textContent = planningTimer.toString().padStart(2, "0");
-timerSpan.style.color = "#14ffff";
-timerSpan.style.textShadow = "0 0 14px #0ff8";
+if (multiplayerMode) {
+    const timerSpan = document.getElementById("timerText");
+    timerSpan.textContent = planningTimer.toString().padStart(2, "0");
+    timerSpan.style.color = "#14ffff";
+    timerSpan.style.textShadow = "0 0 14px #0ff8";
+  }
   const hudTop = document.getElementById("hudTop");
   if (hudTop) {
     hudTop.style.visibility = 'hidden';
@@ -9690,7 +9692,7 @@ function updatePreviews() {
     const shotIcon = document.getElementById(`shotIcon${i + 1}`);
     if (preview) {
       preview.src = "images/placeholder_nave.png";
-      preview.style.opacity = "0.4";
+      preview.style.opacity = "0.75";
     }
     if (shotIcon) {
       shotIcon.style.opacity = "0";
