@@ -277,7 +277,7 @@ export default function FriendsPage() {
     function syncTabFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const urlTab = params.get("tab");
-      if (urlTab && TABS.includes(urlTab) && urlTab !== tab) {
+      if (urlTab && TABS.includes(urlTab)) {
         setTab(urlTab);
       }
     }
@@ -286,7 +286,7 @@ export default function FriendsPage() {
     return () => {
       window.removeEventListener("popstate", syncTabFromUrl);
     };
-  }, [tab]);
+  }, []); // run once on mount only
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
