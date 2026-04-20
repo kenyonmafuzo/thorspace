@@ -187,6 +187,46 @@ export default {
         description: "Logró una racha de 3 victorias consecutivas sin ser derrotado.",
         requirement: "Gana 3 victorias consecutivas"
       },
+      duel_initiate: {
+        title: "Iniciante del Duelo",
+        description: "Se enfrentó al mismo adversario 3 veces. Una rivalidad comienza a surgir.",
+        requirement: "Enfréntate al mismo adversario 3 veces"
+      },
+      rival_forming: {
+        title: "Rival en Formación",
+        description: "Disputó 10 batallas contra el mismo oponente. El enfrentamiento ya se convirtió en hábito.",
+        requirement: "Enfréntate al mismo adversario 10 veces"
+      },
+      rivalry_established: {
+        title: "Rivalidad Consolidada",
+        description: "Se enfrentó al mismo adversario 50 veces. Una rivalidad consolidada.",
+        requirement: "Enfréntate al mismo adversario 50 veces"
+      },
+      eternal_rival: {
+        title: "Rival Eterno",
+        description: "Disputó 100 batallas contra el mismo oponente. Una rivalidad legendaria.",
+        requirement: "Enfréntate al mismo adversario 100 veces"
+      },
+      first_dominance: {
+        title: "Primera Dominación",
+        description: "Venció al mismo adversario 3 veces. Primeras señales de superioridad.",
+        requirement: "Vence al mismo adversario 3 veces"
+      },
+      tactical_advantage: {
+        title: "Ventaja Táctica",
+        description: "Consiguió 10 victorias contra el mismo oponente. Control de la disputa.",
+        requirement: "Vence al mismo adversario 10 veces"
+      },
+      absolute_control: {
+        title: "Control Absoluto",
+        description: "Venció 50 veces al mismo adversario. Dominio casi incontestable.",
+        requirement: "Vence al mismo adversario 50 veces"
+      },
+      total_domination: {
+        title: "Dominación Total",
+        description: "Alcanzó 100 victorias contra el mismo jugador. Supremacía absoluta.",
+        requirement: "Vence al mismo adversario 100 veces"
+      },
       daily_recruit: {
         title: "Recluta Diario",
         description: "Ingresó al juego en 3 días diferentes. El viaje apenas comienza.",

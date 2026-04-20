@@ -187,6 +187,46 @@ export default {
         description: "Alcançou uma sequência de 3 vitórias consecutivas sem ser derrotado.",
         requirement: "Ganhe 3 vitórias consecutivas"
       },
+      duel_initiate: {
+        title: "Iniciante da Rivalidade",
+        description: "Enfrentou o mesmo adversário 3 vezes. Uma rivalidade começa a surgir.",
+        requirement: "Enfrente o mesmo adversário 3 vezes"
+      },
+      rival_forming: {
+        title: "Rival em Formação",
+        description: "Disputou 10 batalhas contra o mesmo oponente. O confronto já virou hábito.",
+        requirement: "Enfrente o mesmo adversário 10 vezes"
+      },
+      rivalry_established: {
+        title: "Rivalidade Consolidada",
+        description: "Enfrentou o mesmo adversário 50 vezes. Uma rivalidade consolidada.",
+        requirement: "Enfrente o mesmo adversário 50 vezes"
+      },
+      eternal_rival: {
+        title: "Rival Eterno",
+        description: "Disputou 100 batalhas contra o mesmo oponente. Uma rivalidade lendária.",
+        requirement: "Enfrente o mesmo adversário 100 vezes"
+      },
+      first_dominance: {
+        title: "Primeira Dominação",
+        description: "Venceu o mesmo adversário 3 vezes. Primeiros sinais de superioridade.",
+        requirement: "Vença o mesmo adversário 3 vezes"
+      },
+      tactical_advantage: {
+        title: "Vantagem Tática",
+        description: "Conquistou 10 vitórias contra o mesmo oponente. Controle da disputa.",
+        requirement: "Vença o mesmo adversário 10 vezes"
+      },
+      absolute_control: {
+        title: "Controle Absoluto",
+        description: "Venceu 50 vezes o mesmo adversário. Domínio quase incontestável.",
+        requirement: "Vença o mesmo adversário 50 vezes"
+      },
+      total_domination: {
+        title: "Dominação Total",
+        description: "Alcançou 100 vitórias contra o mesmo jogador. Supremacia absoluta.",
+        requirement: "Vença o mesmo adversário 100 vezes"
+      },
       daily_recruit: {
         title: "Recruta Diário",
         description: "Entrou no jogo em 3 dias diferentes. A jornada está apenas começando.",

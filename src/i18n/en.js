@@ -187,6 +187,46 @@ export default {
         description: "Achieved a 3-win streak without being defeated.",
         requirement: "Win 3 consecutive victories"
       },
+      duel_initiate: {
+        title: "Duel Initiate",
+        description: "Faced the same opponent 3 times. A rivalry is starting to emerge.",
+        requirement: "Face the same opponent 3 times"
+      },
+      rival_forming: {
+        title: "Rival Forming",
+        description: "Played 10 battles against the same opponent. The clash has become a habit.",
+        requirement: "Face the same opponent 10 times"
+      },
+      rivalry_established: {
+        title: "Rivalry Established",
+        description: "Faced the same opponent 50 times. A rivalry fully established.",
+        requirement: "Face the same opponent 50 times"
+      },
+      eternal_rival: {
+        title: "Eternal Rival",
+        description: "Played 100 battles against the same opponent. A legendary rivalry.",
+        requirement: "Face the same opponent 100 times"
+      },
+      first_dominance: {
+        title: "First Dominance",
+        description: "Defeated the same opponent 3 times. First signs of superiority.",
+        requirement: "Defeat the same opponent 3 times"
+      },
+      tactical_advantage: {
+        title: "Tactical Advantage",
+        description: "Earned 10 victories against the same opponent. Control of the rivalry.",
+        requirement: "Defeat the same opponent 10 times"
+      },
+      absolute_control: {
+        title: "Absolute Control",
+        description: "Defeated the same opponent 50 times. Near-uncontested dominance.",
+        requirement: "Defeat the same opponent 50 times"
+      },
+      total_domination: {
+        title: "Total Domination",
+        description: "Reached 100 victories against the same player. Absolute supremacy.",
+        requirement: "Defeat the same opponent 100 times"
+      },
       daily_recruit: {
         title: "Daily Recruit",
         description: "Logged into the game on 3 different days. The journey is just beginning.",
