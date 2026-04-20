@@ -5,6 +5,7 @@ import { getAvatarSrc } from "@/app/lib/avatarOptions";
 import { supabase } from "@/lib/supabase";
 // import { searchProfiles } from "@/lib/friends";
 import { useI18n } from "@/src/hooks/useI18n";
+import { fetchFriends } from "@/lib/friends";
 
 /**
  * OnlineNow - Lista de jogadores online usando Realtime Presence
@@ -15,6 +16,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
   if (typeof window !== "undefined") {
   }
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [friendIds, setFriendIds] = useState(new Set());
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -26,6 +28,18 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+
+  // Fetch friend IDs so we can sort friends to the top of the list
+  useEffect(() => {
+    if (!currentUserId) return;
+    fetchFriends(currentUserId).then(({ data }) => {
+      if (!data) return;
+      const ids = new Set(data.map(r =>
+        r.from_user_id === currentUserId ? r.to_user_id : r.from_user_id
+      ));
+      setFriendIds(ids);
+    });
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!search || !search.trim()) {
@@ -350,7 +364,11 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
             No players online
           </div>
         ) : (
-          onlineUsers.map((user) => {
+          [...onlineUsers].sort((a, b) => {
+            const aIsFriend = friendIds.has(a.userId) ? 0 : 1;
+            const bIsFriend = friendIds.has(b.userId) ? 0 : 1;
+            return aIsFriend - bIsFriend;
+          }).map((user) => {
             const isCurrentUser = user.userId === currentUserId;
             const isPlaying = user.status === "playing";
             const canChallenge = !isCurrentUser && !isPlaying;
