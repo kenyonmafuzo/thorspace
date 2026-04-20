@@ -258,13 +258,18 @@ Boas batalhas!`}
         }}
       >
         <h2
+          id="modeTitle"
           style={{
             fontFamily: "'Orbitron',sans-serif",
             fontWeight: 700,
             color: "#0ff",
-            fontSize: 32,
+            fontSize: "clamp(18px, 5vw, 32px)",
             textShadow: "0 0 16px #0ff9",
             marginBottom: 50,
+            textAlign: "center",
+            width: "100%",
+            padding: "0 24px",
+            boxSizing: "border-box",
           }}
         >
           {t('mode.chooseMode')}
