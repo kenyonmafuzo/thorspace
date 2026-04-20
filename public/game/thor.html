@@ -1970,9 +1970,32 @@ function hideSelectionTimer() {
 
 function startSelectionTimer() {
   if (!multiplayerMode || !matchData) {
-    // Modo prática: sem timer na seleção de naves
+    // Modo prática: 45 segundos para configurar as naves
     const tw = document.getElementById('selectionTimerWrapper');
-    if (tw) tw.style.display = 'none';
+    if (tw) tw.style.display = 'flex';
+    const practiceSeconds = 45;
+    cancelSelectionTimer();
+    selectionTimerStarted = true;
+    selectionTimeRemaining = practiceSeconds;
+    showSelectionTimer(practiceSeconds);
+    if (selectionTimerInterval) clearInterval(selectionTimerInterval);
+    selectionTimerInterval = setInterval(() => {
+      selectionTimeRemaining--;
+      showSelectionTimer(selectionTimeRemaining);
+      if (selectionTimeRemaining <= 0) {
+        clearInterval(selectionTimerInterval);
+        selectionTimerInterval = null;
+      }
+    }, 1000);
+    if (selectionTimer) clearTimeout(selectionTimer);
+    selectionTimer = setTimeout(async () => {
+      if (!window.selectedNaves || window.selectedNaves.length < 3) {
+        window.selectedNaves = [1, 1, 1];
+        updatePreviews();
+      }
+      await saveShipSelection();
+      updatePhaseAndStartBattle();
+    }, practiceSeconds * 1000);
     return;
   }
   // Multiplayer: sempre iniciar 15s local ao receber evento.
