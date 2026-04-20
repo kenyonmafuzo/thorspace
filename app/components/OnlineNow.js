@@ -41,6 +41,13 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
     });
   }, [currentUserId]);
 
+  // Safety net: never show loading forever — unblock after 15s at most
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setLoading(false), 15000);
+    return () => clearTimeout(t);
+  }, [loading]);
+
   useEffect(() => {
     if (!search || !search.trim()) {
       setSearchResults([]);
@@ -172,6 +179,18 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
         if (presenceChannelRef.current) {
           supabase.removeChannel(presenceChannelRef.current);
           presenceChannelRef.current = null;
+          isTrackedRef.current = false;
+        }
+        // Treat as CHANNEL_ERROR — trigger reconnect or stop with error
+        reconnectAttemptsRef.current++;
+        if (reconnectAttemptsRef.current <= maxReconnectAttempts) {
+          const backoffDelay = Math.min(1200 * reconnectAttemptsRef.current, 6000);
+          reconnectTimeoutRef.current = setTimeout(() => {
+            startPresence();
+          }, backoffDelay);
+        } else {
+          setErrorMessage("Erro de conexão. Por favor, recarregue a página.");
+          setLoading(false);
         }
       }, 10000); // 10 segundos timeout
       
