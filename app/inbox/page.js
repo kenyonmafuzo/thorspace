@@ -223,8 +223,8 @@ export default function InboxPage() {
                         bg = "rgba(255,165,0,0.10)";
                         border = "1.5px solid #FFA50099";
                         color = "#FFA500";
-                        cta = notif.cta || "Entendi";
-                        ctaUrl = notif.cta_url || "/";
+                        cta = undefined;
+                        ctaUrl = undefined;
                         text = notif.content || t('inbox.streak_broken', { days: '?' });
                       } else if (notif.type === "badge_unlocked") {
                         // Badge desbloqueada - fundo verde
@@ -267,8 +267,8 @@ export default function InboxPage() {
                           ? notif.content
                           : t(`inbox.${notif.type}`, { username }) || `Notificação: ${notif.type}`;
                       }
-                      // Definir CTA padrão apenas para notificações de amizade (não vip, badge_unlocked, daily_login, streak_broken, vip_expired)
-                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "vip" && notif.type !== "vip_expired" && notif.type !== "system" && notif.cta && t(`inbox.cta_friends`)) {
+                      // Definir CTA padrão apenas para notificações de amizade (não vip, badge_unlocked, daily_login, streak_broken, vip_expired, friend_accepted)
+                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "vip" && notif.type !== "vip_expired" && notif.type !== "system" && notif.type !== "friend_accepted" && notif.cta && t(`inbox.cta_friends`)) {
                         cta = t(`inbox.cta_friends`);
                       }
                       return (
@@ -298,7 +298,7 @@ export default function InboxPage() {
                             />
                             {cta && ctaUrl && (
                               <Link href={ctaUrl} style={{
-                                background: notif.type === "vip" ? "#FFD700" : notif.type === "vip_expired" ? "#FFA000" : notif.type === "badge_unlocked" ? "#00FF7F" : (border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF"),
+                                background: notif.type === "vip" ? "#FFD700" : notif.type === "vip_expired" ? "#FFA000" : notif.type === "badge_unlocked" || notif.type === "friend_accepted" ? "#00FF7F" : (border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF"),
                                 color: "#10131a",
                                 border: "none",
                                 borderRadius: 7,
@@ -309,7 +309,7 @@ export default function InboxPage() {
                                 cursor: "pointer",
                                 opacity: 1,
                                 transition: "opacity 0.2s, box-shadow 0.2s",
-                                boxShadow: notif.type === "vip" ? "0 0 8px #FFD70077" : notif.type === "vip_expired" ? "0 0 8px #FFA00077" : notif.type === "badge_unlocked" ? "0 0 8px #00FF7F99" : (border.includes("FF7F7F") ? "0 0 8px #FF7F7F55" : border.includes("00FFB4") ? "0 0 8px #00FFB455" : "0 0 8px #00e5ff55"),
+                                boxShadow: notif.type === "vip" ? "0 0 8px #FFD70077" : notif.type === "vip_expired" ? "0 0 8px #FFA00077" : notif.type === "badge_unlocked" || notif.type === "friend_accepted" ? "0 0 8px #00FF7F99" : (border.includes("FF7F7F") ? "0 0 8px #FF7F7F55" : border.includes("00FFB4") ? "0 0 8px #00FFB455" : "0 0 8px #00e5ff55"),
                                 textDecoration: "none",
                                 marginLeft: 0,
                                 marginTop: 12,
