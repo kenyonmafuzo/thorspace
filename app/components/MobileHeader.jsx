@@ -109,6 +109,10 @@ export default function MobileHeader() {
 
   const navItems = [
     {
+      key: "multiplayer", label: t("nav.multiplayer") || "Multiplayer", path: "/multiplayer",
+      icon: <img src="/game/images/ranking.svg" alt="" width={20} height={20} style={{ filter: "invert(86%) sepia(13%) saturate(1162%) hue-rotate(163deg) brightness(104%) contrast(101%)" }} />,
+    },
+    {
       key: "ranking", label: t("nav.ranking") || "Ranking", path: "/ranking",
       icon: <img src="/game/images/ranking.svg" alt="" width={20} height={20} style={{ filter: "invert(86%) sepia(13%) saturate(1162%) hue-rotate(163deg) brightness(104%) contrast(101%)" }} />,
     },

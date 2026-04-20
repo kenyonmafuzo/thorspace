@@ -85,10 +85,6 @@ export default function ModePage() {
       <style>{`
         .mobile-only-notice { display: none; }
         .mode-desktop-content { display: block; }
-        @media (max-width: 768px) {
-          .mobile-only-notice { display: flex; }
-          .mode-desktop-content { display: none; }
-        }
         /* Scale down content on smaller desktops so nothing clips or crowds the header */
         @media (min-width: 769px) and (max-width: 1100px) {
           #modeSelectionScreen h2 { font-size: 22px !important; margin-bottom: 32px !important; }
@@ -99,37 +95,7 @@ export default function ModePage() {
           .mode-btn { width: 180px !important; font-size: 13px !important; padding: 9px 16px !important; }
         }
       `}</style>
-      <div className="mobile-only-notice" style={{
-        position: "fixed", inset: 0, zIndex: 9998,
-        backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 60%, #000 100%)",
-        backgroundSize: "cover, cover",
-        backgroundRepeat: "no-repeat, no-repeat",
-        backgroundPosition: "center center, center center",
-        flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        textAlign: "center", padding: "32px 24px",
-        paddingTop: 220,
-        fontFamily: "'Orbitron', sans-serif",
-      }}>
-        {/* Dark overlay to match other pages */}
-        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,8,0.72)", zIndex: 0 }} />
-        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ fontSize: 64, marginBottom: 20 }}>🖥️</div>
-          <h2 style={{
-            fontSize: 18, fontWeight: 900, color: "#00E5FF",
-            marginBottom: 12, letterSpacing: 1,
-          }}>JOGAR REQUER COMPUTADOR</h2>
-          <p style={{
-            color: "#888", fontSize: 13, lineHeight: 1.7, maxWidth: 300,
-          }}>
-            O jogo não está disponível em dispositivos móveis.<br />
-            Acesse pelo computador para jogar.
-          </p>
-          <p style={{ color: "#444", fontSize: 11, marginTop: 24 }}>
-            Você ainda pode usar todos os outros menus pelo celular.
-          </p>
-        </div>
-      </div>
+
 
       <div className="mode-desktop-content">
       
