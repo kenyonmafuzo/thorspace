@@ -94,6 +94,9 @@ export default function ModePage() {
           #modeSelectionScreen h2 { font-size: 18px !important; margin-bottom: 24px !important; }
           .mode-btn { width: 180px !important; font-size: 13px !important; padding: 9px 16px !important; }
         }
+        @media (max-width: 768px) {
+          #modeTitle { font-size: 18px !important; margin-bottom: 28px !important; text-align: center !important; }
+        }
       `}</style>
 
 

@@ -1347,7 +1347,7 @@ background: rgba(0, 165, 242, 0.04);
 
   <!-- 🎮 TELA DE MODOS DE JOGO – FORA do startContainer -->
   <div id="modeSelectionScreen" style="display:none;">
-    <h2 style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px;">Escolha o modo de jogo</h2>
+    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px; text-align:center; width:100%;">Escolha o modo de jogo</h2>
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
     <button id="practiceBtn" class="mode-btn">Praticar</button>
@@ -8873,14 +8873,20 @@ ctx.translate(shakeX, shakeY);
         ctx.setLineDash([]);
       }
 
+      // Mobile: scale up targets so they're finger-friendly
+      const _isMob = window.innerWidth <= 600 && window.innerHeight > window.innerWidth;
+      const _lw   = _isMob ? 4 : 2;  // line width for dashed trail
+
       ctx.beginPath();
       ctx.moveTo(nave.x, nave.y);
       ctx.lineTo(mouseX, mouseY);
       // Cinza transparente se fora de alcance, ciano se dentro
       ctx.strokeStyle = nave.target ? "rgba(150,150,150,0.35)" : (withinRange ? "#0ff" : "rgba(150,150,150,0.35)");
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = _lw;
+      ctx.setLineDash([6, 5]);
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.lineWidth = 1;
 
 // Se for fase de movimento: dois círculos concêntricos (solo ou multiplayer)
 if (phase === "selectMove" || (phase === "select" && !nave.target)) {
@@ -8888,37 +8894,41 @@ if (phase === "selectMove" || (phase === "select" && !nave.target)) {
     
     // Cinza transparente se fora de alcance, ciano se dentro
     const targetColor = withinRange ? "#0ff" : "rgba(150,150,150,0.45)";
-    const targetFillOpacity = withinRange ? 0.13 : 0.05;
+    // Mobile: larger circles so the target is easy to see under a finger
+    const _outerR = _isMob ? 28 : 14;
+    const _innerR = _isMob ? 12 : 7;
+    const _crossL = _isMob ? 10 : 5;
+    const _lw2    = _isMob ? 3  : 2;
     
     // Círculo externo
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 14, 0, Math.PI * 2);
+    ctx.arc(mouseX, mouseY, _outerR, 0, Math.PI * 2);
     ctx.fillStyle = withinRange ? "rgba(0,255,255,0.13)" : "rgba(150,150,150,0.07)";
     ctx.fill();
     ctx.strokeStyle = targetColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = _lw2;
     ctx.stroke();
 
     // Círculo interno
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
+    ctx.arc(mouseX, mouseY, _innerR, 0, Math.PI * 2);
     ctx.strokeStyle = targetColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = _lw2;
     ctx.stroke();
     
     // Se fora de alcance, X cinza apagado (sem destaque agressivo)
     if (!withinRange) {
       ctx.strokeStyle = "rgba(150,150,150,0.45)";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = _lw2;
       // Diagonal 1
       ctx.beginPath();
-      ctx.moveTo(mouseX - 5, mouseY - 5);
-      ctx.lineTo(mouseX + 5, mouseY + 5);
+      ctx.moveTo(mouseX - _crossL, mouseY - _crossL);
+      ctx.lineTo(mouseX + _crossL, mouseY + _crossL);
       ctx.stroke();
       // Diagonal 2
       ctx.beginPath();
-      ctx.moveTo(mouseX + 5, mouseY - 5);
-      ctx.lineTo(mouseX - 5, mouseY + 5);
+      ctx.moveTo(mouseX + _crossL, mouseY - _crossL);
+      ctx.lineTo(mouseX - _crossL, mouseY + _crossL);
       ctx.stroke();
     }
     ctx.restore();
@@ -8927,32 +8937,39 @@ if (phase === "selectMove" || (phase === "select" && !nave.target)) {
 // Se for fase de tiro: alvo de mira estilizado (solo ou multiplayer com target já definido)
 if (phase === "selectShot" || (phase === "select" && nave.target)) {
     ctx.save();
+    // Mobile: larger shot crosshair
+    const _sOuter = _isMob ? 34 : 18;
+    const _sInner = _isMob ? 13 : 7;
+    const _sArm   = _isMob ? 20 : 10;
+    const _sLw    = _isMob ? 4  : 2;
+    const _sLwO   = _isMob ? 5  : 3;
+
     // Círculo externo
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 18, 0, Math.PI * 2);
+    ctx.arc(mouseX, mouseY, _sOuter, 0, Math.PI * 2);
     ctx.strokeStyle = "#f00";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = _sLwO;
     ctx.stroke();
 
     // Círculo interno
     ctx.beginPath();
-    ctx.arc(mouseX, mouseY, 7, 0, Math.PI * 2);
+    ctx.arc(mouseX, mouseY, _sInner, 0, Math.PI * 2);
     ctx.strokeStyle = "#f00";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = _sLw;
     ctx.stroke();
 
     // Desenhar o alvo (crosshair)
     ctx.strokeStyle = "#f00";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = _sLw;
     // Linha vertical
     ctx.beginPath();
-    ctx.moveTo(mouseX, mouseY - 10);
-    ctx.lineTo(mouseX, mouseY + 10);
+    ctx.moveTo(mouseX, mouseY - _sArm);
+    ctx.lineTo(mouseX, mouseY + _sArm);
     ctx.stroke();
     // Linha horizontal
     ctx.beginPath();
-    ctx.moveTo(mouseX - 10, mouseY);
-    ctx.lineTo(mouseX + 10, mouseY);
+    ctx.moveTo(mouseX - _sArm, mouseY);
+    ctx.lineTo(mouseX + _sArm, mouseY);
     ctx.stroke();
     ctx.restore();
 }
