@@ -175,6 +175,29 @@ background: rgba(0, 165, 242, 0.04);
 #timerText {
   font-size:38px;
 }
+#soloConfirmBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #00e5ff;
+  background: rgba(0,229,255,0.1);
+  border: 2px solid rgba(0,229,255,0.7);
+  border-radius: 6px;
+  padding: 6px 20px;
+  cursor: pointer;
+  text-shadow: 0 0 8px #00e5ff;
+  box-shadow: 0 0 10px rgba(0,229,255,0.3);
+  flex-shrink: 0;
+  margin-right: 12px;
+  transition: background 0.15s;
+}
+#soloConfirmBtn:active {
+  background: rgba(0,229,255,0.28);
+}
 #bgm-mute-btn {
   position: absolute;
   right: 0;
@@ -1459,6 +1482,7 @@ background: rgba(0, 165, 242, 0.04);
         <div id="timerArea">
           <span id="timerText">10</span>
         </div>
+        <button id="soloConfirmBtn" onclick="fireSoloTurn()">⚡ Atacar</button>
         <div id="legendArea"></div>
       </div>
     </div>
@@ -1865,6 +1889,23 @@ function hideGameHUD() {
   }
   if (timerText) timerText.textContent = '';
   if (legendArea) legendArea.textContent = '';
+  const soloBtn = document.getElementById('soloConfirmBtn');
+  if (soloBtn) soloBtn.style.display = 'none';
+}
+
+function fireSoloTurn() {
+  const soloBtn = document.getElementById('soloConfirmBtn');
+  if (soloBtn) soloBtn.style.display = 'none';
+  phase = 'wait';
+  selectedNave = null;
+  const legendArea = document.getElementById('legendArea');
+  if (legendArea) legendArea.textContent = t('attentionCommander');
+  generateCpuOrders();
+  combatPhase = 'combat';
+  movementComplete = false;
+  shootingComplete = false;
+  projectileHitRegistry.clear();
+  fireProjectiles();
 }
 
 // ── Round-1 tutorial hints ──────────────────────────────────────
@@ -8174,37 +8215,22 @@ function updateGame() {
     }
   }
 
-  // Adicione esta parte para permitir planejamento quando não está mostrando roundText
+  // Solo mode: mostrar botão de confirmar, sem timer automático
   // IMPORTANTE: NÃO usar planningTimer no modo multiplayer (use timer do Supabase)
-  if ((phase === "selectMove" || phase === "selectShot") && !showingRoundText && !multiplayerMode) {
-    const now = Date.now();
-    if (now - lastTime >= 1000) {
-  planningTimer--;
-  lastTime = now;
-  if (planningTimer <= 0) {
-    phase = "wait";
-    selectedNave = null;
-    document.getElementById("legendArea").textContent = t('attentionCommander');
-    generateCpuOrders();
-    
-    // 🔥 AAA: Combate paralelo no modo solo
-    combatPhase = 'combat';
-    movementComplete = false;
-    shootingComplete = false;
-    projectileHitRegistry.clear();
-    // Modo SOLO: COMBATE iniciado (movimento + tiros simultâneos)
-    
-    // Disparar projéteis IMEDIATAMENTE
-    fireProjectiles();
+  if (!multiplayerMode) {
+    const _soloBtn = document.getElementById('soloConfirmBtn');
+    if (_soloBtn) {
+      _soloBtn.style.display = ((phase === 'selectMove' || phase === 'selectShot') && !showingRoundText) ? 'flex' : 'none';
+    }
   }
-}
 
-    // ATUALIZA O TIMER NO HUD (apenas multiplayer):
-    if (multiplayerMode) {
-      const timerSpan = document.getElementById("timerText");
+  // Multiplayer: atualiza o timer no HUD via planningTimer
+  if (multiplayerMode && (phase === "selectMove" || phase === "selectShot") && !showingRoundText) {
+    const timerSpan = document.getElementById("timerText");
+    if (timerSpan) {
       timerSpan.textContent = planningTimer.toString().padStart(2, "0");
       timerSpan.style.color = (planningTimer > 3) ? "#14ffff" : "#ff4242";
-      timerSpan.style.textShadow = (planningTimer > 3) 
+      timerSpan.style.textShadow = (planningTimer > 3)
         ? "0 0 14px #0ff8"
         : "0 0 18px #ff424299";
     }
