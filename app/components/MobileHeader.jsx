@@ -109,7 +109,7 @@ export default function MobileHeader() {
 
   const navItems = [
     {
-      key: "multiplayer", label: t("nav.play") || "Jogar", path: "/multiplayer",
+      key: "multiplayer", label: t("nav.play") || "Jogar", path: "/mode",
       icon: <img src="/game/images/jogar.svg" alt="" width={20} height={20} style={{ filter: "invert(86%) sepia(13%) saturate(1162%) hue-rotate(163deg) brightness(104%) contrast(101%)" }} />,
     },
     {
