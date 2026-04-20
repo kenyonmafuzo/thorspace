@@ -1141,16 +1141,26 @@ background: rgba(0, 165, 242, 0.04);
     width: 100vw;
     height: 100vh;
     background: transparent;
-    align-items: center;
+    align-items: stretch;
     z-index: 99999;
+}
+#modeSelectionScreen > * {
+    align-self: center;
+}
+#modeTitle {
+    text-align: center;
+    align-self: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 24px;
 }
 @media (max-width: 600px) {
   #modeTitle {
     font-size: 18px !important;
     margin-bottom: 28px !important;
     text-align: center !important;
-    width: 100vw !important;
     align-self: stretch !important;
+    width: 100% !important;
     padding: 0 20px !important;
     box-sizing: border-box !important;
   }
@@ -1359,7 +1369,7 @@ background: rgba(0, 165, 242, 0.04);
 
   <!-- 🎮 TELA DE MODOS DE JOGO – FORA do startContainer -->
   <div id="modeSelectionScreen" style="display:none;">
-    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px; text-align:center; width:100vw; align-self:stretch; padding:0 24px; box-sizing:border-box;">Escolha o modo de jogo</h2>
+    <h2 id="modeTitle" style="font-family:'Orbitron',sans-serif; color:#0ff; font-size:32px; text-shadow:0 0 16px #0ff9; margin-bottom:50px;">Escolha o modo de jogo</h2>
 
     <div style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
     <button id="practiceBtn" class="mode-btn">Praticar</button>
@@ -1552,17 +1562,17 @@ background: rgba(0, 165, 242, 0.04);
   <div style="position:relative; display:flex; justify-content:center; align-items:center; margin-bottom:50px;">
     <div id="previewArea" style="display:flex; gap:38px; justify-content:center; align-items:center;">
       <div style="position:relative;" onclick="removeNave(0)">
-        <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <img id="preview1" src="images/placeholder_nave.png" alt="Posição 1" style="width:90px; height:auto; opacity:0.75; transition:opacity 0.3s;">
         <span class="remove-icon">✕</span>
         <img id="shotIcon1" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
       </div>
       <div style="position:relative;" onclick="removeNave(1)">
-        <img id="preview2" src="images/placeholder_nave.png" alt="Posição 2" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <img id="preview2" src="images/placeholder_nave.png" alt="Posição 2" style="width:90px; height:auto; opacity:0.75; transition:opacity 0.3s;">
         <span class="remove-icon">✕</span>
         <img id="shotIcon2" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
       </div>
       <div style="position:relative;" onclick="removeNave(2)">
-        <img id="preview3" src="images/placeholder_nave.png" alt="Posição 3" style="width:90px; height:auto; opacity:0.4; transition:opacity 0.3s;">
+        <img id="preview3" src="images/placeholder_nave.png" alt="Posição 3" style="width:90px; height:auto; opacity:0.75; transition:opacity 0.3s;">
         <span class="remove-icon">✕</span>
         <img id="shotIcon3" src="images/shots/plasma.png" style="position:absolute; bottom:4px; left:4px; width:18px; height:18px; opacity:0; transition:opacity 0.3s; pointer-events:none; filter: drop-shadow(0 0 3px rgba(0,229,255,0.6));">
       </div>
@@ -8189,13 +8199,15 @@ function updateGame() {
   }
 }
 
-    // ATUALIZA O TIMER NO HUD:
-    const timerSpan = document.getElementById("timerText");
-    timerSpan.textContent = planningTimer.toString().padStart(2, "0");
-    timerSpan.style.color = (planningTimer > 3) ? "#14ffff" : "#ff4242";
-    timerSpan.style.textShadow = (planningTimer > 3) 
-      ? "0 0 14px #0ff8"
-      : "0 0 18px #ff424299";
+    // ATUALIZA O TIMER NO HUD (apenas multiplayer):
+    if (multiplayerMode) {
+      const timerSpan = document.getElementById("timerText");
+      timerSpan.textContent = planningTimer.toString().padStart(2, "0");
+      timerSpan.style.color = (planningTimer > 3) ? "#14ffff" : "#ff4242";
+      timerSpan.style.textShadow = (planningTimer > 3) 
+        ? "0 0 14px #0ff8"
+        : "0 0 18px #ff424299";
+    }
   }
 }
 
