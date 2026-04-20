@@ -249,7 +249,7 @@ export default {
       { icon: "💎", title: "Diamond Icon",     desc: "A premium diamond icon appears next to your name, instantly identifying your VIP status" },
       { icon: "🚀", title: "Premium Ships",    desc: "Unlock exclusive ship skins with unique visuals to stand out in battles" },
       { icon: "🎨", title: "Profile Icons",    desc: "Collection of exclusive avatars and icons available only for VIP players" },
-      { icon: "😎", title: "Special Emojis",   desc: "Use exclusive emojis in chat to express yourself during matches" }
+      { icon: "😎", title: "Special Emojis",   desc: "Use exclusive emojis in chat" }
     ]
   },
 };
