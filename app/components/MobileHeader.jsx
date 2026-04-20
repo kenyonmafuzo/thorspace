@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 import { useUnreadInboxNotifications } from "@/hooks/useUnreadInboxNotifications";
+import { useUnreadInvites } from "@/hooks/useUnreadInvites";
 import RankBadge from "./RankBadge";
 import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
 import { getAvatarSrc } from "@/app/lib/avatarOptions";
@@ -25,6 +26,8 @@ export default function MobileHeader() {
   const [vipAvatarUrl, setVipAvatarUrl] = useState("");
 
   const hasUnreadInbox = useUnreadInboxNotifications(userId);
+  const hasUnreadInvites = useUnreadInvites(userId);
+  const hasAnyUnread = hasUnreadInbox || hasUnreadInvites;
   const profileRef = useRef(null);
   const drawerRef = useRef(null);
 
@@ -135,7 +138,7 @@ export default function MobileHeader() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2Zm6-6V11c0-3.07-1.63-5.64-5-6.32V4a1 1 0 1 0-2 0v.68C7.63 5.36 6 7.92 6 11v5l-1.29 1.29A1 1 0 0 0 5 19h14a1 1 0 0 0 .71-1.71L18 16Zm-2 .99H8V11c0-2.97 1.64-5 4-5s4 2.03 4 5v5.99Z" fill="#9FF6FF"/>
           </svg>
-          {hasUnreadInbox && (
+          {hasAnyUnread && (
             <span style={{
               position: "absolute", top: -2, right: -2,
               width: 8, height: 8, borderRadius: "50%",

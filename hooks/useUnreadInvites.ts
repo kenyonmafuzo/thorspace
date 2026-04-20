@@ -7,8 +7,8 @@ export function useUnreadInvites(userId: string | null) {
   useEffect(() => {
     if (!userId) return setHasUnread(false);
     let mounted = true;
+
     async function fetchUnread() {
-      // Prefer read_at/is_read, fallback status='pending'
       const { count, error } = await supabase
         .from("friend_requests")
         .select("id", { count: "exact", head: true })
@@ -16,9 +16,26 @@ export function useUnreadInvites(userId: string | null) {
         .eq("status", "pending");
       if (mounted) setHasUnread(!error && (count || 0) > 0);
     }
+
     fetchUnread();
-    // Optionally, poll or subscribe for updates
-    return () => { mounted = false; };
+
+    // Realtime: fire immediately when a friend request row is inserted/updated/deleted
+    const channel = supabase
+      .channel(`friend_requests:${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'friend_requests',
+        filter: `to_user_id=eq.${userId}`,
+      }, () => {
+        fetchUnread();
+      })
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   return hasUnread;
