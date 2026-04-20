@@ -1133,6 +1133,7 @@ background: rgba(0, 165, 242, 0.04);
 
 #modeSelectionScreen {
     position: fixed;
+    display: flex;
     flex-direction: column;
     justify-content: center;
     top: 0;
@@ -1142,6 +1143,14 @@ background: rgba(0, 165, 242, 0.04);
     background: transparent;
     align-items: center;
     z-index: 99999;
+}
+@media (max-width: 600px) {
+  #modeTitle {
+    font-size: 18px !important;
+    margin-bottom: 28px !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
 }
 
 /* ===== END SCORE (HEX GRID) ===== */
@@ -1970,32 +1979,9 @@ function hideSelectionTimer() {
 
 function startSelectionTimer() {
   if (!multiplayerMode || !matchData) {
-    // Modo prática: 45 segundos para configurar as naves
+    // Modo prática: sem timer na seleção de naves
     const tw = document.getElementById('selectionTimerWrapper');
-    if (tw) tw.style.display = 'flex';
-    const practiceSeconds = 45;
-    cancelSelectionTimer();
-    selectionTimerStarted = true;
-    selectionTimeRemaining = practiceSeconds;
-    showSelectionTimer(practiceSeconds);
-    if (selectionTimerInterval) clearInterval(selectionTimerInterval);
-    selectionTimerInterval = setInterval(() => {
-      selectionTimeRemaining--;
-      showSelectionTimer(selectionTimeRemaining);
-      if (selectionTimeRemaining <= 0) {
-        clearInterval(selectionTimerInterval);
-        selectionTimerInterval = null;
-      }
-    }, 1000);
-    if (selectionTimer) clearTimeout(selectionTimer);
-    selectionTimer = setTimeout(async () => {
-      if (!window.selectedNaves || window.selectedNaves.length < 3) {
-        window.selectedNaves = [1, 1, 1];
-        updatePreviews();
-      }
-      await saveShipSelection();
-      updatePhaseAndStartBattle();
-    }, practiceSeconds * 1000);
+    if (tw) tw.style.display = 'none';
     return;
   }
   // Multiplayer: sempre iniciar 15s local ao receber evento.
