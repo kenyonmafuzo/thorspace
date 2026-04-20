@@ -14,7 +14,7 @@ import {
 } from "@/lib/friends";
 
 
-export default function PlayerProfileModal({ open, onClose, player, currentUserId, onChallenge, onAddFriend, hideChallengeButton }) {
+export default function PlayerProfileModal({ open, onClose, player, currentUserId, onChallenge, onAddFriend, onUnfriend, isFriend, hideChallengeButton }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
@@ -169,28 +169,54 @@ export default function PlayerProfileModal({ open, onClose, player, currentUserI
               <div style={{ display: 'flex', gap: 36, justifyContent: 'center', marginTop: 12 }}>
                 {(player?.userId || player?.id) && (player?.userId || player?.id) !== currentUserId && (
                   <>
-                    <button
-                      onClick={() => onAddFriend?.(player.userId || player.id, username)}
-                      style={{
-                        background: "rgba(255,255,255,0.08)",
-                        border: "1.5px solid rgba(0,229,255,0.18)",
-                        borderRadius: "50%",
-                        padding: 0,
-                        width: 64,
-                        height: 64,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        boxShadow: "0 0 0 0 #00E5FF00",
-                        cursor: "pointer",
-                        transition: "box-shadow 0.18s, background 0.18s, border 0.18s",
-                      }}
-                      title="Adicionar Amigo"
-                      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 12px 3px #00E5FF44"}
-                      onMouseLeave={e => e.currentTarget.style.boxShadow = "0 0 0 0 #00E5FF00"}
-                    >
-                      <img src="/game/images/add-user.png" alt="Adicionar Amigo" style={{ width: 36, height: 36, display: 'block' }} />
-                    </button>
+                    {isFriend ? (
+                      <button
+                        onClick={() => onUnfriend?.(player.userId || player.id, username)}
+                        style={{
+                          background: "rgba(255,60,60,0.10)",
+                          border: "1.5px solid rgba(255,80,80,0.45)",
+                          borderRadius: "50%",
+                          padding: 0,
+                          width: 64,
+                          height: 64,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          transition: "box-shadow 0.18s, background 0.18s",
+                        }}
+                        title="Desfazer Amizade"
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 12px 3px #FF444444"}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+                      >
+                        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <line x1="8" y1="16" x2="24" y2="16" stroke="#FF4444" strokeWidth="3" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onAddFriend?.(player.userId || player.id, username)}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "1.5px solid rgba(0,229,255,0.18)",
+                          borderRadius: "50%",
+                          padding: 0,
+                          width: 64,
+                          height: 64,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          boxShadow: "0 0 0 0 #00E5FF00",
+                          cursor: "pointer",
+                          transition: "box-shadow 0.18s, background 0.18s, border 0.18s",
+                        }}
+                        title="Adicionar Amigo"
+                        onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 12px 3px #00E5FF44"}
+                        onMouseLeave={e => e.currentTarget.style.boxShadow = "0 0 0 0 #00E5FF00"}
+                      >
+                        <img src="/game/images/add-user.png" alt="Adicionar Amigo" style={{ width: 36, height: 36, display: 'block' }} />
+                      </button>
+                    )}
                     {!hideChallengeButton && (
                       <button
                         onClick={() => onChallenge?.(player.userId || player.id, username)}

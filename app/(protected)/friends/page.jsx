@@ -655,7 +655,7 @@ export default function FriendsPage() {
         }}
         onClick={e => {
           if (e.target.tagName === "BUTTON" || e.target.classList.contains("friend-tag")) return;
-          openModal({ userId: profile.id, username: profile.username, avatar: profile.avatar_preset });
+          openModal({ userId: profile.id, username: profile.username, avatar: profile.avatar_preset, isFriend: tabType === "Friends" });
         }}
       >
         {/* Online/offline dot only for Friends tab */}
@@ -1006,7 +1006,18 @@ if (typeof window !== "undefined") {
         </div>
       )}
       {modalUser && (
-        <PlayerProfileModal open={!!modalUser} onClose={closeModal} player={modalUser} currentUserId={userId} hideChallengeButton />
+        <PlayerProfileModal
+          open={!!modalUser}
+          onClose={closeModal}
+          player={modalUser}
+          currentUserId={userId}
+          hideChallengeButton
+          isFriend={!!modalUser.isFriend}
+          onUnfriend={(targetId) => {
+            closeModal();
+            setConfirmUnfriend({ open: true, user: profiles[targetId] || { id: targetId, username: modalUser.username } });
+          }}
+        />
       )}
       {renderUnfriendPopup()}
       {renderCancelRequestPopup()}
