@@ -15,7 +15,7 @@ import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
  */
 import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 
-export default function GlobalChat({ currentUserId, currentUsername, currentAvatar, autoFocus = false }) {
+export default function GlobalChat({ currentUserId, currentUsername, currentAvatar, autoFocus = false, isVisible = true }) {
     // HOOKS: manter apenas UM bloco de declarações
     const { t } = useI18n();
     const [messages, setMessages] = useState([]);
@@ -28,6 +28,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
     const [sending, setSending] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const lastMessageTimeRef = useRef(0);
     const channelRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
@@ -146,10 +147,20 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
   }, [currentUserId]);
 
   const scrollToBottom = () => {
-    if (messagesEndRef.current) {
+    // Use container scrollTop directly — works even when element was just made visible
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    } else if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "auto", block: "end" });
     }
   };
+
+  // Scroll to bottom whenever the chat tab becomes visible on mobile
+  useEffect(() => {
+    if (isVisible && messages.length > 0) {
+      setTimeout(scrollToBottom, 50);
+    }
+  }, [isVisible]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchMessages = async ({ isRetry = false } = {}) => {
     try {
@@ -525,7 +536,7 @@ export default function GlobalChat({ currentUserId, currentUsername, currentAvat
         <h3 style={titleStyle}>Global Chat</h3>
 
         {/* Messages list */}
-        <div style={messagesContainerStyle}>
+        <div ref={messagesContainerRef} style={messagesContainerStyle}>
           {messages.length === 0 ? (
             <div style={{ padding: 20, textAlign: "center", color: "#999" }}>
               No messages yet. Be the first to say hello!

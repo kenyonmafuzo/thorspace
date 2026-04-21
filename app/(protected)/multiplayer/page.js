@@ -793,6 +793,7 @@ export default function MultiplayerPage() {
               currentUsername={profile?.username ?? "Player"}
               currentAvatar={profile?.avatar_preset ?? "normal"}
               autoFocus={!isMobile}
+              isVisible={!isMobile || mobileTab === 'chat'}
             />
           </div>
         </div>
