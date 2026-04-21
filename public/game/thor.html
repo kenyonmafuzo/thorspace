@@ -4580,19 +4580,29 @@ function processHitEvent(event) {
   const oldHp = target.hp;
   target.hp = payload.hp_final; // HP autoritativo do P1
   
-  // Remover projétil correspondente se existir
+  // 🎯 FIX: Ao invés de remover o projétil imediatamente (sumia no meio da tela),
+  // redirecionar ele para a posição do hit e deixar a animação completar.
+  // Efeitos visuais (explosão/som) serão aplicados quando o projétil chegar lá.
   const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
   if (projectileIndex >= 0) {
-    projectiles.splice(projectileIndex, 1);
-  }
-  
-  // 🔥 AAA: Efeitos visuais APENAS se projétil ainda existia
-  // Se já foi removido visualmente, não duplicar efeitos
-  if (projectileIndex >= 0) {
-    explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
-    try {
-      playHit();
-    } catch (e) {}
+    const p = projectiles[projectileIndex];
+    const speed = Math.sqrt(p.dx * p.dx + p.dy * p.dy);
+    const tdx = payload.position.x - p.x;
+    const tdy = payload.position.y - p.y;
+    const dist = Math.sqrt(tdx * tdx + tdy * tdy);
+    if (dist > 8) {
+      // Redirecionar projétil para o ponto de impacto (mesma velocidade)
+      p.dx = (tdx / dist) * speed;
+      p.dy = (tdy / dist) * speed;
+      p.hitTarget = payload.position;
+      p.hitConfirmed = true;
+      // Efeitos visuais serão aplicados em updateProjectiles quando chegar
+    } else {
+      // Já está perto — remover imediatamente e mostrar efeitos
+      projectiles.splice(projectileIndex, 1);
+      explosions.push({ x: payload.position.x, y: payload.position.y, radius: 1 });
+      try { playHit(); } catch (e) {}
+    }
   }
   
   if (payload.destroyed) {
@@ -7903,7 +7913,22 @@ function updateProjectiles() {
         }
       }
     } else {
-      // �️ P2: Detectar colisões VISUAIS (sem aplicar dano)
+      // 🎯 P2: Processar projéteis guiados para hit-target (fix: não sumir mid-screen)
+      if (p.hitConfirmed && p.hitTarget) {
+        const tdx = p.hitTarget.x - p.x;
+        const tdy = p.hitTarget.y - p.y;
+        const dist = Math.sqrt(tdx * tdx + tdy * tdy);
+        if (dist < 8) {
+          // Chegou ao ponto de impacto — mostrar efeitos e remover
+          explosions.push({ x: p.hitTarget.x, y: p.hitTarget.y, radius: 1 });
+          try { playHit(); } catch (e) {}
+          projectiles.splice(i, 1);
+          hit = true;
+        }
+        // Continuar voando (não aplicar checagens normais de colisão/off-screen)
+        continue;
+      }
+      // P2: Detectar colisões VISUAIS (sem aplicar dano)
       // Remove projétil e mostra efeitos imediatamente (zero lag)
       // Dano será aplicado quando evento chegar do P1 (authoritative)
       for (let t of targets) {
