@@ -7038,107 +7038,104 @@ function handleCanvasClick(event) {
       if (dist < 50) {
         selectedNave = nave;
         // Manter a fase como está (não forçar "selectMove" se está em "select")
-        document.getElementById("legendArea").textContent = t('chooseDestination');
-        showTutorialHint(t('chooseDestination'));
+        document.getElementById("legendArea").textContent = t('chooseTarget');
+        showTutorialHint(t('chooseTarget'));
         return;
       }
     }
     return; // Se não clicou em nenhuma nave, ignora
   }
 
-  // FASE 2: Definir movimento (target)
-  // Só entra aqui se o target ainda NÃO foi definido
-  if (selectedNave !== null && (phase === "selectMove" || phase === "select") && !selectedNave.target) {
-    // Calcular distância do clique até a posição atual da nave
-    const distFromNave = Math.hypot(clickX - selectedNave.x, clickY - selectedNave.y);
+  // FASE 2: Definir tiro (shot)
+  // Só entra aqui se o shot ainda NÃO foi definido
+  if (selectedNave !== null && (phase === "selectMove" || phase === "select") && !selectedNave.shot) {
+    // Tiro não tem restrição de alcance — pode apontar para qualquer lugar
+    selectedNave.shot = { x: clickX, y: clickY };
     
-    // Verificar se está dentro do alcance de movimento
-    if (distFromNave <= selectedNave.alcance) {
-      // Permitir clicar onde a nave está (target = posição atual = nave fica parada)
-      selectedNave.target = { x: clickX, y: clickY };
-      
-      // Em modo solo, mudar para selectShot. Em multiplayer, manter "select"
-      if (!multiplayerMode) {
-        phase = "selectShot";
-      }
-      
-      document.getElementById("legendArea").textContent = t('chooseTarget');
-      showTutorialHint(t('chooseTarget'));
-    } else {
-      // Fora do alcance - ignorar ou mostrar feedback
+    // Em modo solo, mudar para selectShot (= fase de movimento). Em multiplayer, manter "select"
+    if (!multiplayerMode) {
+      phase = "selectShot";
     }
+    
+    document.getElementById("legendArea").textContent = t('chooseDestination');
+    showTutorialHint(t('chooseDestination'));
     return;
   }
 
-  // FASE 3: Definir tiro (shot)
+  // FASE 3: Definir movimento (target)
   // Em multiplayer phase fica "select", em solo muda para "selectShot"
-  if (selectedNave !== null && (phase === "selectShot" || (phase === "select" && selectedNave.target !== null))) {
-    selectedNave.shot = { x: clickX, y: clickY };
+  if (selectedNave !== null && (phase === "selectShot" || (phase === "select" && selectedNave.shot !== null))) {
+    const distFromNave = Math.hypot(clickX - selectedNave.x, clickY - selectedNave.y);
+    
+    if (distFromNave <= selectedNave.alcance) {
+      selectedNave.target = { x: clickX, y: clickY };
 
-    // Verificar se em multiplayer e se todas as naves já configuradas
-    if (multiplayerMode) {
+      // Verificar se em multiplayer e se todas as naves já configuradas
+      if (multiplayerMode) {
       const allShipsReady = playerNaves.filter(nav => nav.hp > 0).every(nav => nav.target && nav.shot);
   
-      if (allShipsReady) {
-        debug.pvp('[PVP] ✅ Todas as naves configuradas! Enviando ação via Supabase...');
-        debug.pvp('[PVP] myUserId:', myUserId);
-        debug.pvp('[PVP] matchData.player1_id:', matchData?.player1_id);
-        debug.pvp('[PVP] Sou Player 1?', myUserId === matchData?.player1_id);
-    
-        // Coletar ações de todas as naves
-        const ships = playerNaves.map((n, idx) => ({
-          index: idx,
-          x: n.x,  // posição canônica para animação determinística
-          y: n.y,  // posição canônica para animação determinística
-          target: n.target ? { x: n.target.x, y: n.target.y } : null,
-          shot: n.shot ? { x: n.shot.x, y: n.shot.y } : null,
-          hp: n.hp,
-          maxHp: n.maxHp,
-          angle: n.angle,
-          // Incluir shotType no payload para garantir sincronização visual entre telas
-          shotType: (typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(n.tipo) : 'plasma'
-        }));
-    
-        // Enviar via sistema de database
-        submitMyAction({
-          type: 'play',
-          ships: ships
-        });
-    
-        roundLocked = true; // Travar cliques mas manter phase
-        selectedNave = null;
-        document.getElementById("legendArea").textContent = t('waitingOpponentShort');
-        hideTutorialHint();
+        if (allShipsReady) {
+          debug.pvp('[PVP] ✅ Todas as naves configuradas! Enviando ação via Supabase...');
+          debug.pvp('[PVP] myUserId:', myUserId);
+          debug.pvp('[PVP] matchData.player1_id:', matchData?.player1_id);
+          debug.pvp('[PVP] Sou Player 1?', myUserId === matchData?.player1_id);
+      
+          // Coletar ações de todas as naves
+          const ships = playerNaves.map((n, idx) => ({
+            index: idx,
+            x: n.x,  // posição canônica para animação determinística
+            y: n.y,  // posição canônica para animação determinística
+            target: n.target ? { x: n.target.x, y: n.target.y } : null,
+            shot: n.shot ? { x: n.shot.x, y: n.shot.y } : null,
+            hp: n.hp,
+            maxHp: n.maxHp,
+            angle: n.angle,
+            // Incluir shotType no payload para garantir sincronização visual entre telas
+            shotType: (typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(n.tipo) : 'plasma'
+          }));
+      
+          // Enviar via sistema de database
+          submitMyAction({
+            type: 'play',
+            ships: ships
+          });
+      
+          roundLocked = true; // Travar cliques mas manter phase
+          selectedNave = null;
+          document.getElementById("legendArea").textContent = t('waitingOpponentShort');
+          hideTutorialHint();
+        } else {
+          // Algumas naves configuradas, continuar
+          // broadcastRealtimeState() removido: não vazar posições de planejamento ao oponente
+          selectedNave = null;
+          // Manter phase = "select" em multiplayer
+          document.getElementById("legendArea").textContent = t('selectAnotherShip');
+          showTutorialHint(t('selectAnotherShip'));
+        }
       } else {
-        // Algumas naves configuradas, continuar
-        // broadcastRealtimeState() removido: não vazar posições de planejamento ao oponente
+        // Modo solo
         selectedNave = null;
-        // Manter phase = "select" em multiplayer
-        document.getElementById("legendArea").textContent = t('selectAnotherShip');
-        showTutorialHint(t('selectAnotherShip'));
-      }
-    } else {
-      // Modo solo
-      selectedNave = null;
-      if (playerNaves.filter(n => n.hp > 0).every(n => n.shot)) {
-        phase = "wait";
-        generateCpuOrders();
-        
-        // 🔥 AAA: Ativar fase de combate (necessário para o game loop processar projéteis)
-        combatPhase = 'combat';
-        movementComplete = false;
-        shootingComplete = false;
-        projectileHitRegistry.clear();
-        
-        fireProjectiles();
-        document.getElementById("legendArea").textContent = t('attentionCommander');
-        hideTutorialHint();
-      } else {
-        phase = "selectMove";
-        document.getElementById("legendArea").textContent = t('selectAnotherShip');
-        showTutorialHint(t('selectAnotherShip'));
+        if (playerNaves.filter(n => n.hp > 0).every(n => n.target && n.shot)) {
+          phase = "wait";
+          generateCpuOrders();
+          
+          // 🔥 AAA: Ativar fase de combate (necessário para o game loop processar projéteis)
+          combatPhase = 'combat';
+          movementComplete = false;
+          shootingComplete = false;
+          projectileHitRegistry.clear();
+          
+          fireProjectiles();
+          document.getElementById("legendArea").textContent = t('attentionCommander');
+          hideTutorialHint();
+        } else {
+          phase = "selectMove";
+          document.getElementById("legendArea").textContent = t('selectAnotherShip');
+          showTutorialHint(t('selectAnotherShip'));
+        }
       }
     }
+    // Fora do alcance de movimento — ignorar, usuário pode tentar novamente
     return;
   }
 }
@@ -7202,8 +7199,8 @@ canvas.addEventListener('click', function(event) {
         if (nave.target && nave.shot) continue;
         if (Math.hypot(x - nave.x, y - nave.y) < 60) { // slightly larger hit area for fingers
           selectedNave = nave;
-          document.getElementById("legendArea").textContent = t('chooseDestination');
-          showTutorialHint(t('chooseDestination'));
+          document.getElementById("legendArea").textContent = t('chooseTarget');
+          showTutorialHint(t('chooseTarget'));
           // Seed mouseX/mouseY so the range ring appears immediately
           mouseX = x;
           mouseY = y;
@@ -7256,26 +7253,17 @@ canvas.addEventListener('click', function(event) {
     };
     canvas.addEventListener('click', suppressNext, true);
 
-    // Phase 2 confirm: movement target
-    if ((phase === "selectMove" || phase === "select") && !selectedNave.target) {
-      const dist = Math.hypot(x - selectedNave.x, y - selectedNave.y);
-      if (dist <= selectedNave.alcance) {
-        selectedNave.target = { x, y };
-        if (!multiplayerMode) phase = "selectShot";
-        document.getElementById("legendArea").textContent = t('chooseTarget');
-        showTutorialHint(t('chooseTarget'));
-      }
-      // If out of range just deselect — user can try again
-      else {
-        selectedNave = null;
-        document.getElementById("legendArea").textContent = t('clickShipToMove');
-        showTutorialHint(t('clickShipToMove'));
-      }
+    // Phase 2 confirm: shot target (no range constraint)
+    if ((phase === "selectMove" || phase === "select") && !selectedNave.shot) {
+      selectedNave.shot = { x, y };
+      if (!multiplayerMode) phase = "selectShot";
+      document.getElementById("legendArea").textContent = t('chooseDestination');
+      showTutorialHint(t('chooseDestination'));
       return;
     }
 
-    // Phase 3 confirm: shot target
-    if (selectedNave.target !== null && (phase === "selectShot" || phase === "select")) {
+    // Phase 3 confirm: movement target (range constrained)
+    if (selectedNave.shot !== null && (phase === "selectShot" || phase === "select")) {
       // Reuse the exact same logic as handleCanvasClick Phase 3
       // by constructing a synthetic event object
       const syntheticEvent = {
@@ -9024,7 +9012,7 @@ ctx.translate(shakeX, shakeY);
     const distanceToMouse = Math.hypot(mouseX - nave.x, mouseY - nave.y);
     const withinRange = distanceToMouse <= nave.alcance;
     
-      if (!nave.target) {
+      if (nave.shot && !nave.target) {
         ctx.beginPath();
         ctx.arc(nave.x, nave.y, nave.alcance, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(0,255,255,0.07)";
@@ -9042,16 +9030,16 @@ ctx.translate(shakeX, shakeY);
       ctx.beginPath();
       ctx.moveTo(nave.x, nave.y);
       ctx.lineTo(mouseX, mouseY);
-      // Cinza transparente se fora de alcance, ciano se dentro
-      ctx.strokeStyle = nave.target ? "rgba(150,150,150,0.35)" : (withinRange ? "#0ff" : "rgba(150,150,150,0.35)");
+      // Ciano durante fase de movimento (shot já definido), cinza durante fase de tiro
+      ctx.strokeStyle = nave.shot ? (withinRange ? "#0ff" : "rgba(150,150,150,0.35)") : "rgba(150,150,150,0.35)";
       ctx.lineWidth = _lw;
       ctx.setLineDash([6, 5]);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.lineWidth = 1;
 
-// Se for fase de movimento: dois círculos concêntricos (solo ou multiplayer)
-if (phase === "selectMove" || (phase === "select" && !nave.target)) {
+// Se for fase de movimento (shot já definido): dois círculos concêntricos (solo ou multiplayer)
+if (phase === "selectShot" || (phase === "select" && nave.shot && !nave.target)) {
     ctx.save();
     
     // Cinza transparente se fora de alcance, ciano se dentro
@@ -9096,8 +9084,8 @@ if (phase === "selectMove" || (phase === "select" && !nave.target)) {
     ctx.restore();
 }
 
-// Se for fase de tiro: alvo de mira estilizado (solo ou multiplayer com target já definido)
-if (phase === "selectShot" || (phase === "select" && nave.target)) {
+// Se for fase de tiro (shot ainda não definido): alvo de mira estilizado
+if (phase === "selectMove" || (phase === "select" && !nave.shot)) {
     ctx.save();
     // Mobile: larger shot crosshair
     const _sOuter = _isMob ? 34 : 18;
