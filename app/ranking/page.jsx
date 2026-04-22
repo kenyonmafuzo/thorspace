@@ -57,7 +57,7 @@ export default function RankingPage() {
       const { data: results, error } = await supabase
         .from('match_results')
         .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at, is_draw, player1_id, player2_id')
-        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (error || !results?.length) {
@@ -506,6 +506,7 @@ export default function RankingPage() {
                       <span style={{ color: '#00E5FF' }}>{(displayXp ?? 0).toLocaleString('pt-BR')} XP</span>
                       <span style={{ color: '#00FF00' }}>▲ {player.wins ?? 0}</span>
                       <span style={{ color: '#FF4444' }}>▼ {player.losses ?? 0}</span>
+                      {(player.draws ?? 0) > 0 && <span style={{ color: '#FFD700' }}>= {player.draws}</span>}
                       <span style={{ color: '#aaa' }}>{(player.win_rate ?? 0).toFixed(1)}%</span>
                     </div>
                   </div>
@@ -523,6 +524,7 @@ export default function RankingPage() {
                     <th style={headerStyle}>{t('ranking.xp')}</th>
                     <th style={headerStyle}>{t('ranking.wins')}</th>
                     <th style={headerStyle}>{t('ranking.losses')}</th>
+                    <th style={headerStyle}>E</th>
                     <th style={headerStyle}>{t('ranking.winRate')}</th>
                   </tr>
                 </thead>
@@ -626,6 +628,9 @@ export default function RankingPage() {
                         <td style={{ ...cellStyle, color: "#FF4444" }}>
                           {player.losses ?? 0}
                         </td>
+                        <td style={{ ...cellStyle, color: "#FFD700" }}>
+                          {player.draws ?? 0}
+                        </td>
                         <td style={cellStyle}>
                           {(player.win_rate ?? 0).toFixed(1)}%
                         </td>
@@ -724,6 +729,9 @@ export default function RankingPage() {
                         </td>
                         <td style={{ ...cellStyle, color: "#FF4444" }}>
                           {player.losses ?? 0}
+                        </td>
+                        <td style={{ ...cellStyle, color: "#FFD700" }}>
+                          {player.draws ?? 0}
                         </td>
                         <td style={cellStyle}>
                           {(player.win_rate ?? 0).toFixed(1)}%
