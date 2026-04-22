@@ -317,10 +317,6 @@ function BadgeCard({ badge }) {
                 height: '80%', 
                 objectFit: 'contain'
               }}
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.parentElement.innerHTML = '<span style="font-size: 32px">🏆</span>';
-              }}
             />
           ) : (
             <div style={{ fontSize: 40, filter: 'grayscale(1)' }}>🔒</div>
