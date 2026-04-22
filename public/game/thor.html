@@ -1939,8 +1939,7 @@ function showTutorialHint(text) {
   inner.style.animation = 'none';
   inner.offsetHeight; // reflow
   inner.style.animation = '';
-
-  _tutHintTimer = setTimeout(hideTutorialHint, 2800);
+  // Hint permanece visível até o usuário agir (hideTutorialHint é chamado na ação)
 }
 
 function hideTutorialHint() {
