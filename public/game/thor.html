@@ -4442,6 +4442,7 @@ async function sendHitEvent(hitData) {
       payload: {
         hit_id: hitData.hitId,
         projectile_id: hitData.projectileId,
+        source_index: hitData.sourceIndex, // índice da nave que atirou (cross-client)
         target_team: hitData.targetTeam,
         target_index: hitData.targetIndex,
         hp_final: hitData.hpAfter, // HP FINAL (não delta)
@@ -4582,7 +4583,14 @@ function processHitEvent(event) {
   // 🎯 FIX: Ao invés de remover o projétil imediatamente (sumia no meio da tela),
   // redirecionar ele para a posição do hit e deixar a animação completar.
   // Efeitos visuais (explosão/som) serão aplicados quando o projétil chegar lá.
-  const projectileIndex = projectiles.findIndex(p => p.id === payload.projectile_id);
+  //
+  // 🔥 FIX2: Usar sourceIndex+target para identificar o projétil certo (IDs numéricos
+  // divergem entre P1/P2 pois playerNaves/cpuNaves têm ordem invertida).
+  // targetTeamInverted = time que foi atingido (perspectiva P2) = target do projétil de P1.
+  const sourceIndex = payload.source_index;
+  const projectileIndex = (sourceIndex != null && sourceIndex >= 0)
+    ? projectiles.findIndex(p => p.target === targetTeamInverted && p.sourceIndex === sourceIndex)
+    : projectiles.findIndex(p => p.id === payload.projectile_id);
   if (projectileIndex >= 0) {
     const p = projectiles[projectileIndex];
     const speed = Math.sqrt(p.dx * p.dx + p.dy * p.dy);
@@ -7725,7 +7733,8 @@ function fireProjectiles() {
         dx,
         dy,
         target: "cpu",
-        shotType: shotType
+        shotType: shotType,
+        sourceIndex: idx // índice da nave que atirou (consistente entre P1 e P2)
       });
       
       // Broadcast tiro em modo multiplayer
@@ -7760,7 +7769,8 @@ function fireProjectiles() {
         dx,
         dy,
         target: "player",
-        shotType: shotType
+        shotType: shotType,
+        sourceIndex: idx // índice da nave que atirou (consistente entre P1 e P2)
       });
     }
   });
@@ -7893,10 +7903,11 @@ function updateProjectiles() {
           
           // 📡 MULTIPLAYER: Enviar evento de hit para P2
           if (multiplayerMode) {
-            const hitId = `${p.id}_${targetIndex}_${Date.now()}`;
+            const hitId = `${p.sourceIndex}_${p.target}_${targetIndex}_${Date.now()}`;
             sendHitEvent({
               hitId: hitId,
               projectileId: p.id,
+              sourceIndex: p.sourceIndex ?? -1, // índice da nave que atirou (cross-client)
               targetTeam: p.target,
               targetIndex: targetIndex,
               damage: 33,
