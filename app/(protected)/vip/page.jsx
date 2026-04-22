@@ -44,7 +44,7 @@ export default function VIPPage() {
   // ── TEMP: Stripe test override ──────────────────────────────────────────────
   // Remove this constant (and its use below) when Stripe is fully live.
   const STRIPE_TEST_USER_IDS = [
-    "jesivida", // replace with actual Supabase user UUID if needed
+    "b5af40d5-0906-4f1e-b920-70f7dc73b956", // jesivida — remove when Stripe is live
   ];
   // ────────────────────────────────────────────────────────────────────────────
 
