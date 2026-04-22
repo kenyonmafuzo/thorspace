@@ -2504,6 +2504,10 @@ let isPlayer1Host = false; // Se sou P1 (authoritative host)
 let projectileIdCounter = 0; // ID único para cada projétil
 let projectileHitRegistry = new Set(); // Registrar hits já processados
 
+// P2 race-condition guard: aguardar eventos HP_UPDATE chegarem antes de checar vitória
+let p2RoundHadDeaths = false;   // alguma nave morreu neste round (confirmado via evento)
+let p2CleanupHoldFrames = 0;  // contador de frames de espera no cleanup do P2
+
 // ========================================
 // AAA COMBAT PHASE SYSTEM
 // ========================================
@@ -3070,6 +3074,8 @@ function resetRoundState() {
   combatPhase = 'idle';
   movementComplete = false;
   shootingComplete = false;
+  p2RoundHadDeaths = false;
+  p2CleanupHoldFrames = 0;
   // Nota: target e shot das naves NÃO são limpos aqui — são definidos logo antes
   // de combatPhase='combat' e zerados pelo game loop no bloco 'cleanup'.
 }
@@ -4625,6 +4631,9 @@ function processHitEvent(event) {
     spawnExplosionParticles(target.x, target.y, teamColor);
     
     screenShake = 10;
+    
+    // Sinalizar que houve morte confirmada este round (para o hold do cleanup do P2)
+    p2RoundHadDeaths = true;
     
     // Atualizar placar (usar team INVERTIDA)
     if (targetTeamInverted === 'cpu') {
@@ -8123,6 +8132,15 @@ function updateGame() {
     
     // Fase 3: CLEANUP - Finalizar turno
     if (combatPhase === 'cleanup' && movementComplete && shootingComplete) {
+      // 🔥 RACE CONDITION FIX (P2): Quando houve mortes this round, aguardar ~400ms
+      // antes de checar vitória. Isso garante que todos os eventos HP_UPDATE enviados
+      // por P1 (authoritative host) já chegaram via Realtime antes de calcular o resultado.
+      // Sem este hold, P2 pode ver só 1 de 2 deaths simultâneas e declarar resultado errado.
+      if (multiplayerMode && !isPlayer1Host && p2RoundHadDeaths) {
+        p2CleanupHoldFrames++;
+        if (p2CleanupHoldFrames < 24) return; // ~400ms @ 60fps — aguardar eventos pendentes
+      }
+      p2CleanupHoldFrames = 0;
       // Limpar watchdog (combate concluiu normalmente)
       if (window.__combatWatchdog) { clearTimeout(window.__combatWatchdog); window.__combatWatchdog = null; }
       mpPhase = 'ROUND_BANNER'; // canonical state: animation done, banner + sync barrier next
