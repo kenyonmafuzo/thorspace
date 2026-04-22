@@ -2,15 +2,15 @@ import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-// Maps existing plan IDs to Stripe Price IDs (configure in Vercel env vars)
-const PLAN_PRICE_IDS = {
-  "1day":   process.env.STRIPE_PRICE_ID_1DAY,
-  "7days":  process.env.STRIPE_PRICE_ID_7DAYS,
-  "15days": process.env.STRIPE_PRICE_ID_15DAYS,
-  "30days": process.env.STRIPE_PRICE_ID_30DAYS,
-};
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://thorspace.com.br";
 
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://thorspace.vercel.app";
+// Env var names per plan — for clear error messages when one is missing
+const PLAN_ENV_KEY = {
+  "1day":   "STRIPE_PRICE_ID_1DAY",
+  "7days":  "STRIPE_PRICE_ID_7DAYS",
+  "15days": "STRIPE_PRICE_ID_15DAYS",
+  "30days": "STRIPE_PRICE_ID_30DAYS",
+};
 
 export async function POST(request) {
   try {
@@ -23,10 +23,20 @@ export async function POST(request) {
     if (authError || !user) return NextResponse.json({ error: "Sessão inválida" }, { status: 401 });
 
     const { planId } = await request.json();
-    const priceId = PLAN_PRICE_IDS[planId];
 
+    // Read env vars at request time (not module load) to avoid stale undefined values
+    const envKey = PLAN_ENV_KEY[planId];
+    if (!envKey) {
+      return NextResponse.json({ error: `Plano desconhecido: ${planId}` }, { status: 400 });
+    }
+
+    const priceId = process.env[envKey];
     if (!priceId) {
-      return NextResponse.json({ error: "Plano inválido ou Stripe Price ID não configurado" }, { status: 400 });
+      console.error(`[Stripe create-checkout] Env var ausente: ${envKey}`);
+      return NextResponse.json(
+        { error: `Stripe Price ID não configurado para o plano "${planId}" (${envKey})` },
+        { status: 500 }
+      );
     }
 
     if (!process.env.STRIPE_SECRET_KEY) {
@@ -41,7 +51,6 @@ export async function POST(request) {
       success_url: `${BASE_URL}/vip/stripe-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${BASE_URL}/vip`,
       customer_email: user.email,
-      // Store user_id and plan_id so the webhook and confirm-session can activate VIP
       metadata: {
         user_id: user.id,
         plan_id: planId,
@@ -58,7 +67,8 @@ export async function POST(request) {
 
     return NextResponse.json({ checkout_url: session.url });
   } catch (err) {
-    console.error("[Stripe create-checkout] erro:", err);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error("[Stripe create-checkout] erro:", err?.message || err);
+    const msg = err?.message || "Erro interno";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
