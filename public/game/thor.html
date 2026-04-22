@@ -2504,9 +2504,11 @@ let isPlayer1Host = false; // Se sou P1 (authoritative host)
 let projectileIdCounter = 0; // ID único para cada projétil
 let projectileHitRegistry = new Set(); // Registrar hits já processados
 
-// P2 race-condition guard: aguardar eventos HP_UPDATE chegarem antes de checar vitória
-let p2RoundHadDeaths = false;   // alguma nave morreu neste round (confirmado via evento)
+// P2 race-condition guard: aguardar broadcast ROUND_END_HP de P1 antes de checar vitória
+let p2RoundHadDeaths = false;  // alguma nave morreu neste round (confirmado via evento)
 let p2CleanupHoldFrames = 0;  // contador de frames de espera no cleanup do P2
+let roundEndHPReceived = false; // P1 já enviou o broadcast com HPs definitivos
+let roundEndHPTimeout = 0;    // frames aguardados sem receber round_end_hp (max ~120)
 
 // ========================================
 // AAA COMBAT PHASE SYSTEM
@@ -3076,6 +3078,9 @@ function resetRoundState() {
   shootingComplete = false;
   p2RoundHadDeaths = false;
   p2CleanupHoldFrames = 0;
+  roundEndHPReceived = false;
+  roundEndHPTimeout = 0;
+  window.__roundEndHPSent = false; // permite P1 reenviar a cada novo round
   // Nota: target e shot das naves NÃO são limpos aqui — são definidos logo antes
   // de combatPhase='combat' e zerados pelo game loop no bloco 'cleanup'.
 }
@@ -6062,6 +6067,32 @@ function setupMultiplayerSync(matchId) {
       // no-op: fluxo controlado pelo DB Realtime (turn_deadline_at)
     });
 
+    // 🎯 ROUND_END_HP: P1 envia HPs definitivos de todas as naves ao final do combate.
+    // P2 aplica estes valores antes de checar a condição de vitória.
+    syncChannel.on('broadcast', { event: 'round_end_hp' }, ({ payload }) => {
+      if (!payload || payload.userId === myUserId) return;
+      // Do ponto de vista do P2:
+      //   payload.p1_player_hp = HPs das naves azuis (P1) = cpuNaves do P2
+      //   payload.p1_cpu_hp    = HPs das naves vermelhas (P2) = playerNaves do P2
+      if (payload.p1_player_hp) {
+        payload.p1_player_hp.forEach((data, i) => {
+          if (cpuNaves[i]) {
+            cpuNaves[i].hp = data.hp;
+            if (data.maxHp) cpuNaves[i].maxHp = data.maxHp;
+          }
+        });
+      }
+      if (payload.p1_cpu_hp) {
+        payload.p1_cpu_hp.forEach((data, i) => {
+          if (playerNaves[i]) {
+            playerNaves[i].hp = data.hp;
+            if (data.maxHp) playerNaves[i].maxHp = data.maxHp;
+          }
+        });
+      }
+      roundEndHPReceived = true;
+    });
+
     syncChannel.subscribe((status) => {
       debug.pvp('[PVP] syncChannel status:', status);
       
@@ -8132,13 +8163,32 @@ function updateGame() {
     
     // Fase 3: CLEANUP - Finalizar turno
     if (combatPhase === 'cleanup' && movementComplete && shootingComplete) {
-      // 🔥 RACE CONDITION FIX (P2): Quando houve mortes this round, aguardar ~400ms
-      // antes de checar vitória. Isso garante que todos os eventos HP_UPDATE enviados
-      // por P1 (authoritative host) já chegaram via Realtime antes de calcular o resultado.
-      // Sem este hold, P2 pode ver só 1 de 2 deaths simultâneas e declarar resultado errado.
-      if (multiplayerMode && !isPlayer1Host && p2RoundHadDeaths) {
-        p2CleanupHoldFrames++;
-        if (p2CleanupHoldFrames < 24) return; // ~400ms @ 60fps — aguardar eventos pendentes
+      // 🎯 P1 (authoritative host): ao entrar no cleanup, transmite HPs definitivos de todas
+      // as naves para que P2 possa corrigir qualquer HP_UPDATE perdido ou atrasado.
+      if (multiplayerMode && isPlayer1Host && !window.__roundEndHPSent) {
+        window.__roundEndHPSent = true;
+        try {
+          syncChannel.send({
+            type: 'broadcast',
+            event: 'round_end_hp',
+            payload: {
+              userId: myUserId,
+              p1_player_hp: playerNaves.map(n => ({ hp: n.hp, maxHp: n.maxHp || 99 })),
+              p1_cpu_hp:    cpuNaves.map(n => ({ hp: n.hp, maxHp: n.maxHp || 99 }))
+            }
+          });
+        } catch (e) { console.warn('[ROUND_END_HP] erro ao enviar:', e); }
+      }
+
+      // 🔥 RACE CONDITION FIX (P2): Aguardar broadcast round_end_hp de P1 (HPs definitivos)
+      // antes de checar vitória. Isso garante que barras de vida e resultado sejam corretos
+      // mesmo que eventos HP_UPDATE tenham chegado com atraso ou sido perdidos.
+      if (multiplayerMode && !isPlayer1Host) {
+        roundEndHPTimeout++;
+        if (!roundEndHPReceived && roundEndHPTimeout < 120) return; // aguardar até ~2s
+        // Timeout ou broadcast recebido — prosseguir
+        roundEndHPReceived = false;
+        roundEndHPTimeout = 0;
       }
       p2CleanupHoldFrames = 0;
       // Limpar watchdog (combate concluiu normalmente)
