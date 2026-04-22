@@ -361,6 +361,7 @@ export default function GamePage() {
         opponentName: payload.opponentName,
         xpGained: payload.xpGained || 0,
         isHost: payload.isHost || false,
+        wasComeback: payload.wasComeback || false,
         timestamp: Date.now()
       }));
       

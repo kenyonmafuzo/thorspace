@@ -2775,9 +2775,9 @@ function startTurnWindow(deadlineISO) {
           hp:     n.hp,
           maxHp:  n.maxHp,
           angle:  n.angle,
-          shotType: (typeof ShotTypeManager !== 'undefined')
+          shotType: n.shotType || ((typeof ShotTypeManager !== 'undefined')
             ? ShotTypeManager.getShotType(n.tipo)
-            : 'plasma'
+            : 'plasma')
         }));
         submitMyAction({ type: 'play', ships: timerShips });
       }
@@ -6529,7 +6529,8 @@ function backToStartMenu() {
             oppKills: myLost,
             opponentName: opponentName,
             xpGained: finalXpForChat, // 🎯 Usar XP salvo no fim do jogo
-            isHost: !!isPlayer1Host
+            isHost: !!isPlayer1Host,
+            wasComeback: wasLosingBeforeRound && winner !== "Empate!"
           }
         }, window.location.origin);
       } else {
@@ -6812,6 +6813,12 @@ function applyMyShips(selecao, isP1) {
       sprite.src = "images/spaceschip.png";
     }
 
+    // Slot-based shot type: slotShotTypes[index] has the correct per-slot choice
+    // (ShotTypeManager uses ship TYPE as key, which collides when same ship type is selected 3x)
+    const slotShotType = (window.slotShotTypes && window.slotShotTypes[index] !== undefined)
+      ? window.slotShotTypes[index]
+      : ((typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(tipo) : 'plasma');
+
     const nave = {
       x: posicoes[index].x,
       y: posicoes[index].y,
@@ -6822,7 +6829,8 @@ function applyMyShips(selecao, isP1) {
       angle: 0, // será calculado abaixo
       tipo,
       sprite,
-      alcance
+      alcance,
+      shotType: slotShotType
     };
     
     
@@ -7091,7 +7099,7 @@ function handleCanvasClick(event) {
             maxHp: n.maxHp,
             angle: n.angle,
             // Incluir shotType no payload para garantir sincronização visual entre telas
-            shotType: (typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(n.tipo) : 'plasma'
+            shotType: n.shotType || ((typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(n.tipo) : 'plasma')
           }));
       
           // Enviar via sistema de database
@@ -7753,23 +7761,11 @@ function fireProjectiles() {
       const dx = (end.x - n.x) / dist * PROJECTILE_SPEED;
       const dy = (end.y - n.y) / dist * PROJECTILE_SPEED;
       
-      // Obter shot type usando ShotTypeManager (AAA quality)
-      // IMPORTANTE: buscar pelo TIPO DA NAVE (n.tipo), não pelo slot (idx)
-      const shipType = n.tipo;
-      let shotType = 'plasma';
-      
-      
-      if (typeof ShotTypeManager !== 'undefined') {
-        shotType = ShotTypeManager.getShotType(shipType);
-      } else {
-        // Fallback: ler do localStorage diretamente usando tipo da nave
-        try {
-          const prefs = JSON.parse(localStorage.getItem('thor_shot_preferences') || '{}');
-          shotType = prefs[String(shipType)] || 'plasma';
-        } catch (e) {
-          shotType = 'plasma';
-        }
-      }
+      // Obter shot type: prioridade para n.shotType (por slot, definido em applyMyShips)
+      // Fallback para ShotTypeManager caso a nave não tenha shotType atribuído
+      let shotType = n.shotType || ((typeof ShotTypeManager !== 'undefined')
+        ? ShotTypeManager.getShotType(n.tipo)
+        : 'plasma');
       
       projectiles.push({
         id: projectileIdCounter++, // ID único
