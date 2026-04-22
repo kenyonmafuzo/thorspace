@@ -87,9 +87,11 @@ export default function MultiplayerPage() {
           setMatchResult(result);
           (async () => {
             try {
-              // ✅ Apenas VENCEDOR envia mensagem (ou em empate, qualquer um)
-              // Isso evita mensagens duplicadas no chat
-              const shouldSendMessage = result.result === "VICTORY" || result.result === "DRAW";
+              // ✅ Apenas VENCEDOR envia mensagem; em empate apenas o host (P1) envia.
+              // Isso evita mensagens duplicadas no chat.
+              const shouldSendMessage =
+                result.result === "VICTORY" ||
+                (result.result === "DRAW" && result.isHost === true);
               
               if (!shouldSendMessage) {
                 console.log("[Multiplayer] Derrota - não enviar mensagem (vencedor enviará)");

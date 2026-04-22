@@ -6525,7 +6525,8 @@ function backToStartMenu() {
             myKills: oppLost,
             oppKills: myLost,
             opponentName: opponentName,
-            xpGained: finalXpForChat // 🎯 Usar XP salvo no fim do jogo
+            xpGained: finalXpForChat, // 🎯 Usar XP salvo no fim do jogo
+            isHost: !!isPlayer1Host
           }
         }, window.location.origin);
       } else {
