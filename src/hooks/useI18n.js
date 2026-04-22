@@ -15,6 +15,12 @@ export function useI18n() {
         const newLang = parsed?.ui?.language || "pt";
         setLang(newLang);
         setDict(getDictionary(newLang));
+      } else {
+        // No saved settings — detect from browser language
+        const browserLang = typeof navigator !== "undefined" ? navigator.language || "" : "";
+        const detectedLang = browserLang.toLowerCase().startsWith("pt") ? "pt" : "en";
+        setLang(detectedLang);
+        setDict(getDictionary(detectedLang));
       }
     } catch (e) {
       setLang("pt");
