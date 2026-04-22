@@ -117,18 +117,32 @@ export default function BadgesPage() {
       // Buscar dados do usuário
       const userId = session.user.id;
       
-      const [profileRes, statsRes, progressRes] = await Promise.all([
+      const [profileRes, statsRes, progressRes, matchResultsRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
         supabase.from("player_stats").select("*").eq("user_id", userId).single(),
-        supabase.from("player_progress").select("*").eq("user_id", userId).single()
+        supabase.from("player_progress").select("*").eq("user_id", userId).single(),
+        supabase.from("match_results").select("winner_id, loser_id").or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
       ]);
 
       const profile = profileRes.data || {};
       const stats = statsRes.data || {};
       const progress = progressRes.data || {};
+      const matchResults = matchResultsRes.data || [];
       
       const totalXp = progress.total_xp || 0;
       const levelInfo = getLevelProgressFromTotalXp(totalXp);
+
+      // Calcular stats de rivalidade a partir dos match_results
+      const matchCounts = {};
+      const winCounts = {};
+      matchResults.forEach(r => {
+        const opponentId = r.winner_id === userId ? r.loser_id : r.winner_id;
+        if (!opponentId) return;
+        matchCounts[opponentId] = (matchCounts[opponentId] || 0) + 1;
+        if (r.winner_id === userId) winCounts[opponentId] = (winCounts[opponentId] || 0) + 1;
+      });
+      const max_matches_vs_same_opponent = Object.values(matchCounts).length ? Math.max(...Object.values(matchCounts)) : 0;
+      const max_wins_vs_same_opponent = Object.values(winCounts).length ? Math.max(...Object.values(winCounts)) : 0;
 
       // Dados consolidados do usuário
       const user = {
@@ -139,6 +153,8 @@ export default function BadgesPage() {
         login_streak: stats.login_streak || 0,
         has_diverse_victory: stats.has_diverse_victory || false,
         has_comeback_victory: stats.has_comeback_victory || false,
+        max_matches_vs_same_opponent,
+        max_wins_vs_same_opponent,
         badges: profile.badges || []
       };
 
@@ -151,8 +167,8 @@ export default function BadgesPage() {
           ...category,
           badges: category.badges.map(badge => ({
             ...badge,
-            unlocked: badge.checkUnlocked(user),
-            hasInProfile: user.badges.includes(badge.id)
+            hasInProfile: user.badges.includes(badge.id),
+            unlocked: badge.checkUnlocked(user) || user.badges.includes(badge.id)
           }))
         };
       });
