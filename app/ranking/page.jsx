@@ -967,28 +967,36 @@ export default function RankingPage() {
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' }}>CONFRONTO DIRETO</div>
                     {(() => {
                       const myData = multiplayerData.find(p => p.user_id === currentUserId);
+                      const myTier = myData?.tier?.toLowerCase() || 'rookie';
+                      const myMaterial = myData?.material?.toLowerCase() || 'bronze';
+                      const myTierUrl = `/game/images/ranks/${myTier}/${myTier}_${myMaterial}.png`;
+                      const oppTier = selectedConfronto.tier?.toLowerCase() || 'rookie';
+                      const oppMaterial = selectedConfronto.material?.toLowerCase() || 'bronze';
+                      const oppTierUrl = `/game/images/ranks/${oppTier}/${oppTier}_${oppMaterial}.png`;
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                          {/* My info column (right-aligned) + my wins number */}
+                          {/* Left: badge + name block + my wins number */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                              <span style={{ color: '#00E5FF', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {myData?.is_vip && '💎'}{myData?.username || 'Você'}
+                            <img src={myTierUrl} alt={myData?.rank} style={{ width: 52, height: 52, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                              <span style={{ color: myData?.is_vip ? (myData?.vip_name_color || '#FFD700') : '#00E5FF', fontSize: 13, fontFamily: "'Orbitron',sans-serif", fontWeight: 800, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {myData?.is_vip && '💎 '}{myData?.username || 'Você'}
                               </span>
-                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{myData?.rank || ''}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>{myData?.rank || ''}</span>
                             </div>
-                            <span style={{ color: '#00FF00', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)', lineHeight: 1 }}>{selectedConfronto.youWins}</span>
+                            <span style={{ color: '#00FF00', fontSize: 52, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)', lineHeight: 1, marginLeft: 6 }}>{selectedConfronto.youWins}</span>
                           </div>
                           <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>VS</span>
-                          {/* Opponent wins number + opponent info column (left-aligned) */}
+                          {/* Right: opponent wins number + name block + badge */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ color: '#FF4444', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)', lineHeight: 1 }}>{selectedConfronto.opponentWins}</span>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
-                              <span style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {selectedConfronto.is_vip && '💎'}{selectedConfronto.name}
+                            <span style={{ color: '#FF4444', fontSize: 52, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)', lineHeight: 1, marginRight: 6 }}>{selectedConfronto.opponentWins}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
+                              <span style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : 'rgba(255,255,255,0.85)', fontSize: 13, fontFamily: "'Orbitron',sans-serif", fontWeight: 800, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {selectedConfronto.is_vip && '💎 '}{selectedConfronto.name}
                               </span>
-                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.rank}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.rank}</span>
                             </div>
+                            <img src={oppTierUrl} alt={selectedConfronto.rank} style={{ width: 52, height: 52, objectFit: 'contain', flexShrink: 0 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
                           </div>
                         </div>
                       );
