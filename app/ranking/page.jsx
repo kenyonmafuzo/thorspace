@@ -968,21 +968,27 @@ export default function RankingPage() {
                     {(() => {
                       const myData = multiplayerData.find(p => p.user_id === currentUserId);
                       return (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-                          {/* My name + wins */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, minWidth: 100 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+                          {/* My info column (right-aligned) + my wins number */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
+                              <span style={{ color: '#00E5FF', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {myData?.is_vip && '💎'}{myData?.username || 'Você'}
+                              </span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{myData?.rank || ''}</span>
+                            </div>
                             <span style={{ color: '#00FF00', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)', lineHeight: 1 }}>{selectedConfronto.youWins}</span>
-                            <span style={{ color: '#00E5FF', fontSize: 11, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, textAlign: 'right', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myData?.username || 'Você'}</span>
-                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: "'Orbitron',sans-serif", textAlign: 'right' }}>{myData?.rank || ''}</span>
                           </div>
                           <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>VS</span>
-                          {/* Opponent wins + name */}
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 100 }}>
+                          {/* Opponent wins number + opponent info column (left-aligned) */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <span style={{ color: '#FF4444', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)', lineHeight: 1 }}>{selectedConfronto.opponentWins}</span>
-                            <span style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : 'rgba(255,255,255,0.7)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {selectedConfronto.is_vip && '💎'}{selectedConfronto.name}
-                            </span>
-                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.rank}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
+                              <span style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {selectedConfronto.is_vip && '💎'}{selectedConfronto.name}
+                              </span>
+                              <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.rank}</span>
+                            </div>
                           </div>
                         </div>
                       );
