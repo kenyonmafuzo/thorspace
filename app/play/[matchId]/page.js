@@ -112,6 +112,8 @@ export default function PlayPage({ params }) {
           myKills: payload.myKills,
           oppKills: payload.oppKills,
           opponentName: payload.opponentName,
+          xpGained: payload.xpGained || 0,
+          isHost: payload.isHost || false,
           timestamp: Date.now()
         }));
         

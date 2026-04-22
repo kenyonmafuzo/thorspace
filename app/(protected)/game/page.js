@@ -360,6 +360,7 @@ export default function GamePage() {
         oppKills: payload.oppKills,
         opponentName: payload.opponentName,
         xpGained: payload.xpGained || 0,
+        isHost: payload.isHost || false,
         timestamp: Date.now()
       }));
       

@@ -96,14 +96,16 @@ export async function POST(request) {
     }
 
     // 🎯 CALL IDEMPOTENT RPC
-    // Draws use the 10-param signature (requires migration 20260419_draw_support.sql).
+    // Draws use the 10-param signature with p_is_draw=true.
+    // Pass player1_id/player2_id as winner/loser to avoid null-UUID type issues;
+    // the SQL function ignores them when p_is_draw=true (sets winner_id/loser_id to NULL).
     // Non-draws use the 7-param signature (compatible with both old and new function).
     let rpcResult, rpcError;
     if (is_draw) {
       ({ data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
         p_match_id:     matchId,
-        p_winner_id:    null,
-        p_loser_id:     null,
+        p_winner_id:    match.player1_id,
+        p_loser_id:     match.player2_id,
         p_winner_score: winner_score,
         p_loser_score:  loser_score,
         p_winner_xp:    0,

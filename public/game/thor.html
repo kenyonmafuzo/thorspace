@@ -3379,6 +3379,9 @@ function processMatchEndXPEvents(result) {
       registerXPEvent('COMEBACK_WIN');
     }
   } else if (result === 'draw') {
+    // Empate: zerar XP acumulado nos rounds e aplicar apenas MATCH_DRAW (20 XP)
+    xpEvents = [];
+    xpTotalMatch = 0;
     registerXPEvent('MATCH_DRAW');
   } else if (result === 'defeat') {
     registerXPEvent('MATCH_DEFEAT');
