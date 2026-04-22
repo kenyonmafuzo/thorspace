@@ -2,6 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+// ─── THIS IS THE ONLY PLACE THAT ACTIVATES VIP FOR STRIPE PAYMENTS ───
+// Idempotency: profiles.vip_stripe_session_id (set atomically with VIP update).
+// confirm-session is read-only; it never writes to the DB.
+
 const PLAN_DAYS = {
   "1day":   1,
   "7days":  7,
@@ -9,7 +13,6 @@ const PLAN_DAYS = {
   "30days": 30,
 };
 
-// Admin Supabase client — bypasses RLS (same pattern as MP webhook)
 function getAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -19,18 +22,23 @@ function getAdminClient() {
   });
 }
 
-// VIP activation — same logic as MP webhook/confirm routes
-async function activateVip(userId, planId) {
+// Activates VIP and stamps vip_stripe_session_id to prevent double-processing.
+// Returns { vip_expires } on success.
+async function activateVip(admin, userId, planId, sessionId) {
   const days = PLAN_DAYS[planId];
   if (!days) throw new Error(`Plano desconhecido: ${planId}`);
 
-  const admin = getAdminClient();
-
   const { data: profile } = await admin
     .from("profiles")
-    .select("is_vip, vip_expires_at")
+    .select("is_vip, vip_expires_at, vip_stripe_session_id")
     .eq("id", userId)
     .maybeSingle();
+
+  // Idempotency guard — already processed this exact checkout session
+  if (profile?.vip_stripe_session_id === sessionId) {
+    console.log(`[Stripe Webhook] Idempotency hit — sessão já processada: ${sessionId}`);
+    return { alreadyProcessed: true, vip_expires: profile.vip_expires_at };
+  }
 
   const now = new Date();
   const currentExpiry =
@@ -42,7 +50,12 @@ async function activateVip(userId, planId) {
 
   const { error } = await admin
     .from("profiles")
-    .update({ is_vip: true, vip_expires_at: newExpiry.toISOString(), vip_plan: planId })
+    .update({
+      is_vip: true,
+      vip_expires_at: newExpiry.toISOString(),
+      vip_plan: planId,
+      vip_stripe_session_id: sessionId, // <-- idempotency key stamped atomically
+    })
     .eq("id", userId);
 
   if (error) throw error;
@@ -50,7 +63,7 @@ async function activateVip(userId, planId) {
   console.log(
     `[Stripe Webhook] ✅ VIP ativado — user: ${userId} | plano: ${planId} | expira: ${newExpiry.toISOString()}`
   );
-  return { vip_starts: currentExpiry.toISOString(), vip_expires: newExpiry.toISOString() };
+  return { alreadyProcessed: false, vip_expires: newExpiry.toISOString() };
 }
 
 export async function POST(request) {
@@ -66,7 +79,7 @@ export async function POST(request) {
     return NextResponse.json({ error: "STRIPE_SECRET_KEY não configurado" }, { status: 500 });
   }
 
-  // IMPORTANT: must read raw body BEFORE any JSON parsing for signature verification
+  // Must read raw body BEFORE any JSON parsing for HMAC signature verification
   let event;
   try {
     const rawBody = await request.text();
@@ -83,50 +96,40 @@ export async function POST(request) {
 
     if (!user_id || !plan_id) {
       console.error("[Stripe Webhook] metadata ausente na sessão:", session.id);
-      // Return 200 — no point retrying without metadata
-      return NextResponse.json({ status: "missing_metadata" });
+      return NextResponse.json({ status: "missing_metadata" }); // 200 — no retry value
     }
 
     if (session.payment_status !== "paid") {
       return NextResponse.json({ status: "not_paid" });
     }
 
-    // Idempotency: skip if this session was already processed (same pattern as MP confirm)
     const admin = getAdminClient();
-    const { data: existing } = await admin
-      .from("inbox")
-      .select("id")
-      .eq("user_id", user_id)
-      .contains("meta", { stripe_session_id: session.id })
-      .maybeSingle();
-
-    if (existing) {
-      console.log(`[Stripe Webhook] Sessão já processada: ${session.id} — skip`);
-      return NextResponse.json({ status: "already_processed" });
-    }
 
     try {
-      const { vip_expires } = await activateVip(user_id, plan_id);
+      const { alreadyProcessed, vip_expires } = await activateVip(
+        admin, user_id, plan_id, session.id
+      );
 
-      // Send inbox notification
-      await admin.from("inbox").insert([{
-        user_id,
-        type: "vip",
-        title: "💎 VIP Ativado!",
-        content: `Seu VIP ${plan_id} está ativo até ${new Date(vip_expires).toLocaleDateString("pt-BR")}.`,
-        cta: "Ver minha área VIP",
-        cta_url: "/vip",
-        lang: "en",
-        created_at: new Date().toISOString(),
-        meta: { stripe_session_id: session.id, plan_id },
-      }]);
+      if (!alreadyProcessed) {
+        // Inbox notification — for UX only, not used for idempotency
+        await admin.from("inbox").insert([{
+          user_id,
+          type: "vip",
+          title: "💎 VIP Ativado!",
+          content: `Seu VIP ${plan_id} está ativo até ${new Date(vip_expires).toLocaleDateString("pt-BR")}.`,
+          cta: "Ver minha área VIP",
+          cta_url: "/vip",
+          lang: "en",
+          created_at: new Date().toISOString(),
+          meta: { stripe_session_id: session.id, plan_id },
+        }]);
+      }
     } catch (err) {
       console.error("[Stripe Webhook] Erro ao ativar VIP:", err.message);
-      // Return 200 to prevent Stripe from retrying infinitely (same as MP webhook)
+      // Return 200 — prevents infinite Stripe retries for non-transient errors
       return NextResponse.json({ status: "error", message: err.message });
     }
   }
 
-  // All other event types: acknowledge and ignore
   return NextResponse.json({ status: "ok" });
 }

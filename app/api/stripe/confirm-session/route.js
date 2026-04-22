@@ -2,7 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-// Mirrors app/api/mp/confirm/route.js — called by stripe-success page after redirect
+// ─── READ-ONLY — does NOT activate VIP ───────────────────────────────────────
+// Called by stripe-success page to verify payment status and get expiry dates
+// for the success UI + LocalStorage flag.
+// VIP activation is handled exclusively by /api/stripe/webhook.
+// ─────────────────────────────────────────────────────────────────────────────
 
 const PLAN_DAYS = {
   "1day":   1,
@@ -25,34 +29,6 @@ function getAdminClient() {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-}
-
-async function activateVip(admin, userId, planId) {
-  const days = PLAN_DAYS[planId];
-  if (!days) throw new Error(`Plano desconhecido: ${planId}`);
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("is_vip, vip_expires_at")
-    .eq("id", userId)
-    .maybeSingle();
-
-  const now = new Date();
-  const currentExpiry =
-    profile?.is_vip && profile?.vip_expires_at && new Date(profile.vip_expires_at) > now
-      ? new Date(profile.vip_expires_at)
-      : now;
-
-  const newExpiry = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000);
-
-  const { error } = await admin
-    .from("profiles")
-    .update({ is_vip: true, vip_expires_at: newExpiry.toISOString(), vip_plan: planId })
-    .eq("id", userId);
-
-  if (error) throw error;
-
-  return { vip_starts: currentExpiry.toISOString(), vip_expires: newExpiry.toISOString() };
 }
 
 // POST — called by stripe-success page with { sessionId }
@@ -79,37 +55,43 @@ export async function POST(request) {
       throw new Error("metadata ausente na sessão Stripe");
     }
 
-    const admin = getAdminClient();
-    const { vip_starts, vip_expires } = await activateVip(admin, user_id, plan_id);
+    const days = PLAN_DAYS[plan_id];
+    if (!days) throw new Error(`Plano desconhecido: ${plan_id}`);
 
-    // Idempotent inbox notification (same check as webhook)
-    const { data: existing } = await admin
-      .from("inbox")
-      .select("id")
-      .eq("user_id", user_id)
-      .contains("meta", { stripe_session_id: sessionId })
+    // Read current profile to compute projected expiry for the success UI.
+    // If the webhook already fired, vip_expires_at will have the real value.
+    // If the webhook hasn't fired yet, we return a projected value (used only for display).
+    const admin = getAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_vip, vip_expires_at, vip_stripe_session_id")
+      .eq("id", user_id)
       .maybeSingle();
 
-    if (!existing) {
-      await admin.from("inbox").insert([{
-        user_id,
-        type: "vip",
-        title: "💎 VIP Ativado!",
-        content: `Seu VIP ${plan_id} está ativo até ${new Date(vip_expires).toLocaleDateString("pt-BR")}.`,
-        cta: "Ver minha área VIP",
-        cta_url: "/vip",
-        lang: "en",
-        created_at: new Date().toISOString(),
-        meta: { stripe_session_id: sessionId, plan_id },
-      }]);
+    let vip_starts, vip_expires;
+
+    if (profile?.vip_stripe_session_id === sessionId) {
+      // Webhook already processed this session — return actual DB values
+      const now = new Date();
+      const effectiveBase =
+        profile.is_vip && profile.vip_expires_at && new Date(profile.vip_expires_at) > now
+          ? new Date(profile.vip_expires_at)
+          : now;
+      vip_starts = effectiveBase.toISOString();
+      vip_expires = profile.vip_expires_at;
+    } else {
+      // Webhook hasn't fired yet — project expiry from current DB state for display
+      const now = new Date();
+      const currentExpiry =
+        profile?.is_vip && profile?.vip_expires_at && new Date(profile.vip_expires_at) > now
+          ? new Date(profile.vip_expires_at)
+          : now;
+      vip_starts = currentExpiry.toISOString();
+      vip_expires = new Date(currentExpiry.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
     }
 
-    console.log(
-      `[Stripe confirm-session] ✅ VIP confirmado — user: ${user_id} | plano: ${plan_id} | expira: ${vip_expires}`
-    );
-
     return NextResponse.json({
-      activated: true,
+      activated: true, // payment confirmed — VIP activation handled by webhook
       plan_id,
       plan_label: PLAN_LABELS[plan_id] || plan_id,
       vip_starts,
@@ -118,5 +100,7 @@ export async function POST(request) {
   } catch (err) {
     console.error("[Stripe confirm-session] Erro:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
   }
 }
