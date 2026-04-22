@@ -14,7 +14,11 @@
 --      - stats de ambos os jogadores recebem draws++
 -- ============================================================
 
--- ── 1. Adicionar colunas ──────────────────────────────────────
+-- ── 1. Adicionar colunas + permitir NULL em winner_id/loser_id ───────────────
+-- winner_id e loser_id precisam aceitar NULL para empates
+ALTER TABLE match_results ALTER COLUMN winner_id DROP NOT NULL;
+ALTER TABLE match_results ALTER COLUMN loser_id  DROP NOT NULL;
+
 ALTER TABLE match_results
   ADD COLUMN IF NOT EXISTS player1_id UUID REFERENCES auth.users(id),
   ADD COLUMN IF NOT EXISTS player2_id UUID REFERENCES auth.users(id),
