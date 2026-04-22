@@ -51,16 +51,30 @@ export default function RankingPage() {
   async function loadConfrontos(userId) {
     setLoadingConfrontos(true);
     try {
-      // Query draw-safe: use only base columns that always exist.
-      // is_draw/player1_id/player2_id require migration 20260419_draw_support.sql;
-      // the h2h stats logic already treats missing is_draw as non-draw (null-safe).
-      const { data: results, error } = await supabase
+      // Try full query with draw columns (requires migration 20260419_draw_support.sql).
+      // If those columns don't exist yet, fall back to base columns so wins/losses still show.
+      let results, confrontoError;
+      const fullRes = await supabase
         .from('match_results')
         .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at, is_draw, player1_id, player2_id')
         .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
-      if (error || !results?.length) {
+      if (fullRes.error) {
+        // Columns likely don't exist yet — fall back to base columns
+        const fallbackRes = await supabase
+          .from('match_results')
+          .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at')
+          .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
+          .order('created_at', { ascending: false });
+        results = fallbackRes.data;
+        confrontoError = fallbackRes.error;
+      } else {
+        results = fullRes.data;
+        confrontoError = fullRes.error;
+      }
+
+      if (confrontoError || !results?.length) {
         setConfrontosData([]);
         return;
       }
