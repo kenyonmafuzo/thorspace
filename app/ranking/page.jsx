@@ -55,8 +55,8 @@ export default function RankingPage() {
       // After applying 20260419_draw_support.sql, also include player1_id/player2_id for draws.
       const { data: results, error } = await supabase
         .from('match_results')
-        .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at')
-        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
+        .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at, is_draw, player1_id, player2_id')
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (error || !results?.length) {
