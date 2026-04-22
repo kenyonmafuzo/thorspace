@@ -171,7 +171,7 @@ export default function VIPPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setPaymentError("Você precisa estar logado para continuar.");
+        setPaymentError(vip.errorNotLoggedIn || "You must be logged in to continue.");
         setPaymentLoading(false);
         return;
       }
@@ -208,7 +208,7 @@ export default function VIPPage() {
         });
         const data = await res.json();
         if (!res.ok || !data.qr_code) {
-          setPaymentError(data.error || "Erro ao gerar PIX. Tente novamente.");
+          setPaymentError(data.error || vip.errorPix || "Error generating PIX. Please try again.");
           setPaymentLoading(false);
           return;
         }
@@ -229,14 +229,14 @@ export default function VIPPage() {
       });
       const data = await res.json();
       if (!res.ok || !data.init_point) {
-        setPaymentError(data.error || "Erro ao iniciar pagamento. Tente novamente.");
+        setPaymentError(data.error || vip.errorPayment || "Error starting payment. Please try again.");
         setPaymentLoading(false);
         return;
       }
       window.location.href = data.init_point;
     } catch (err) {
       console.error("[VIP] handlePay error:", err);
-      setPaymentError("Erro de conexão. Verifique sua internet e tente novamente.");
+      setPaymentError(vip.errorConnection || "Connection error. Check your internet and try again.");
       setPaymentLoading(false);
     }
   };
@@ -279,10 +279,10 @@ export default function VIPPage() {
               animation: "shimmer 3s linear infinite",
               marginBottom: 8,
             }}>
-              VIP {vipActivatedModal.plan_label} ATIVADO!
+              VIP {vipActivatedModal.plan_label} {vip.activatedTitle || "ACTIVATED!"}
             </h2>
             <p style={{ color: "#aaa", fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-              Bem-vindo ao clube exclusivo.<br />Aproveite todos os benefícios!
+              {vip.activatedMsg || "Welcome to the exclusive club. Enjoy all the benefits!"}
             </p>
             <div style={{
               background: "rgba(255,215,0,0.07)",
@@ -295,8 +295,8 @@ export default function VIPPage() {
               lineHeight: 2,
               fontFamily: "monospace",
             }}>
-              <div>⏱ <span style={{ color: "#FFD700" }}>Início:</span> {new Date(vipActivatedModal.vip_starts).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
-              <div>🏁 <span style={{ color: "#FFD700" }}>Expira:</span> {new Date(vipActivatedModal.vip_expires).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}</div>
+              <div>⏱ <span style={{ color: "#FFD700" }}>{vip.activatedStart || "Start:"}</span> {new Date(vipActivatedModal.vip_starts).toLocaleString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+              <div>🏁 <span style={{ color: "#FFD700" }}>{vip.activatedExpires || "Expires:"}</span> {new Date(vipActivatedModal.vip_expires).toLocaleString(lang === "pt" ? "pt-BR" : lang === "es" ? "es-ES" : "en-US", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
             </div>
             <button
               onClick={() => setVipActivatedModal(null)}
@@ -314,7 +314,7 @@ export default function VIPPage() {
                 cursor: "pointer",
                 letterSpacing: 1,
               }}>
-              ⚡ APROVEITAR!
+              {vip.activatedBtn || "⚡ LET'S GO!"}
             </button>
           </div>
           <style>{`
@@ -950,7 +950,7 @@ export default function VIPPage() {
                 boxShadow: "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
               }}
             >
-              {vipSaving ? "Salvando..."
+              {vipSaving ? (vip.saving || "Saving...")
                 : vipSaveMessage ? `✅ ${vipSaveMessage}`
                 : `${vip.saveCustomization || "SALVAR PERSONALIZAÇÃO"}`}
             </button>
