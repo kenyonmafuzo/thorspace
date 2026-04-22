@@ -2767,6 +2767,7 @@ function startTurnWindow(deadlineISO) {
           target: n.target ? { x: n.target.x, y: n.target.y } : null,
           shot:   n.shot   ? { x: n.shot.x,   y: n.shot.y   } : null,
           hp:     n.hp,
+          maxHp:  n.maxHp,
           angle:  n.angle,
           shotType: (typeof ShotTypeManager !== 'undefined')
             ? ShotTypeManager.getShotType(n.tipo)
@@ -3109,6 +3110,7 @@ function applyResolvedTurn(actions) {
         // 🔥 Snap HP autoritativo do payload — garante que HP local não esteja desatualizado
         // pelo Realtime player1_hp/player2_hp (que pode chegar com valor antigo)
         if (shipData.hp !== undefined) nave.hp = shipData.hp;
+        if (shipData.maxHp !== undefined) nave.maxHp = shipData.maxHp;
         if (nave.hp > 0) {
           nave.target = shipData.target;
           nave.shot = shipData.shot;
@@ -3127,6 +3129,7 @@ function applyResolvedTurn(actions) {
         // 🔥 Snap HP autoritativo do payload — corrige HP desatualizado do Realtime
         // (player1_hp/player2_hp pode chegar com valor antigo ou zerado de partida anterior)
         if (shipData.hp !== undefined) nave.hp = shipData.hp;
+        if (shipData.maxHp !== undefined) nave.maxHp = shipData.maxHp;
         if (nave.hp > 0) {
           nave.target = shipData.target;
           nave.shot = shipData.shot;
@@ -6916,7 +6919,7 @@ function initCpuNaves() {
     else if (tipo === 2) sprite.src = "images/nave_protecao.png";
     else sprite.src = "images/spaceschip.png";
 
-    const hp = tipo === 1 ? 50 : tipo === 2 ? 100 : 75;
+    const hp = tipo === 1 ? 66 : tipo === 2 ? 132 : 99;
 
     n.tipo = tipo;
     n.sprite = sprite;
@@ -7039,6 +7042,7 @@ function handleCanvasClick(event) {
           target: n.target ? { x: n.target.x, y: n.target.y } : null,
           shot: n.shot ? { x: n.shot.x, y: n.shot.y } : null,
           hp: n.hp,
+          maxHp: n.maxHp,
           angle: n.angle,
           // Incluir shotType no payload para garantir sincronização visual entre telas
           shotType: (typeof ShotTypeManager !== 'undefined') ? ShotTypeManager.getShotType(n.tipo) : 'plasma'
@@ -7327,9 +7331,13 @@ const idleBob = isMoving ? 0 : Math.sin(performance.now() / 500 + nave.x) * 2.0;
   ctx.fillStyle = "red";
 ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, 30, 5);
 
-let maxHP = nave.maxHp || (nave.tipo === 1 ? 50 : nave.tipo === 2 ? 100 : 75);
+// maxHp canônico: vem da nave; fallback por tipo (66=2-shot, 99=3-shot, 132=4-shot, 160=VIP-5shot)
+const maxHP = nave.maxHp ||
+  (nave.tipo === 1 || nave.tipo === 4 || nave.tipo === 5 ? 66 :
+   nave.tipo === 2 ? 132 :
+   nave.tipo === 6 || nave.tipo === 7 ? 160 : 99);
 ctx.fillStyle = "lime";
-ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, Math.min(30, 30 * (nave.hp / maxHP)), 5);
+ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, Math.max(0, Math.min(30, 30 * (nave.hp / maxHP))), 5);
 
   // ── Locked overlay (between rounds, hide once combat animation starts) ──
   if (!isCPU && typeof roundLocked !== 'undefined' && roundLocked && phase !== "wait") {
