@@ -587,14 +587,11 @@ export default function ProfilePage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                   <div style={{ position: 'relative', display: 'inline-block' }}>
                     <img 
-                      src={getRankAssetKey(profile.progress?.tier ?? 1, profile.progress?.material ?? 1)}
+                      src={`/game/images/ranks/${(profile.progress?.tier ?? 'Rookie').toLowerCase()}/${(profile.progress?.tier ?? 'Rookie').toLowerCase()}_${(profile.progress?.material ?? 'Bronze').toLowerCase()}.png`}
                       alt="Rank"
                       style={{ width: 90, height: 90, objectFit: 'contain', marginRight: 8 }}
                       onError={(e) => {
-                        const src = e.target.src;
-                        if (src.endsWith('.png')) {
-                          e.target.src = src.replace('.png', '.svg');
-                        }
+                        e.target.src = '/game/images/ranks/rookie/rookie_bronze.png';
                       }}
                     />
                     {/* Bolinha com número do NÍVEL */}
