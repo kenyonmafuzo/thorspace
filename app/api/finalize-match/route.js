@@ -95,46 +95,37 @@ export async function POST(request) {
       loser_score  = myLost;  // player2 kills
     }
 
-    // 🎯 CALL IDEMPOTENT RPC (authenticated client with RLS)
-    // NOTE: finalize_match_once uses the 7-param signature in production.
-    // Full draw support (player1_id/player2_id/is_draw) requires applying
-    // supabase/migrations/20260419_draw_support.sql in the Supabase dashboard.
-    const { data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
-      p_match_id:     matchId,
-      p_winner_id:    is_draw ? null : winner_id,
-      p_loser_id:     is_draw ? null : loser_id,
-      p_winner_score: winner_score,
-      p_loser_score:  loser_score,
-      p_winner_xp:    0, // XP calculado no frontend
-      p_loser_xp:     0,
-    });
+    // 🎯 CALL IDEMPOTENT RPC
+    // Draws use the 10-param signature (requires migration 20260419_draw_support.sql).
+    // Non-draws use the 7-param signature (compatible with both old and new function).
+    let rpcResult, rpcError;
+    if (is_draw) {
+      ({ data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
+        p_match_id:     matchId,
+        p_winner_id:    null,
+        p_loser_id:     null,
+        p_winner_score: winner_score,
+        p_loser_score:  loser_score,
+        p_winner_xp:    0,
+        p_loser_xp:     0,
+        p_player1_id:   match.player1_id,
+        p_player2_id:   match.player2_id,
+        p_is_draw:      true,
+      }));
+    } else {
+      ({ data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
+        p_match_id:     matchId,
+        p_winner_id:    winner_id,
+        p_loser_id:     loser_id,
+        p_winner_score: winner_score,
+        p_loser_score:  loser_score,
+        p_winner_xp:    0,
+        p_loser_xp:     0,
+      }));
+    }
 
     if (rpcError) {
       console.error('[API] RPC error:', rpcError);
-      // If draw migration is applied, retry with full signature
-      if (is_draw) {
-        const { data: rpcResult2, error: rpcError2 } = await supabase.rpc('finalize_match_once', {
-          p_match_id:     matchId,
-          p_winner_id:    null,
-          p_loser_id:     null,
-          p_winner_score: winner_score,
-          p_loser_score:  loser_score,
-          p_winner_xp:    0,
-          p_loser_xp:     0,
-          p_player1_id:   match.player1_id,
-          p_player2_id:   match.player2_id,
-          p_is_draw:      true,
-        });
-        if (rpcError2) {
-          console.error('[API] RPC draw error:', rpcError2);
-          return NextResponse.json(
-            { error: 'Failed to finalize match', details: rpcError2 },
-            { status: 500 }
-          );
-        }
-        const alreadyFinalized2 = rpcResult2?.already_finalized || false;
-        return NextResponse.json({ success: true, matchId, winner_id: null, is_draw: true, alreadyFinalized: alreadyFinalized2 });
-      }
       return NextResponse.json(
         { error: 'Failed to finalize match', details: rpcError },
         { status: 500 }

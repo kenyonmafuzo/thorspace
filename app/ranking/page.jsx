@@ -51,12 +51,13 @@ export default function RankingPage() {
   async function loadConfrontos(userId) {
     setLoadingConfrontos(true);
     try {
-      // Query uses winner_id/loser_id which always exist.
-      // After applying 20260419_draw_support.sql, also include player1_id/player2_id for draws.
+      // Query draw-safe: use only base columns that always exist.
+      // is_draw/player1_id/player2_id require migration 20260419_draw_support.sql;
+      // the h2h stats logic already treats missing is_draw as non-draw (null-safe).
       const { data: results, error } = await supabase
         .from('match_results')
         .select('match_id, winner_id, loser_id, winner_score, loser_score, created_at, is_draw, player1_id, player2_id')
-        .or(`winner_id.eq.${userId},loser_id.eq.${userId},player1_id.eq.${userId},player2_id.eq.${userId}`)
+        .or(`winner_id.eq.${userId},loser_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (error || !results?.length) {
