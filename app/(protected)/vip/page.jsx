@@ -41,9 +41,9 @@ export default function VIPPage() {
   // VIP activation modal — shown once after a successful purchase
   const [vipActivatedModal, setVipActivatedModal] = useState(null); // { plan_label, vip_starts, vip_expires }
 
-  // Reset to PIX when language is PT, credit card otherwise
+  // Reset to PIX when language is PT, Stripe for international users
   useEffect(() => {
-    setPaymentMethod(lang === "pt" ? "pix" : "credit");
+    setPaymentMethod(lang === "pt" ? "pix" : "stripe");
   }, [lang]);
 
   const currentPlan = plans.find((p) => p.id === selectedPlan) || plans[3] || plans[0];
@@ -149,6 +149,7 @@ export default function VIPPage() {
   const paymentLabel =
     paymentMethod === "pix"    ? (vip.pixLabel    || "PIX") :
     paymentMethod === "credit" ? (vip.creditLabel || "Credit Card") :
+    paymentMethod === "stripe" ? "Stripe" :
                                  (vip.debitLabel  || "Debit");
 
   const handlePay = async () => {
@@ -160,6 +161,26 @@ export default function VIPPage() {
       if (!session) {
         setPaymentError("Você precisa estar logado para continuar.");
         setPaymentLoading(false);
+        return;
+      }
+
+      // Stripe: international checkout
+      if (paymentMethod === "stripe") {
+        const res = await fetch("/api/stripe/create-checkout", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ planId: selectedPlan }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.checkout_url) {
+          setPaymentError(data.error || "Error starting Stripe payment. Please try again.");
+          setPaymentLoading(false);
+          return;
+        }
+        window.location.href = data.checkout_url;
         return;
       }
 
@@ -595,6 +616,25 @@ export default function VIPPage() {
               </span>
               <span style={{ fontSize: 10, color: "#666" }}>{vip.debitSub}</span>
             </button>
+
+            {/* Stripe — international users only */}
+            {!isPT && (
+              <button
+                onClick={() => setPaymentMethod("stripe")}
+                style={{
+                  flex: 1, minWidth: 130, padding: "16px 20px", borderRadius: 12,
+                  border: paymentMethod === "stripe" ? "2px solid #635BFF" : "2px solid rgba(255,255,255,0.1)",
+                  background: paymentMethod === "stripe" ? "rgba(99,91,255,0.12)" : "rgba(255,255,255,0.04)",
+                  cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, transition: "all 0.2s",
+                }}
+              >
+                <span style={{ fontSize: 28 }}>🌐</span>
+                <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: paymentMethod === "stripe" ? "#635BFF" : "#aaa" }}>
+                  Stripe
+                </span>
+                <span style={{ fontSize: 10, color: "#666" }}>International</span>
+              </button>
+            )}
           </div>
 
           {/* Resumo do pedido */}
