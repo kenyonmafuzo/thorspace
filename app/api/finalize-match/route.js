@@ -3,9 +3,8 @@ import { NextResponse } from 'next/server';
 
 // 🎮 AAA ARCHITECTURE: Server-side match finalization with idempotent RPC
 // Uses finalize_match_once() RPC with match_results table (PK on match_id)
-// - Single database call with atomic guarantees
-// - Prevents duplicate finalization via ON CONFLICT
-// - Service role (backend authoritative)
+// - Auth validation uses user token (anon key + session)
+// - DB writes use service role key (bypasses RLS, reliable for all result types)
 
 export async function POST(request) {
   try {
@@ -27,18 +26,18 @@ export async function POST(request) {
       );
     }
 
-    // Create authenticated Supabase client for validation
-    const supabase = createClient(
+    // ── Step 1: Validate user identity with their token ──────────────────────
+    const anonClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    await supabase.auth.setSession({
+    await anonClient.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await anonClient.auth.getUser();
     
     if (authError || !user) {
       return NextResponse.json(
@@ -46,6 +45,19 @@ export async function POST(request) {
         { status: 401 }
       );
     }
+
+    // ── Step 2: Service role client for all DB operations ────────────────────
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!serviceKey) {
+      console.error('[API] SUPABASE_SERVICE_ROLE_KEY not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      serviceKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
 
     // 🛡️ SECURITY: Fetch match and validate ownership
     const { data: match, error: matchError } = await supabase
@@ -55,6 +67,7 @@ export async function POST(request) {
       .single();
 
     if (matchError || !match) {
+      console.error('[API] Match not found:', matchId, matchError);
       return NextResponse.json(
         { error: 'Match not found' },
         { status: 404 }
@@ -89,17 +102,15 @@ export async function POST(request) {
       winner_score = myLost;
       loser_score  = oppLost;
     } else {
-      // Draw — equal ships destroyed; store player1 score in winner_score slot
+      // Draw — equal ships destroyed
       is_draw      = true;
       winner_score = oppLost; // player1 (host) kills
       loser_score  = myLost;  // player2 kills
     }
 
-    // 🎯 CALL IDEMPOTENT RPC
-    // Draws use the 10-param signature with p_is_draw=true.
-    // Pass player1_id/player2_id as winner/loser to avoid null-UUID type issues;
-    // the SQL function ignores them when p_is_draw=true (sets winner_id/loser_id to NULL).
-    // Non-draws use the 7-param signature (compatible with both old and new function).
+    console.log('[API] Finalizing match:', { matchId, is_draw, myLost, oppLost, winner_id, loser_id });
+
+    // 🎯 CALL IDEMPOTENT RPC via service role (bypasses RLS, no token issues)
     let rpcResult, rpcError;
     if (is_draw) {
       ({ data: rpcResult, error: rpcError } = await supabase.rpc('finalize_match_once', {
@@ -127,7 +138,7 @@ export async function POST(request) {
     }
 
     if (rpcError) {
-      console.error('[API] RPC error:', rpcError);
+      console.error('[API] RPC error:', JSON.stringify(rpcError));
       return NextResponse.json(
         { error: 'Failed to finalize match', details: rpcError },
         { status: 500 }
@@ -144,7 +155,8 @@ export async function POST(request) {
       is_draw,
       winner_score,
       loser_score,
-      alreadyFinalized
+      alreadyFinalized,
+      rpcResult,
     });
 
     return NextResponse.json({
