@@ -5768,20 +5768,20 @@ function applyEnemyShips(shipsArray, myIsP1) {
         alcance = 160;
       } else if (tipo === 4) {
         sprite.src = 'images/nave_alcance_red_vip.png';
-        hp = 66;
-        alcance = 400;
+        hp = 66;       // igual tipo 1
+        alcance = 360; // igual tipo 1
       } else if (tipo === 5) {
         sprite.src = 'images/nave_alcance_vip.png';
-        hp = 66;
-        alcance = 400;
+        hp = 66;       // igual tipo 1
+        alcance = 360; // igual tipo 1
       } else if (tipo === 6) {
         sprite.src = 'images/nave_protecao_vip.png';
-        hp = 160;
-        alcance = 180;
+        hp = 132;      // igual tipo 2
+        alcance = 160; // igual tipo 2
       } else if (tipo === 7) {
         sprite.src = 'images/nave_protecao_red_vip.png';
-        hp = 160;
-        alcance = 180;
+        hp = 132;      // igual tipo 2
+        alcance = 160; // igual tipo 2
       } else if (tipo === 8) {
         sprite.src = 'images/nave_normal_vip.png';
         hp = 99;
@@ -5799,6 +5799,7 @@ function applyEnemyShips(shipsArray, myIsP1) {
       
       cpuNaves[i].sprite = sprite;
       cpuNaves[i].hp = hp;
+      cpuNaves[i].maxHp = hp;
       cpuNaves[i].alcance = alcance;
       
       // COR DO TIME OPONENTE
@@ -5840,16 +5841,16 @@ function applyOpponentNavesFromSelection(shipsArray, isPlayer1Owner = true) {
           hp = 132;
         } else if (tipo === 4) {
           sprite.src = 'images/nave_alcance_red_vip.png';
-          hp = 66;
+          hp = 66;  // igual tipo 1
         } else if (tipo === 5) {
           sprite.src = 'images/nave_alcance_vip.png';
-          hp = 66;
+          hp = 66;  // igual tipo 1
         } else if (tipo === 6) {
           sprite.src = 'images/nave_protecao_vip.png';
-          hp = 160;
+          hp = 132; // igual tipo 2
         } else if (tipo === 7) {
           sprite.src = 'images/nave_protecao_red_vip.png';
-          hp = 160;
+          hp = 132; // igual tipo 2
         } else if (tipo === 8) {
           sprite.src = 'images/nave_normal_vip.png';
           hp = 99;
@@ -5862,6 +5863,7 @@ function applyOpponentNavesFromSelection(shipsArray, isPlayer1Owner = true) {
         }
         cpuNaves[i].sprite = sprite;
         cpuNaves[i].hp = hp;
+        cpuNaves[i].maxHp = hp;
       }
     });
   }
@@ -6732,20 +6734,20 @@ function applyMyShips(selecao, isP1) {
       alcance = 160;
       sprite.src = "images/nave_protecao.png";
     } else if (tipo === 4) {
-      hp = 66;
-      alcance = 400;
+      hp = 66;       // igual tipo 1
+      alcance = 360; // igual tipo 1
       sprite.src = "images/nave_alcance_red_vip.png";
     } else if (tipo === 5) {
-      hp = 66;
-      alcance = 400;
+      hp = 66;       // igual tipo 1
+      alcance = 360; // igual tipo 1
       sprite.src = "images/nave_alcance_vip.png";
     } else if (tipo === 6) {
-      hp = 160;
-      alcance = 180;
+      hp = 132;      // igual tipo 2
+      alcance = 160; // igual tipo 2
       sprite.src = "images/nave_protecao_vip.png";
     } else if (tipo === 7) {
-      hp = 160;
-      alcance = 180;
+      hp = 132;      // igual tipo 2
+      alcance = 160; // igual tipo 2
       sprite.src = "images/nave_protecao_red_vip.png";
     } else if (tipo === 8) {
       hp = 99;
@@ -6823,20 +6825,20 @@ function applyPlayerNavesFromSelection(selecao = null, isPlayer1Owner = true) {
           alcance = 160;
           sprite.src = "images/nave_protecao.png";
         } else if (tipo === 4) {
-          hp = 66;
-          alcance = 400;
+          hp = 66;       // igual tipo 1
+          alcance = 360; // igual tipo 1
           sprite.src = "images/nave_alcance_red_vip.png";
         } else if (tipo === 5) {
-          hp = 66;
-          alcance = 400;
+          hp = 66;       // igual tipo 1
+          alcance = 360; // igual tipo 1
           sprite.src = "images/nave_alcance_vip.png";
         } else if (tipo === 6) {
-          hp = 160;
-          alcance = 180;
+          hp = 132;      // igual tipo 2
+          alcance = 160; // igual tipo 2
           sprite.src = "images/nave_protecao_vip.png";
         } else if (tipo === 7) {
-          hp = 160;
-          alcance = 180;
+          hp = 132;      // igual tipo 2
+          alcance = 160; // igual tipo 2
           sprite.src = "images/nave_protecao_red_vip.png";
         } else if (tipo === 8) {
           hp = 99;
@@ -7331,11 +7333,11 @@ const idleBob = isMoving ? 0 : Math.sin(performance.now() / 500 + nave.x) * 2.0;
   ctx.fillStyle = "red";
 ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, 30, 5);
 
-// maxHp canônico: vem da nave; fallback por tipo (66=2-shot, 99=3-shot, 132=4-shot, 160=VIP-5shot)
+// maxHp canônico: vem da nave; fallback por tipo (66=2-shot, 99=3-shot, 132=4-shot)
+// VIPs têm os mesmos stats das bases: 4/5=tipo1, 6/7=tipo2, 8/9=tipo3
 const maxHP = nave.maxHp ||
   (nave.tipo === 1 || nave.tipo === 4 || nave.tipo === 5 ? 66 :
-   nave.tipo === 2 ? 132 :
-   nave.tipo === 6 || nave.tipo === 7 ? 160 : 99);
+   nave.tipo === 2 || nave.tipo === 6 || nave.tipo === 7 ? 132 : 99);
 ctx.fillStyle = "lime";
 ctx.fillRect(nave.x - 15, nave.y - NAVY_SIZE / 2 - 10, Math.max(0, Math.min(30, 30 * (nave.hp / maxHP))), 5);
 
