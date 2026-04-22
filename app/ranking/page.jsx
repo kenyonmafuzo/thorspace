@@ -960,35 +960,33 @@ export default function RankingPage() {
                   <div id="screenshot-logo-header" style={{ display: 'none', background: '#000', padding: '24px', textAlign: 'center' }}>
                     <img src="/game/images/thorspace.png" alt="ThorSpace" style={{ height: 160, objectFit: 'contain' }} />
                   </div>
-                  {/* Player header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24, padding: 16, background: 'rgba(0,229,255,0.05)', borderRadius: 12, border: '1px solid rgba(0,229,255,0.15)', margin: '0 16px 24px' }}>
-                  <img
-                    src={selectedConfronto.avatar}
-                    alt={selectedConfronto.name}
-                    style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: selectedConfronto.is_vip ? `2px solid ${selectedConfronto.vip_frame_color}` : '2px solid rgba(0,229,255,0.4)' }}
-                    onError={e => { e.currentTarget.src = '/game/images/nave_normal.png'; }}
-                  />
-                  <div>
-                    <div style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : '#00E5FF', fontFamily: "'Orbitron',sans-serif", fontWeight: 800, fontSize: 18 }}>
-                      {selectedConfronto.is_vip && <span style={{ marginRight: 4 }}>💎</span>}
-                      {selectedConfronto.name}
-                    </div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Orbitron',sans-serif", fontSize: 12, marginTop: 2 }}>{selectedConfronto.rank} • {selectedConfronto.partidas} partidas</div>
-                  </div>
-                </div>
+
                 {/* Stats grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 16, margin: '0 16px 16px' }}>
                   <div style={{ gridColumn: '1 / -1', background: 'linear-gradient(135deg, rgba(0,255,0,0.12) 0%, rgba(255,68,68,0.08) 100%)', border: '1px solid rgba(0,255,0,0.4)', borderRadius: 12, padding: '18px 24px', boxShadow: '0 0 20px rgba(0,255,0,0.15), inset 0 0 30px rgba(0,0,0,0.2)' }}>
                     <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1.5, marginBottom: 12, textAlign: 'center' }}>CONFRONTO DIRETO</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-                      <span style={{ color: '#00FF00', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)' }}>{selectedConfronto.youWins}</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>VOCÊ</span>
-                        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>VS</span>
-                        <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", letterSpacing: 1 }}>OPO</span>
-                      </div>
-                      <span style={{ color: '#FF4444', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)' }}>{selectedConfronto.opponentWins}</span>
-                    </div>
+                    {(() => {
+                      const myData = multiplayerData.find(p => p.user_id === currentUserId);
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                          {/* My name + wins */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, minWidth: 100 }}>
+                            <span style={{ color: '#00FF00', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(0,255,0,0.6)', lineHeight: 1 }}>{selectedConfronto.youWins}</span>
+                            <span style={{ color: '#00E5FF', fontSize: 11, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, textAlign: 'right', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myData?.username || 'Você'}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: "'Orbitron',sans-serif", textAlign: 'right' }}>{myData?.rank || ''}</span>
+                          </div>
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 20, fontWeight: 700, fontFamily: "'Orbitron',sans-serif" }}>VS</span>
+                          {/* Opponent wins + name */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, minWidth: 100 }}>
+                            <span style={{ color: '#FF4444', fontSize: 48, fontWeight: 900, fontFamily: "'Orbitron',sans-serif", textShadow: '0 0 16px rgba(255,68,68,0.6)', lineHeight: 1 }}>{selectedConfronto.opponentWins}</span>
+                            <span style={{ color: selectedConfronto.is_vip ? selectedConfronto.vip_name_color : 'rgba(255,255,255,0.7)', fontSize: 11, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {selectedConfronto.is_vip && '💎'}{selectedConfronto.name}
+                            </span>
+                            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 9, fontFamily: "'Orbitron',sans-serif" }}>{selectedConfronto.rank}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {selectedConfronto.draws > 0 && (
                       <div style={{ color: '#FFD700', fontSize: 12, fontFamily: "'Orbitron',sans-serif", fontWeight: 700, marginTop: 8, textAlign: 'center' }}>{selectedConfronto.draws} empate{selectedConfronto.draws > 1 ? 's' : ''}</div>
                     )}
