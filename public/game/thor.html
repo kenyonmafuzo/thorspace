@@ -3328,7 +3328,8 @@ function resetRoundXPTracking() {
   roundCollisionLosses = 0;
   roundHitStreaks = {};
   p2ClutchThisRound = false;
-  wasLosingBeforeRound = (cpuDestroyed - playerDestroyed) < 0;
+  // Sticky: once true (was losing at any point), stays true until match reset
+  wasLosingBeforeRound = wasLosingBeforeRound || (cpuDestroyed - playerDestroyed) < 0;
 }
 
 // Processar eventos de round (chamado no final do round)
@@ -3609,6 +3610,7 @@ function resetMatchXP() {
   xpTotalMatch = 0;
   xpAlreadyApplied = false; // 🔓 Resetar flag para nova partida
   window.__matchEndEventsProcessed = false; // 🔓 Resetar flag de eventos de fim
+  wasLosingBeforeRound = false; // Reset explícito antes do primeiro round
   resetRoundXPTracking();
 }
 
