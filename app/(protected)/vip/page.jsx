@@ -41,10 +41,22 @@ export default function VIPPage() {
   // VIP activation modal — shown once after a successful purchase
   const [vipActivatedModal, setVipActivatedModal] = useState(null); // { plan_label, vip_starts, vip_expires }
 
-  // Reset to PIX when language is PT, Stripe for international users
+  // ── TEMP: Stripe test override ──────────────────────────────────────────────
+  // Remove this constant (and its use below) when Stripe is fully live.
+  const STRIPE_TEST_USER_IDS = [
+    "jesivida", // replace with actual Supabase user UUID if needed
+  ];
+  // ────────────────────────────────────────────────────────────────────────────
+
+  // Reset to PIX when language is PT, Stripe for international users.
+  // Exception: STRIPE_TEST_USER_IDS always default to Stripe regardless of region.
   useEffect(() => {
+    if (STRIPE_TEST_USER_IDS.includes(profileUserId)) {
+      setPaymentMethod("stripe");
+      return;
+    }
     setPaymentMethod(lang === "pt" ? "pix" : "stripe");
-  }, [lang]);
+  }, [lang, profileUserId]);
 
   const currentPlan = plans.find((p) => p.id === selectedPlan) || plans[3] || plans[0];
 
@@ -617,8 +629,8 @@ export default function VIPPage() {
               <span style={{ fontSize: 10, color: "#666" }}>{vip.debitSub}</span>
             </button>
 
-            {/* Stripe — international users only */}
-            {!isPT && (
+            {/* Stripe — international users + temp test override users */}
+            {(!isPT || STRIPE_TEST_USER_IDS.includes(profileUserId)) && (
               <button
                 onClick={() => setPaymentMethod("stripe")}
                 style={{
