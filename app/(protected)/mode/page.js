@@ -8,6 +8,8 @@ import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 
 export default function ModePage() {
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+    const [adminModals, setAdminModals] = useState([]); // queue of admin_news modal items
+    const [adminModalIdx, setAdminModalIdx] = useState(0);
     const { userId, isLoading: statsLoading } = useUserStats();
     
     // Reload automático após signup, só na primeira visita
@@ -60,7 +62,39 @@ export default function ModePage() {
     const handleCloseWelcome = () => {
       setShowWelcomeModal(false);
       localStorage.removeItem("thor_show_welcome");
+      // Show first admin modal (if any) right after welcome
+      setAdminModalIdx(0);
     };
+
+    // Load admin_news login modals on mount
+    useEffect(() => {
+      if (typeof window === "undefined") return;
+      const seenRaw = localStorage.getItem("thor_seen_news") || "[]";
+      let seen = [];
+      try { seen = JSON.parse(seenRaw); } catch {}
+      fetch("/api/news?delivery=modal")
+        .then(r => r.json())
+        .then(({ news }) => {
+          const unseen = (news || []).filter(n => !seen.includes(n.id));
+          setAdminModals(unseen);
+        })
+        .catch(() => {});
+    }, []);
+
+    const handleCloseAdminModal = () => {
+      const current = adminModals[adminModalIdx];
+      if (current) {
+        // Mark as seen
+        const seenRaw = localStorage.getItem("thor_seen_news") || "[]";
+        let seen = [];
+        try { seen = JSON.parse(seenRaw); } catch {}
+        seen.push(current.id);
+        localStorage.setItem("thor_seen_news", JSON.stringify(seen));
+      }
+      setAdminModalIdx(i => i + 1);
+    };
+
+    const currentAdminModal = !showWelcomeModal && adminModals[adminModalIdx] || null;
   const router = useRouter();
   const { t } = useI18n();
 
@@ -217,8 +251,59 @@ Boas batalhas!`}
           </div>
         </div>
       )}
+
+      {/* ADMIN NEWS MODAL */}
+      {currentAdminModal && (
+        <div
+          onClick={handleCloseAdminModal}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.85)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '20px', cursor: 'pointer',
+            animation: 'fadeIn 0.3s ease'
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.18) 0%, rgba(0,114,255,0.10) 100%)',
+              border: '2px solid rgba(99,102,241,0.5)',
+              borderRadius: 16, padding: '32px', maxWidth: 600, width: '100%',
+              animation: 'slideUp 0.4s ease', cursor: 'default',
+              boxShadow: '0 8px 32px rgba(99,102,241,0.25)'
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>📢 Anúncio</div>
+            <div style={{
+              fontSize: 24, fontWeight: 700, color: '#e0e7ff', marginBottom: 16,
+              fontFamily: "'Orbitron', sans-serif", textShadow: '0 0 20px rgba(99,102,241,0.5)'
+            }}>
+              {currentAdminModal.title}
+            </div>
+            <div style={{ fontSize: 15, lineHeight: 1.7, color: 'rgba(255,255,255,0.85)', marginBottom: 24, whiteSpace: 'pre-line' }}>
+              {currentAdminModal.body}
+            </div>
+            <button
+              onClick={handleCloseAdminModal}
+              style={{
+                width: '100%', padding: '12px 24px',
+                background: 'linear-gradient(90deg, #6366f1, #818cf8)',
+                color: '#fff', border: 'none', borderRadius: 10,
+                fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 16,
+                cursor: 'pointer', boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+                transition: 'transform 0.2s, box-shadow 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       
-      {/* �🌌 FUNDO DA GALÁXIA */}
+      {/* 🌌 FUNDO DA GALÁXIA */}
       <div
         id="galaxyBg"
         style={{

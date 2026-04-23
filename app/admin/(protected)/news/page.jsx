@@ -10,7 +10,7 @@ async function getNews({ page = 1 } = {}) {
   const offset = (page - 1) * 20;
   const { data, count, error } = await db
     .from("admin_news")
-    .select("id, title, body, published, published_at, created_at, admin_users(display_name)", { count: "exact" })
+    .select("id, title, body, published, published_at, show_as_login_modal, show_in_notifications, show_in_game_updates, created_at, admin_users(display_name)", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + 19);
   if (error) throw error;

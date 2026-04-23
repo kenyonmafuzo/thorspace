@@ -11,6 +11,8 @@ import { useI18n } from "@/src/hooks/useI18n";
 
 export default function InboxPage() {
   const [notifications, setNotifications] = useState([]);
+  const [globalNews, setGlobalNews] = useState([]);
+  const [gameUpdates, setGameUpdates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [userId, setUserId] = useState(null);
@@ -35,15 +37,23 @@ export default function InboxPage() {
           return;
         }
         setUserId(user.id);
-        // Busca notificações da tabela inbox
-        const { data: notifs, error: notifErr } = await supabase
-          .from("inbox")
-          .select("id, type, title, content, cta, cta_url, created_at, lang, meta")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+        // Fetch user inbox and global news in parallel
+        const [{ data: notifs, error: notifErr }, notifNewsRes, updatesRes] = await Promise.all([
+          supabase
+            .from("inbox")
+            .select("id, type, title, content, cta, cta_url, created_at, lang, meta")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+          fetch("/api/news?delivery=notifications").then(r => r.json()).catch(() => ({ news: [] })),
+          fetch("/api/news?delivery=game_updates").then(r => r.json()).catch(() => ({ news: [] })),
+        ]);
         if (notifErr) throw notifErr;
-        if (mounted) setNotifications(notifs || []);
-        
+        if (mounted) {
+          setNotifications(notifs || []);
+          setGlobalNews(notifNewsRes.news || []);
+          setGameUpdates(updatesRes.news || []);
+        }
+
         // Marcar todas as notificações como vistas (se a coluna viewed existir)
         if (notifs && notifs.length > 0) {
           try {
@@ -148,6 +158,22 @@ export default function InboxPage() {
                   </div>
                 ) : (
                   <div style={{ width: "100%", maxWidth: 480, marginLeft: 0, marginRight: "auto", marginBottom: 32 }}>
+                    {/* Global announcements pinned at top */}
+                    {globalNews.map(n => (
+                      <div key={`gn-${n.id}`} style={{
+                        marginBottom: 24,
+                        background: "rgba(99,102,241,0.12)",
+                        border: "1.5px solid #6366f155",
+                        borderRadius: 12,
+                        padding: 18,
+                        boxShadow: "0 2px 12px #6366f111",
+                      }}>
+                        <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>📢 Anúncio</div>
+                        <div style={{ fontSize: 15, color: "#e0e7ff", fontWeight: 700, marginBottom: 6 }}>{n.title}</div>
+                        <div style={{ fontSize: 14, color: "#a5b4fc", whiteSpace: "pre-line" }}>{n.body}</div>
+                        <div style={{ fontSize: 12, color: "#6366f1", marginTop: 8 }}>{new Date(n.created_at).toLocaleDateString("pt-BR")}</div>
+                      </div>
+                    ))}
                     {notifications.map((notif, idx) => {
                       // Fonte do texto: prioriza notif.content, t(...) só como fallback
                       let text, notifTitle;
@@ -329,18 +355,39 @@ export default function InboxPage() {
               <div>
                 <h2 style={{ fontFamily: "'Orbitron',sans-serif", fontWeight: 700, fontSize: 22, marginBottom: 2 }}>{t("inbox.updatesTitle") || "Game Updates"}</h2>
                 <div style={{ fontSize: 14, color: "#9FF6FF", marginBottom: 18 }}>{t("inbox.updatesDesc") || "Latest news and patch notes"}</div>
-                <div style={{
-                  background: "rgba(0,229,255,0.07)",
-                  border: "1px solid #00E5FF22",
-                  borderRadius: 12,
-                  padding: 32,
-                  marginBottom: 32,
-                  textAlign: "center",
-                  maxWidth: 420
-                }}>
-                  <div style={{ fontSize: 17, fontWeight: 700, color: "#9FF6FF", marginBottom: 6 }}>{t("inbox.noUpdates") || "No updates yet."}</div>
-                  <div style={{ fontSize: 13, color: "#b3eaff", opacity: 0.7 }}>{t("inbox.noUpdatesDesc") || "Game updates and patch notes will appear here soon."}</div>
-                </div>
+                {loading ? (
+                  <div style={{ fontSize: 16, opacity: 0.7, marginBottom: 24 }}>Loading…</div>
+                ) : gameUpdates.length === 0 ? (
+                  <div style={{
+                    background: "rgba(0,229,255,0.07)",
+                    border: "1px solid #00E5FF22",
+                    borderRadius: 12,
+                    padding: 32,
+                    marginBottom: 32,
+                    textAlign: "center",
+                    maxWidth: 420
+                  }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: "#9FF6FF", marginBottom: 6 }}>{t("inbox.noUpdates") || "No updates yet."}</div>
+                    <div style={{ fontSize: 13, color: "#b3eaff", opacity: 0.7 }}>{t("inbox.noUpdatesDesc") || "Game updates and patch notes will appear here soon."}</div>
+                  </div>
+                ) : (
+                  <div style={{ width: "100%", maxWidth: 480, marginLeft: 0, marginRight: "auto", marginBottom: 32 }}>
+                    {gameUpdates.map(n => (
+                      <div key={n.id} style={{
+                        marginBottom: 24,
+                        background: "rgba(0,229,255,0.07)",
+                        border: "1.5px solid #00E5FF33",
+                        borderRadius: 12,
+                        padding: 18,
+                        boxShadow: "0 2px 12px #00e5ff11",
+                      }}>
+                        <div style={{ fontSize: 15, color: "#9FF6FF", fontWeight: 700, marginBottom: 6 }}>{n.title}</div>
+                        <div style={{ fontSize: 14, color: "#b3eaff", whiteSpace: "pre-line" }}>{n.body}</div>
+                        <div style={{ fontSize: 12, color: "#4dd8f0", marginTop: 8 }}>{new Date(n.created_at).toLocaleDateString("pt-BR")}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -8,7 +8,7 @@ export async function POST(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { title, body, published } = await request.json();
+    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates } = await request.json();
     if (!title || !body) return NextResponse.json({ error: "Título e conteúdo obrigatórios" }, { status: 400 });
 
     const db = getAdminClient();
@@ -17,6 +17,9 @@ export async function POST(request) {
       body,
       published: !!published,
       published_at: published ? new Date().toISOString() : null,
+      show_as_login_modal: !!show_as_login_modal,
+      show_in_notifications: !!show_in_notifications,
+      show_in_game_updates: !!show_in_game_updates,
       created_by: session.id,
     }).select("id").single();
 
@@ -33,12 +36,16 @@ export async function PATCH(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { id, published } = await request.json();
+    const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates } = await request.json();
+    if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
     const db = getAdminClient();
-    await db.from("admin_news").update({
-      published,
-      published_at: published ? new Date().toISOString() : null,
-    }).eq("id", id);
+    const update = { published, published_at: published ? new Date().toISOString() : null };
+    if (title !== undefined) update.title = title;
+    if (body !== undefined) update.body = body;
+    if (show_as_login_modal !== undefined) update.show_as_login_modal = !!show_as_login_modal;
+    if (show_in_notifications !== undefined) update.show_in_notifications = !!show_in_notifications;
+    if (show_in_game_updates !== undefined) update.show_in_game_updates = !!show_in_game_updates;
+    await db.from("admin_news").update(update).eq("id", id);
     await auditLog({ adminUserId: session.id, action: published ? "news.publish" : "news.unpublish", targetType: "news", targetId: id });
     return NextResponse.json({ ok: true });
   } catch (err) {

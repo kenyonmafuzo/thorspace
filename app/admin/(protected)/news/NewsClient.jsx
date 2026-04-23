@@ -10,116 +10,143 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
+const EMPTY_FORM = {
+  title: "", body: "", published: false,
+  show_as_login_modal: false, show_in_notifications: false, show_in_game_updates: false,
+};
+
+function Toggle({ label, hint, checked, onChange, disabled }) {
+  return (
+    <label className={styles.toggleRow}>
+      <div className={styles.toggleInfo}>
+        <span className={styles.toggleLabel}>{label}</span>
+        {hint && <span className={styles.toggleHint}>{hint}</span>}
+      </div>
+      <button type="button" role="switch" aria-checked={checked}
+        className={`${styles.toggle} ${checked ? styles.toggleOn : ""}`}
+        onClick={() => onChange(!checked)} disabled={disabled}>
+        <span className={styles.toggleThumb} />
+      </button>
+    </label>
+  );
+}
+
+function DeliveryBadge({ label, active }) {
+  if (!active) return null;
+  return <span className={styles.deliveryBadge}>{label}</span>;
+}
+
+function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
+  const [form, setForm] = useState(initial);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  return (
+    <form className={styles.form} onSubmit={e => { e.preventDefault(); onSave(form); }}>
+      {msg?.error && <p className={styles.error}>{msg.error}</p>}
+      {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
+      <label className={styles.label}>
+        Título
+        <input className={styles.input} value={form.title} onChange={e => set("title", e.target.value)} required disabled={loading} />
+      </label>
+      <label className={styles.label}>
+        Conteúdo
+        <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
+      </label>
+      <div className={styles.toggleGroup}>
+        <span className={styles.toggleGroupLabel}>Onde mostrar</span>
+        <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
+        <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
+        <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
+        <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
+      </div>
+      <div className={styles.formActions}>
+        <button className={styles.submitBtn} type="submit" disabled={loading}>{loading ? "Salvando…" : "Salvar"}</button>
+        <button className={styles.cancelBtn} type="button" onClick={onCancel} disabled={loading}>Cancelar</button>
+      </div>
+    </form>
+  );
+}
+
 export default function NewsClient({ news, total, page, adminId }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [published, setPublished] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState(null);
+  const [editItem, setEditItem] = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [msg, setMsg]           = useState(null);
 
   const totalPages = Math.ceil(total / 20);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setMsg(null);
-    setLoading(true);
+  async function handleCreate(form) {
+    setMsg(null); setLoading(true);
     try {
-      const res = await fetch("/api/admin/news", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, published }),
-      });
+      const res = await fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setMsg({ error: data.error }); return; }
-      setMsg({ ok: "Notícia criada!" });
-      setTitle(""); setBody(""); setPublished(false); setShowForm(false);
-      router.refresh();
-    } catch { setMsg({ error: "Erro de conexão" }); }
-    finally { setLoading(false); }
+      setMsg({ ok: "Notícia criada!" }); setShowForm(false); router.refresh();
+    } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
   }
 
-  async function togglePublish(id, current) {
-    await fetch("/api/admin/news", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, published: !current }),
-    });
+  async function handleEdit(form) {
+    setMsg(null); setLoading(true);
+    try {
+      const res = await fetch("/api/admin/news", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editItem.id, ...form }) });
+      const data = await res.json();
+      if (!res.ok) { setMsg({ error: data.error }); return; }
+      setMsg({ ok: "Salvo!" }); setEditItem(null); router.refresh();
+    } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
+  }
+
+  async function handleDelete(id) {
+    if (!confirm("Apagar esta notícia permanentemente?")) return;
+    await fetch("/api/admin/news", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     router.refresh();
   }
 
-  async function deleteNews(id) {
-    if (!confirm("Apagar esta notícia?")) return;
-    await fetch("/api/admin/news", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    router.refresh();
+  if (editItem) {
+    return (
+      <div>
+        <button className={styles.back} onClick={() => { setEditItem(null); setMsg(null); }}>← Voltar</button>
+        <h1 className={styles.pageTitle}>Editar notícia</h1>
+        <NewsForm
+          initial={{ title: editItem.title, body: editItem.body, published: editItem.published, show_as_login_modal: editItem.show_as_login_modal ?? false, show_in_notifications: editItem.show_in_notifications ?? false, show_in_game_updates: editItem.show_in_game_updates ?? false }}
+          onSave={handleEdit} onCancel={() => { setEditItem(null); setMsg(null); }} loading={loading} msg={msg}
+        />
+      </div>
+    );
   }
 
   return (
     <div>
       <div className={styles.header}>
         <h1 className={styles.pageTitle}>Notícias</h1>
-        <button className={styles.newBtn} onClick={() => setShowForm(!showForm)}>
+        <button className={styles.newBtn} onClick={() => { setShowForm(!showForm); setMsg(null); }}>
           {showForm ? "✕ Cancelar" : "+ Nova notícia"}
         </button>
       </div>
 
-      {showForm && (
-        <form className={styles.form} onSubmit={handleSubmit}>
-          <h2 className={styles.formTitle}>Nova notícia</h2>
-          {msg?.error && <p className={styles.error}>{msg.error}</p>}
-          {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
-
-          <label className={styles.label}>
-            Título
-            <input className={styles.input} value={title} onChange={e => setTitle(e.target.value)} required disabled={loading} />
-          </label>
-          <label className={styles.label}>
-            Conteúdo
-            <textarea className={styles.textarea} value={body} onChange={e => setBody(e.target.value)} required disabled={loading} rows={5} />
-          </label>
-          <label className={styles.checkLabel}>
-            <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} disabled={loading} />
-            Publicar imediatamente
-          </label>
-          <button className={styles.submitBtn} type="submit" disabled={loading}>
-            {loading ? "Salvando…" : "Criar notícia"}
-          </button>
-        </form>
-      )}
+      {showForm && <NewsForm onSave={handleCreate} onCancel={() => { setShowForm(false); setMsg(null); }} loading={loading} msg={msg} />}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
-            <tr>
-              <th>Título</th>
-              <th>Status</th>
-              <th>Criado em</th>
-              <th>Publicado em</th>
-              <th></th>
-            </tr>
+            <tr><th>Título</th><th>Entrega</th><th>Status</th><th>Criado em</th><th></th></tr>
           </thead>
           <tbody>
             {news.length === 0 && <tr><td colSpan={5} className={styles.empty}>Sem notícias ainda.</td></tr>}
             {news.map(n => (
               <tr key={n.id}>
                 <td className={styles.titleCell}>{n.title}</td>
-                <td>
-                  <span className={`${styles.badge} ${n.published ? styles.published : styles.draft}`}>
-                    {n.published ? "Publicado" : "Rascunho"}
-                  </span>
+                <td className={styles.deliveryCell}>
+                  <DeliveryBadge label="Modal" active={n.show_as_login_modal} />
+                  <DeliveryBadge label="Notif." active={n.show_in_notifications} />
+                  <DeliveryBadge label="Updates" active={n.show_in_game_updates} />
+                  {!n.show_as_login_modal && !n.show_in_notifications && !n.show_in_game_updates && <span className={styles.noneTag}>—</span>}
                 </td>
+                <td><span className={`${styles.badge} ${n.published ? styles.published : styles.draft}`}>{n.published ? "Publicado" : "Rascunho"}</span></td>
                 <td>{formatDate(n.created_at)}</td>
-                <td>{formatDate(n.published_at)}</td>
                 <td className={styles.actions}>
-                  <button className={styles.actionBtn} onClick={() => togglePublish(n.id, n.published)}>
-                    {n.published ? "Despublicar" : "Publicar"}
-                  </button>
-                  <button className={styles.deleteBtn} onClick={() => deleteNews(n.id)}>Apagar</button>
+                  <button className={styles.actionBtn} onClick={() => { setEditItem(n); setMsg(null); }}>Editar</button>
+                  <button className={styles.deleteBtn} onClick={() => handleDelete(n.id)}>Apagar</button>
                 </td>
               </tr>
             ))}
