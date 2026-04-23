@@ -1,0 +1,72 @@
+/* app/admin/(protected)/news/news.module.css */
+
+.header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+.pageTitle { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin: 0; }
+
+.newBtn {
+  background: #6366f1; color: #fff; border: none; border-radius: 8px;
+  padding: 0.55rem 1rem; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  transition: background 0.12s;
+}
+.newBtn:hover { background: #5254cc; }
+
+.form {
+  background: #1a1f2e; border: 1px solid #1e2540; border-radius: 10px;
+  padding: 1.5rem; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.9rem;
+}
+.formTitle { font-size: 1rem; font-weight: 700; color: #94a3b8; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.82rem; color: #64748b; }
+.input, .textarea {
+  background: #0f1117; border: 1px solid #2d3448; border-radius: 8px;
+  padding: 0.55rem 0.8rem; color: #e2e8f0; font-size: 0.9rem; outline: none;
+}
+.input:focus, .textarea:focus { border-color: #6366f1; }
+.textarea { resize: vertical; font-family: inherit; }
+
+.checkLabel { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #94a3b8; cursor: pointer; }
+
+.submitBtn {
+  background: #6366f1; color: #fff; border: none; border-radius: 8px;
+  padding: 0.6rem 1rem; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  align-self: flex-start; transition: background 0.12s;
+}
+.submitBtn:hover { background: #5254cc; }
+.submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tableWrap { background: #1a1f2e; border: 1px solid #1e2540; border-radius: 10px; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.table th {
+  text-align: left; padding: 0.6rem 0.9rem; color: #64748b; font-weight: 600;
+  border-bottom: 1px solid #1e2540; font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 0.05em; background: #141828;
+}
+.table td { padding: 0.65rem 0.9rem; color: #cbd5e1; border-bottom: 1px solid #1a2035; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: #141828; }
+.titleCell { font-weight: 600; color: #e2e8f0; max-width: 300px; }
+.empty { text-align: center; color: #475569; padding: 2rem; }
+
+.badge { border-radius: 5px; padding: 0.2rem 0.55rem; font-size: 0.75rem; font-weight: 600; }
+.published { background: #052e16; color: #4ade80; }
+.draft     { background: #2d2000; color: #fbbf24; }
+
+.actions { display: flex; gap: 0.5rem; }
+.actionBtn {
+  background: none; border: 1px solid #2d3448; border-radius: 6px;
+  padding: 0.25rem 0.65rem; color: #818cf8; font-size: 0.78rem; cursor: pointer; transition: all 0.12s;
+}
+.actionBtn:hover { background: #1e2a50; border-color: #6366f1; }
+.deleteBtn {
+  background: none; border: 1px solid #3f1515; border-radius: 6px;
+  padding: 0.25rem 0.65rem; color: #f87171; font-size: 0.78rem; cursor: pointer; transition: all 0.12s;
+}
+.deleteBtn:hover { background: #3f0f0f; }
+
+.success { background: #052e16; border: 1px solid #166534; border-radius: 6px; padding: 0.45rem 0.75rem; color: #4ade80; font-size: 0.83rem; margin: 0; }
+.error   { background: #3f0f0f; border: 1px solid #7f1d1d; border-radius: 6px; padding: 0.45rem 0.75rem; color: #fca5a5; font-size: 0.83rem; margin: 0; }
+
+.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.pageBtn { background: #1a1f2e; border: 1px solid #2d3448; border-radius: 8px; padding: 0.5rem 1rem; color: #94a3b8; font-size: 0.85rem; cursor: pointer; transition: all 0.12s; }
+.pageBtn:hover { border-color: #6366f1; color: #818cf8; }
+.pageInfo { color: #64748b; font-size: 0.85rem; }

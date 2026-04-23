@@ -53,7 +53,7 @@ export default function UsersClient({ users, total, page, search: initSearch, fi
         <input
           className={styles.searchInput}
           type="search"
-          placeholder="Buscar por username, email ou nome…"
+          placeholder="Buscar por username…"
           value={searchVal}
           onChange={handleSearchChange}
         />
@@ -75,8 +75,6 @@ export default function UsersClient({ users, total, page, search: initSearch, fi
           <thead>
             <tr>
               <th>Username</th>
-              <th>Email</th>
-              <th>Level</th>
               <th>VIP</th>
               <th>Plano</th>
               <th>Membro desde</th>
@@ -92,8 +90,6 @@ export default function UsersClient({ users, total, page, search: initSearch, fi
             {users.map((u) => (
               <tr key={u.id} className={isPending ? styles.dimmed : ""}>
                 <td className={styles.username}>{u.username ?? "—"}</td>
-                <td className={styles.email}>{u.email ?? "—"}</td>
-                <td>{u.level ?? 1}</td>
                 <td><VipBadge isVip={u.is_vip} expiresAt={u.vip_expires_at} /></td>
                 <td>{u.vip_plan ?? "—"}</td>
                 <td>{formatDate(u.created_at)}</td>

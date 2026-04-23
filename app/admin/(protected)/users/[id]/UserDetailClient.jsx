@@ -62,8 +62,7 @@ export default function UserDetailClient({ user }) {
             <tbody>
               <Row label="ID"        value={user.id} mono />
               <Row label="Username"  value={user.username} />
-              <Row label="Email"     value={user.email} />
-              <Row label="Level"     value={user.level} />
+              <Row label="Level"     value={user.player_progress?.level ?? "—"} />
               <Row label="VIP"       value={user.is_vip ? "✅ Ativo" : "❌ Inativo"} />
               <Row label="Expira em" value={formatDate(user.vip_expires_at)} />
               <Row label="Plano"     value={user.vip_plan ?? "—"} />
