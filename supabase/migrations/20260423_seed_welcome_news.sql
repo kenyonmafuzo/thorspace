@@ -10,7 +10,8 @@ INSERT INTO admin_news (
   published_at,
   show_as_login_modal,
   show_in_notifications,
-  show_in_game_updates
+  show_in_game_updates,
+  lang
 )
 VALUES (
   'Bem-vindo(a) ao Thorspace!',
@@ -32,5 +33,6 @@ Boas batalhas!',
   now(),
   false,       -- show_as_login_modal: false por ora — o modal hardcoded ainda existe
   false,       -- show_in_notifications
-  false        -- show_in_game_updates
+  false,       -- show_in_game_updates
+  'pt'         -- lang
 );
