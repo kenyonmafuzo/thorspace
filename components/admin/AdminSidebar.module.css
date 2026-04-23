@@ -1,0 +1,98 @@
+/* components/admin/AdminSidebar.module.css */
+
+.sidebar {
+  width: 220px;
+  min-height: 100vh;
+  background: #13172b;
+  border-right: 1px solid #1e2540;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 0;
+  flex-shrink: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1.5rem;
+  border-bottom: 1px solid #1e2540;
+}
+.brandIcon { font-size: 1.3rem; }
+.brandText {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 1rem 0.5rem;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.12s, color 0.12s;
+}
+.navItem:hover {
+  background: #1e2540;
+  color: #e2e8f0;
+}
+.navItem.active {
+  background: #1e2a50;
+  color: #818cf8;
+  font-weight: 600;
+}
+.navIcon { font-size: 1rem; width: 1.2rem; text-align: center; }
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0;
+  border-top: 1px solid #1e2540;
+}
+.adminInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.adminName {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+.adminRole {
+  font-size: 0.7rem;
+  color: #6366f1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.logoutBtn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.3rem;
+  border-radius: 6px;
+  transition: color 0.12s, background 0.12s;
+}
+.logoutBtn:hover { color: #f87171; background: #2a1f1f; }

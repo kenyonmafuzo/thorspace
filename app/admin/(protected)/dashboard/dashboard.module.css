@@ -1,0 +1,112 @@
+/* app/admin/(protected)/dashboard/dashboard.module.css */
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 1.5rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  background: #1a1f2e;
+  border: 1px solid #1e2540;
+  border-top: 3px solid #6366f1;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.statValue {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.section {
+  background: #1a1f2e;
+  border: 1px solid #1e2540;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin: 0 0 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.empty {
+  color: #475569;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  border-bottom: 1px solid #1e2540;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table td {
+  padding: 0.6rem 0.75rem;
+  color: #cbd5e1;
+  border-bottom: 1px solid #1a2035;
+}
+
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: #141828; }
+
+.emailCell {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.82rem;
+}
+
+.badge {
+  background: #1e2540;
+  color: #94a3b8;
+  border-radius: 4px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.75rem;
+}
+
+.statusBadge {
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status_paid     { background: #052e16; color: #4ade80; }
+.status_failed   { background: #3f0f0f; color: #f87171; }
+.status_pending  { background: #2d2000; color: #fbbf24; }
+.status_refunded { background: #1e1050; color: #a78bfa; }

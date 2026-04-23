@@ -1,0 +1,15 @@
+/* app/admin/admin.module.css */
+
+.root {
+  display: flex;
+  min-height: 100vh;
+  background: #0f1117;
+  color: #e2e8f0;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.main {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}

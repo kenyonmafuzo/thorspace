@@ -1,0 +1,51 @@
+/* app/admin/(protected)/payments/payments.module.css */
+
+.header { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem; }
+.pageTitle { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin: 0; }
+.total { font-size: 0.85rem; color: #475569; }
+
+.tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.tab {
+  text-decoration: none;
+  background: #1a1f2e;
+  border: 1px solid #2d3448;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  transition: all 0.12s;
+}
+.tab:hover { border-color: #6366f1; color: #818cf8; }
+.tabActive { background: #1e2a50; border-color: #6366f1; color: #818cf8; font-weight: 600; }
+
+.tableWrap { background: #1a1f2e; border: 1px solid #1e2540; border-radius: 10px; overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.table th {
+  text-align: left; padding: 0.6rem 0.9rem; color: #64748b; font-weight: 600;
+  border-bottom: 1px solid #1e2540; font-size: 0.75rem; text-transform: uppercase;
+  letter-spacing: 0.05em; background: #141828;
+}
+.table td { padding: 0.65rem 0.9rem; color: #cbd5e1; border-bottom: 1px solid #1a2035; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: #141828; }
+
+.mono { font-family: var(--font-geist-mono), monospace; font-size: 0.78rem; color: #94a3b8; word-break: break-all; }
+.amount { font-weight: 600; color: #e2e8f0; }
+.empty { text-align: center; color: #475569; padding: 2rem; }
+
+.badge { background: #1e2540; color: #94a3b8; border-radius: 4px; padding: 0.15rem 0.45rem; font-size: 0.75rem; }
+
+.statusBadge { border-radius: 4px; padding: 0.15rem 0.5rem; font-size: 0.75rem; font-weight: 600; }
+.s_paid     { background: #052e16; color: #4ade80; }
+.s_failed   { background: #3f0f0f; color: #f87171; }
+.s_pending  { background: #2d2000; color: #fbbf24; }
+.s_refunded { background: #1e1050; color: #a78bfa; }
+
+.pagination { display: flex; align-items: center; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.pageBtn {
+  text-decoration: none;
+  background: #1a1f2e; border: 1px solid #2d3448; border-radius: 8px;
+  padding: 0.5rem 1rem; color: #94a3b8; font-size: 0.85rem; transition: all 0.12s;
+}
+.pageBtn:hover { border-color: #6366f1; color: #818cf8; }
+.pageInfo { color: #64748b; font-size: 0.85rem; }
