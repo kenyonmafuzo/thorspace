@@ -10,6 +10,7 @@ const NAV = [
   { href: "/admin/users",     icon: "👥", label: "Usuários" },
   { href: "/admin/vip",       icon: "⭐", label: "VIP" },
   { href: "/admin/payments",  icon: "💳", label: "Pagamentos" },
+  { href: "/admin/analytics", icon: "📊", label: "Analytics" },
   { href: "/admin/news",      icon: "📰", label: "Notícias" },
   { href: "/admin/assets",    icon: "🎮", label: "Assets" },
   { href: "/admin/audit",     icon: "📋", label: "Auditoria" },

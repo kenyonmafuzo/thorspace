@@ -1,0 +1,72 @@
+/* app/admin/(protected)/analytics/analytics.module.css */
+
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;
+}
+.pageTitle { font-size: 1.5rem; font-weight: 700; color: #e2e8f0; margin: 0; }
+
+.periodTabs { display: flex; gap: 0.35rem; }
+.periodBtn {
+  background: #1a1f2e; border: 1px solid #2d3448; border-radius: 7px;
+  padding: 0.4rem 0.9rem; color: #64748b; font-size: 0.83rem; font-weight: 600;
+  cursor: pointer; transition: all 0.12s;
+}
+.periodBtn:hover { border-color: #6366f1; color: #a5b4fc; }
+.periodActive { background: #1e2a50; border-color: #6366f1; color: #818cf8; }
+
+/* ── Stat cards ── */
+.statsGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.statCard {
+  background: #1a1f2e; border: 1px solid #1e2540; border-radius: 10px;
+  padding: 1.1rem 1.25rem;
+}
+.statLabel { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.35rem; }
+.statValue { font-size: 1.8rem; font-weight: 800; color: #e2e8f0; line-height: 1; margin-bottom: 0.25rem; }
+.statChange { font-size: 0.75rem; font-weight: 600; }
+.up   { color: #4ade80; }
+.down { color: #f87171; }
+.statSub { font-size: 0.73rem; color: #475569; margin-top: 0.2rem; }
+
+/* ── Cards ── */
+.card {
+  background: #1a1f2e; border: 1px solid #1e2540; border-radius: 10px;
+  padding: 1.25rem; margin-bottom: 1.25rem;
+}
+.cardTitle { font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 1rem; }
+
+/* ── Two-column layout ── */
+.twoCol { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+@media (max-width: 900px) { .twoCol { grid-template-columns: 1fr; } }
+
+/* ── Bar chart ── */
+.barChart { display: flex; flex-direction: column; gap: 0.55rem; }
+.barRow { display: flex; align-items: center; gap: 0.6rem; }
+.barLabel { font-size: 0.8rem; color: #94a3b8; min-width: 130px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barTrack { flex: 1; height: 8px; background: #0f1117; border-radius: 4px; overflow: hidden; }
+.barFill  { height: 100%; border-radius: 4px; transition: width 0.4s ease; min-width: 2px; }
+.barValue { font-size: 0.78rem; color: #64748b; min-width: 36px; text-align: right; }
+
+/* ── SVG chart ── */
+.chartWrap { position: relative; }
+.svg { width: 100%; height: 90px; display: block; }
+.chartLabels { display: flex; justify-content: space-between; margin-top: 4px; }
+.chartLabel  { font-size: 0.7rem; color: #475569; }
+
+/* ── Table ── */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.table th {
+  text-align: left; padding: 0.5rem 0.75rem; color: #64748b; font-weight: 600;
+  border-bottom: 1px solid #1e2540; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.05em; background: #141828; white-space: nowrap;
+}
+.table td { padding: 0.55rem 0.75rem; color: #cbd5e1; border-bottom: 1px solid #1a2035; }
+.table tr:last-child td { border-bottom: none; }
+.table tbody tr:hover { background: #141828; }
+
+.mono { font-family: monospace; font-size: 0.78rem; color: #94a3b8; white-space: nowrap; }
+.path { color: #a5b4fc; font-size: 0.8rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref  { color: #64748b; font-size: 0.8rem; }
+.dim  { color: #334155; }
+.empty { text-align: center; color: #475569; padding: 2rem; font-size: 0.88rem; }
