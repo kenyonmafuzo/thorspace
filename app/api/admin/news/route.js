@@ -40,7 +40,22 @@ export async function PATCH(request) {
     const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang } = await request.json();
     if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
     const db = getAdminClient();
-    const update = { published, published_at: published ? new Date().toISOString() : null };
+
+    // Only update published_at when transitioning from unpublished → published
+    // (fetch current state to know if it was already published)
+    const { data: current } = await db.from("admin_news").select("published, published_at").eq("id", id).single();
+    const wasPublished = current?.published ?? false;
+
+    const update = { published };
+    if (published && !wasPublished) {
+      // Newly published — set published_at now
+      update.published_at = new Date().toISOString();
+    } else if (!published) {
+      // Unpublishing — clear published_at
+      update.published_at = null;
+    }
+    // If already published and staying published — keep original published_at untouched
+
     if (title !== undefined) update.title = title;
     if (body !== undefined) update.body = body;
     if (show_as_login_modal !== undefined) update.show_as_login_modal = !!show_as_login_modal;
