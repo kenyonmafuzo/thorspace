@@ -3,9 +3,24 @@
 import { useEffect, useState, useCallback } from "react";
 import { getDictionary } from "@/src/i18n";
 
+function getInitialLang() {
+  if (typeof window === "undefined") return "pt";
+  try {
+    const stored = localStorage.getItem("thor_settings_v1");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return parsed?.ui?.language || "pt";
+    }
+    const browserLang = navigator.language || "";
+    return browserLang.toLowerCase().startsWith("pt") ? "pt" : "en";
+  } catch {
+    return "pt";
+  }
+}
+
 export function useI18n() {
-  const [lang, setLang] = useState("pt");
-  const [dict, setDict] = useState(getDictionary("pt"));
+  const [lang, setLang] = useState(() => getInitialLang());
+  const [dict, setDict] = useState(() => getDictionary(getInitialLang()));
 
   const updateLanguage = useCallback(() => {
     try {

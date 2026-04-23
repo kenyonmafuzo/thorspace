@@ -73,7 +73,7 @@ export default function InboxPage() {
     }
     fetchNotifications();
     return () => { mounted = false; };
-  }, []);
+  }, [lang]);
 
   // Nenhuma ação direta nas notificações
 
