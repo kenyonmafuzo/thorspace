@@ -11,6 +11,8 @@ export default function ModePage() {
     const [adminModals, setAdminModals] = useState([]); // queue of admin_news modal items
     const [adminModalIdx, setAdminModalIdx] = useState(0);
     const { userId, isLoading: statsLoading } = useUserStats();
+    const router = useRouter();
+    const { t, lang } = useI18n();
     
     // Reload automático após signup, só na primeira visita
     useEffect(() => {
@@ -95,8 +97,6 @@ export default function ModePage() {
     };
 
     const currentAdminModal = !showWelcomeModal && adminModals[adminModalIdx] || null;
-  const router = useRouter();
-  const { t, lang } = useI18n();
 
   // Auth guard via context — sem network call, instantâneo após hydration
   useEffect(() => {
