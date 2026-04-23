@@ -11,9 +11,22 @@ function formatDate(iso) {
 }
 
 const EMPTY_FORM = {
-  title: "", body: "", published: false,
+  title: "", body: "", published: false, lang: "all",
   show_as_login_modal: false, show_in_notifications: false, show_in_game_updates: false,
 };
+
+const LANG_LABELS = { all: "Todos os idiomas", pt: "Português", en: "Inglês", es: "Espanhol" };
+const LANG_COLORS = { all: { bg: "#1e2a50", color: "#818cf8" }, pt: { bg: "#052e16", color: "#4ade80" }, en: { bg: "#1e3a5f", color: "#60a5fa" }, es: { bg: "#3b1f00", color: "#fb923c" } };
+
+function LangBadge({ lang }) {
+  const l = lang ?? "all";
+  const c = LANG_COLORS[l] ?? LANG_COLORS.all;
+  return (
+    <span style={{ background: c.bg, color: c.color, border: `1px solid ${c.color}44`, borderRadius: 5, padding: "0.15rem 0.45rem", fontSize: "0.7rem", fontWeight: 700, whiteSpace: "nowrap" }}>
+      {LANG_LABELS[l] ?? l}
+    </span>
+  );
+}
 
 function Toggle({ label, hint, checked, onChange, disabled }) {
   return (
@@ -51,6 +64,15 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
       <label className={styles.label}>
         Conteúdo
         <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
+      </label>
+      <label className={styles.label}>
+        Idioma
+        <select className={styles.input} value={form.lang} onChange={e => set("lang", e.target.value)} disabled={loading}>
+          <option value="all">Todos os idiomas (PT + EN + ES)</option>
+          <option value="pt">Português</option>
+          <option value="en">Inglês</option>
+          <option value="es">Espanhol</option>
+        </select>
       </label>
       <div className={styles.toggleGroup}>
         <span className={styles.toggleGroupLabel}>Onde mostrar</span>
@@ -108,7 +130,7 @@ export default function NewsClient({ news, total, page, adminId }) {
         <button className={styles.back} onClick={() => { setEditItem(null); setMsg(null); }}>← Voltar</button>
         <h1 className={styles.pageTitle}>Editar notícia</h1>
         <NewsForm
-          initial={{ title: editItem.title, body: editItem.body, published: editItem.published, show_as_login_modal: editItem.show_as_login_modal ?? false, show_in_notifications: editItem.show_in_notifications ?? false, show_in_game_updates: editItem.show_in_game_updates ?? false }}
+          initial={{ title: editItem.title, body: editItem.body, published: editItem.published, lang: editItem.lang ?? "all", show_as_login_modal: editItem.show_as_login_modal ?? false, show_in_notifications: editItem.show_in_notifications ?? false, show_in_game_updates: editItem.show_in_game_updates ?? false }}
           onSave={handleEdit} onCancel={() => { setEditItem(null); setMsg(null); }} loading={loading} msg={msg}
         />
       </div>
@@ -129,13 +151,14 @@ export default function NewsClient({ news, total, page, adminId }) {
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
-            <tr><th>Título</th><th>Entrega</th><th>Status</th><th>Criado em</th><th></th></tr>
+            <tr><th>Título</th><th>Idioma</th><th>Entrega</th><th>Status</th><th>Criado em</th><th></th></tr>
           </thead>
           <tbody>
             {news.length === 0 && <tr><td colSpan={5} className={styles.empty}>Sem notícias ainda.</td></tr>}
             {news.map(n => (
               <tr key={n.id}>
                 <td className={styles.titleCell}>{n.title}</td>
+                <td><LangBadge lang={n.lang} /></td>
                 <td className={styles.deliveryCell}>
                   <DeliveryBadge label="Modal" active={n.show_as_login_modal} />
                   <DeliveryBadge label="Notif." active={n.show_in_notifications} />

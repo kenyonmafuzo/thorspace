@@ -72,14 +72,14 @@ export default function ModePage() {
       const seenRaw = localStorage.getItem("thor_seen_news") || "[]";
       let seen = [];
       try { seen = JSON.parse(seenRaw); } catch {}
-      fetch("/api/news?delivery=modal")
+      fetch(`/api/news?delivery=modal&lang=${lang}`)
         .then(r => r.json())
         .then(({ news }) => {
           const unseen = (news || []).filter(n => !seen.includes(n.id));
           setAdminModals(unseen);
         })
         .catch(() => {});
-    }, []);
+    }, [lang]);
 
     const handleCloseAdminModal = () => {
       const current = adminModals[adminModalIdx];
@@ -96,7 +96,7 @@ export default function ModePage() {
 
     const currentAdminModal = !showWelcomeModal && adminModals[adminModalIdx] || null;
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   // Auth guard via context — sem network call, instantâneo após hydration
   useEffect(() => {

@@ -44,8 +44,8 @@ export default function InboxPage() {
             .select("id, type, title, content, cta, cta_url, created_at, lang, meta")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false }),
-          fetch("/api/news?delivery=notifications").then(r => r.json()).catch(() => ({ news: [] })),
-          fetch("/api/news?delivery=game_updates").then(r => r.json()).catch(() => ({ news: [] })),
+          fetch(`/api/news?delivery=notifications&lang=${lang}`).then(r => r.json()).catch(() => ({ news: [] })),
+          fetch(`/api/news?delivery=game_updates&lang=${lang}`).then(r => r.json()).catch(() => ({ news: [] })),
         ]);
         if (notifErr) throw notifErr;
         if (mounted) {
