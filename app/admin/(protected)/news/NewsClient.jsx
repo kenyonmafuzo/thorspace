@@ -49,52 +49,9 @@ function DeliveryBadge({ label, active }) {
   return <span className={styles.deliveryBadge}>{label}</span>;
 }
 
-function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
-  const [form, setForm] = useState(initial);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  return (
-    <form className={styles.form} onSubmit={e => { e.preventDefault(); onSave(form); }}>
-      {msg?.error && <p className={styles.error}>{msg.error}</p>}
-      {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
-      <label className={styles.label}>
-        Título
-        <input className={styles.input} value={form.title} onChange={e => set("title", e.target.value)} required disabled={loading} />
-      </label>
-      <label className={styles.label}>
-        Conteúdo
-        <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
-      </label>
-      <label className={styles.label}>
-        Idioma
-        <select className={styles.input} value={form.lang} onChange={e => set("lang", e.target.value)} disabled={loading}>
-          <option value="all">Todos os idiomas (PT + EN + ES)</option>
-          <option value="pt">Português</option>
-          <option value="en">Inglês</option>
-          <option value="es">Espanhol</option>
-        </select>
-      </label>
-      <div className={styles.toggleGroup}>
-        <span className={styles.toggleGroupLabel}>Onde mostrar</span>
-        <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
-        <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
-        <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
-        <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
-      </div>
-      <div className={styles.formActions}>
-        <button className={styles.submitBtn} type="submit" disabled={loading}>{loading ? "Salvando…" : "Salvar"}</button>
-        <button className={styles.cancelBtn} type="button" onClick={onCancel} disabled={loading}>Cancelar</button>
-      </div>
-    </form>
-  );
-}
-
-function DirectMessageForm({ onSave, onCancel, loading, msg }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+function UserSearchField({ selectedUsers, onAdd, onRemove, disabled }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef(null);
 
@@ -106,60 +63,136 @@ function DirectMessageForm({ onSave, onCancel, loading, msg }) {
       try {
         const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`);
         const data = await res.json();
-        setResults(data.users || []);
+        // Exclude already selected
+        const selectedIds = new Set(selectedUsers.map(u => u.id));
+        setResults((data.users || []).filter(u => !selectedIds.has(u.id)));
       } finally { setSearching(false); }
     }, 300);
-  }, [query]);
+  }, [query, selectedUsers]);
 
   return (
-    <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!selectedUser) return; onSave({ title, body, target_user_id: selectedUser.id }); }}>
-      {msg?.error && <p className={styles.error}>{msg.error}</p>}
-      {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
-      <label className={styles.label}>
-        Destinatário
-        {selectedUser ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
-            <span style={{ background: "#1e2a50", color: "#818cf8", border: "1px solid #6366f144", borderRadius: 6, padding: "0.3rem 0.7rem", fontSize: "0.9rem", fontWeight: 700 }}>
-              @{selectedUser.username}
+    <div>
+      {/* Tags */}
+      {selectedUsers.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          {selectedUsers.map(u => (
+            <span key={u.id} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#1e2a50", color: "#818cf8", border: "1px solid #6366f144", borderRadius: 20, padding: "0.2rem 0.5rem 0.2rem 0.7rem", fontSize: "0.85rem", fontWeight: 700 }}>
+              @{u.username}
+              <button type="button" onClick={() => onRemove(u.id)} disabled={disabled}
+                style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", lineHeight: 1, padding: "0 2px", fontSize: 13, display: "flex", alignItems: "center" }}>
+                ✕
+              </button>
             </span>
-            <button type="button" onClick={() => { setSelectedUser(null); setQuery(""); }} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 13 }}>✕ Remover</button>
-          </div>
-        ) : (
-          <div style={{ position: "relative" }}>
-            <input
-              className={styles.input}
-              placeholder="Buscar por username…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              autoComplete="off"
-            />
-            {(results.length > 0 || searching) && (
-              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a2035", border: "1px solid #2d3448", borderRadius: 8, zIndex: 10, maxHeight: 200, overflowY: "auto" }}>
-                {searching && <div style={{ padding: "8px 12px", color: "#94a3b8", fontSize: 13 }}>Buscando…</div>}
-                {results.map(u => (
-                  <button key={u.id} type="button"
-                    style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", color: "#e2e8f0", padding: "8px 12px", cursor: "pointer", fontSize: 14 }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#2d3448"}
-                    onMouseLeave={e => e.currentTarget.style.background = "none"}
-                    onClick={() => { setSelectedUser(u); setQuery(""); setResults([]); }}>
-                    @{u.username}
-                  </button>
-                ))}
-              </div>
-            )}
+          ))}
+        </div>
+      )}
+      {/* Search input */}
+      <div style={{ position: "relative" }}>
+        <input
+          className={styles.input}
+          placeholder="Buscar por username…"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          autoComplete="off"
+          disabled={disabled}
+        />
+        {(results.length > 0 || searching) && (
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, background: "#1a2035", border: "1px solid #2d3448", borderRadius: 8, zIndex: 20, maxHeight: 200, overflowY: "auto" }}>
+            {searching && <div style={{ padding: "8px 12px", color: "#94a3b8", fontSize: 13 }}>Buscando…</div>}
+            {results.map(u => (
+              <button key={u.id} type="button"
+                style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", color: "#e2e8f0", padding: "8px 12px", cursor: "pointer", fontSize: 14 }}
+                onMouseEnter={e => e.currentTarget.style.background = "#2d3448"}
+                onMouseLeave={e => e.currentTarget.style.background = "none"}
+                onClick={() => { onAdd(u); setQuery(""); setResults([]); }}>
+                @{u.username}
+              </button>
+            ))}
           </div>
         )}
-      </label>
+      </div>
+    </div>
+  );
+}
+
+function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
+  const [form, setForm] = useState(initial);
+  const [recipientMode, setRecipientMode] = useState("all"); // "all" | "specific"
+  const [selectedUsers, setSelectedUsers] = useState([]);
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const addUser = (u) => setSelectedUsers(prev => prev.find(x => x.id === u.id) ? prev : [...prev, u]);
+  const removeUser = (id) => setSelectedUsers(prev => prev.filter(u => u.id !== id));
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (recipientMode === "specific") {
+      if (selectedUsers.length === 0) return;
+      onSave({ ...form, target_user_ids: selectedUsers.map(u => u.id) });
+    } else {
+      onSave(form);
+    }
+  };
+
+  return (
+    <form className={styles.form} onSubmit={handleSubmit}>
+      {msg?.error && <p className={styles.error}>{msg.error}</p>}
+      {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
+
+      {/* Recipient selector */}
+      <div className={styles.label} style={{ display: "block" }}>
+        <span style={{ marginBottom: 8, display: "block" }}>Destinatário</span>
+        <div style={{ display: "flex", gap: 10, marginBottom: recipientMode === "specific" ? 10 : 0 }}>
+          <button type="button"
+            onClick={() => setRecipientMode("all")}
+            style={{ padding: "0.4rem 1rem", borderRadius: 8, border: `1.5px solid ${recipientMode === "all" ? "#6366f1" : "#2d3448"}`, background: recipientMode === "all" ? "#1e2a50" : "transparent", color: recipientMode === "all" ? "#818cf8" : "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            Todos
+          </button>
+          <button type="button"
+            onClick={() => setRecipientMode("specific")}
+            style={{ padding: "0.4rem 1rem", borderRadius: 8, border: `1.5px solid ${recipientMode === "specific" ? "#6366f1" : "#2d3448"}`, background: recipientMode === "specific" ? "#1e2a50" : "transparent", color: recipientMode === "specific" ? "#818cf8" : "#94a3b8", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            Usuário específico
+          </button>
+        </div>
+        {recipientMode === "specific" && (
+          <UserSearchField selectedUsers={selectedUsers} onAdd={addUser} onRemove={removeUser} disabled={loading} />
+        )}
+      </div>
+
       <label className={styles.label}>
         Título
-        <input className={styles.input} value={title} onChange={e => setTitle(e.target.value)} required disabled={loading} />
+        <input className={styles.input} value={form.title} onChange={e => set("title", e.target.value)} required disabled={loading} />
       </label>
       <label className={styles.label}>
-        Mensagem
-        <textarea className={styles.textarea} value={body} onChange={e => setBody(e.target.value)} required disabled={loading} rows={6} />
+        Conteúdo
+        <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
       </label>
+
+      {/* These fields only make sense for "all" broadcasts */}
+      {recipientMode === "all" && (<>
+        <label className={styles.label}>
+          Idioma
+          <select className={styles.input} value={form.lang} onChange={e => set("lang", e.target.value)} disabled={loading}>
+            <option value="all">Todos os idiomas (PT + EN + ES)</option>
+            <option value="pt">Português</option>
+            <option value="en">Inglês</option>
+            <option value="es">Espanhol</option>
+          </select>
+        </label>
+        <div className={styles.toggleGroup}>
+          <span className={styles.toggleGroupLabel}>Onde mostrar</span>
+          <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
+          <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
+          <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
+          <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
+        </div>
+      </>)}
+
       <div className={styles.formActions}>
-        <button className={styles.submitBtn} type="submit" disabled={loading || !selectedUser}>{loading ? "Enviando…" : "Enviar mensagem"}</button>
+        <button className={styles.submitBtn} type="submit"
+          disabled={loading || (recipientMode === "specific" && selectedUsers.length === 0)}>
+          {loading ? "Salvando…" : recipientMode === "specific" ? `Enviar para ${selectedUsers.length} usuário${selectedUsers.length !== 1 ? "s" : ""}` : "Salvar"}
+        </button>
         <button className={styles.cancelBtn} type="button" onClick={onCancel} disabled={loading}>Cancelar</button>
       </div>
     </form>
@@ -169,7 +202,6 @@ function DirectMessageForm({ onSave, onCancel, loading, msg }) {
 export default function NewsClient({ news, total, page, adminId }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
-  const [showDmForm, setShowDmForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState(null);
@@ -179,20 +211,20 @@ export default function NewsClient({ news, total, page, adminId }) {
   async function handleCreate(form) {
     setMsg(null); setLoading(true);
     try {
+      // DM to specific users: fire one request per user
+      if (form.target_user_ids?.length) {
+        await Promise.all(form.target_user_ids.map(uid =>
+          fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: form.title, body: form.body, target_user_id: uid }) })
+        ));
+        setMsg({ ok: `Mensagem enviada para ${form.target_user_ids.length} usuário${form.target_user_ids.length !== 1 ? "s" : ""}!` });
+        setShowForm(false);
+        return;
+      }
       const res = await fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setMsg({ error: data.error }); return; }
       setMsg({ ok: "Notícia criada!" }); setShowForm(false); router.refresh();
-    } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
-  }
-
-  async function handleSendDm(form) {
-    setMsg(null); setLoading(true);
-    try {
-      const res = await fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      const data = await res.json();
-      if (!res.ok) { setMsg({ error: data.error }); return; }
-      setMsg({ ok: "Mensagem enviada!" }); setShowDmForm(false);
     } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
   }
 
@@ -229,18 +261,12 @@ export default function NewsClient({ news, total, page, adminId }) {
     <div>
       <div className={styles.header}>
         <h1 className={styles.pageTitle}>Notícias</h1>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className={styles.newBtn} style={{ background: "#1e3a5f", borderColor: "#3b82f6" }} onClick={() => { setShowDmForm(!showDmForm); setShowForm(false); setMsg(null); }}>
-            {showDmForm ? "✕ Cancelar" : "✉ Mensagem direta"}
-          </button>
-          <button className={styles.newBtn} onClick={() => { setShowForm(!showForm); setShowDmForm(false); setMsg(null); }}>
-            {showForm ? "✕ Cancelar" : "+ Nova notícia"}
-          </button>
-        </div>
+        <button className={styles.newBtn} onClick={() => { setShowForm(!showForm); setMsg(null); }}>
+          {showForm ? "✕ Cancelar" : "+ Nova notícia"}
+        </button>
       </div>
 
-      {msg?.ok && !showForm && !showDmForm && <p className={styles.success} style={{ marginBottom: 16 }}>{msg.ok}</p>}
-      {showDmForm && <DirectMessageForm onSave={handleSendDm} onCancel={() => { setShowDmForm(false); setMsg(null); }} loading={loading} msg={msg} />}
+      {msg?.ok && !showForm && <p className={styles.success} style={{ marginBottom: 16 }}>{msg.ok}</p>}
       {showForm && <NewsForm onSave={handleCreate} onCancel={() => { setShowForm(false); setMsg(null); }} loading={loading} msg={msg} />}
 
       <div className={styles.tableWrap}>
