@@ -6566,18 +6566,28 @@ document.getElementById('restartDraw').onclick = backToStartMenu;
 
 // Função para criar partículas de explosão
 function spawnExplosionParticles(x, y, color = "#fff") {
-  for (let i = 0; i < 18; i++) {
+  // Sparks — rápidos, streak
+  for (let i = 0; i < 22; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 2 + Math.random() * 3;
-    particles.push({
-      x,
-      y,
-      dx: Math.cos(angle) * speed,
-      dy: Math.sin(angle) * speed,
-      life: 16 + Math.random() * 16,
-      color,
-      size: 2.5 + Math.random() * 2
-    });
+    const speed = 3.5 + Math.random() * 5.5;
+    const c = Math.random() < 0.45 ? '#fff' : (Math.random() < 0.5 ? '#FFE566' : '#FF9500');
+    particles.push({ x, y, dx: Math.cos(angle)*speed, dy: Math.sin(angle)*speed,
+      life: 14 + Math.random()*12, maxLife: 26, type:'spark', color:c, size:1.5+Math.random()*2 });
+  }
+  // Embers — médios, brilhantes
+  for (let i = 0; i < 14; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1.2 + Math.random() * 2.8;
+    const c = Math.random() < 0.5 ? '#FF7700' : '#FF3300';
+    particles.push({ x, y, dx: Math.cos(angle)*speed, dy: Math.sin(angle)*speed - 0.5,
+      life: 22 + Math.random()*18, maxLife: 40, type:'ember', color:c, size:3+Math.random()*4 });
+  }
+  // Debris — lentos, cinzas
+  for (let i = 0; i < 8; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.8 + Math.random() * 1.8;
+    particles.push({ x, y, dx: Math.cos(angle)*speed, dy: Math.sin(angle)*speed - 0.8,
+      life: 30 + Math.random()*20, maxLife: 50, type:'debris', color:'#888', size:2+Math.random()*3 });
   }
 }
 
@@ -6587,21 +6597,34 @@ function updateParticles(ctx) {
     const p = particles[i];
     p.x += p.dx;
     p.y += p.dy;
-    p.dy += 0.05; // leve gravidade
+    p.dy += 0.055;
+    p.dx *= 0.97;
     p.life--;
-    if (p.life <= 0) {
-      particles.splice(i, 1);
-    }
+    if (p.life <= 0) particles.splice(i, 1);
   }
 }
 function drawParticles(ctx) {
   for (const p of particles) {
+    const alpha = Math.max(0, p.life / (p.maxLife || 20));
     ctx.save();
-    ctx.globalAlpha = Math.max(0, p.life / 20);
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.type === 'spark') {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = p.size * 0.7;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 7;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x - p.dx * 2.8, p.y - p.dy * 2.8);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      if (p.type === 'ember') { ctx.shadowColor = p.color; ctx.shadowBlur = 12; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, Math.max(0.5, p.size * alpha + 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.restore();
   }
 }
@@ -7343,6 +7366,55 @@ const idleBob = isMoving ? 0 : Math.sin(performance.now() / 500 + nave.x) * 2.0;
     }
   }
   
+  // ── Chama de propulsão ──
+  const _roundActive = (phase === 'wait') || (typeof mpPhase !== 'undefined' && mpPhase === 'ANIMATING');
+  const _isMoving = _roundActive && nave.target !== null;
+  if (nave._thrusterAlpha === undefined) nave._thrusterAlpha = 0;
+  nave._thrusterAlpha += (_isMoving ? 1 : -1) * 0.08;
+  nave._thrusterAlpha = Math.max(0, Math.min(1, nave._thrusterAlpha));
+
+  if (nave._thrusterAlpha > 0) {
+    const _t = performance.now();
+    const _hs = NAVY_SIZE / 2;
+    // 3 jatos: esquerdo, centro, direito
+    const _jets = [
+      { ox: -_hs * 0.28, baseLen: _hs * 0.85, w: _hs * 0.16 },
+      { ox:  0,           baseLen: _hs * 1.15, w: _hs * 0.22 },
+      { ox:  _hs * 0.28, baseLen: _hs * 0.85, w: _hs * 0.16 },
+    ];
+    const _isRed = isCPU || nave.tint === 'red';
+    _jets.forEach((_j, _i) => {
+      const _flicker = 0.75 + 0.25 * Math.sin(_t / 60 + _i * 2.1);
+      const _len = _j.baseLen * _flicker;
+      const _startY = _hs * 0.38;
+      const _endY   = _startY + _len;
+      const _grad = ctx.createLinearGradient(_j.ox, _startY, _j.ox, _endY);
+      if (_isRed) {
+        _grad.addColorStop(0,   `rgba(255,255,200,${0.95 * nave._thrusterAlpha})`);
+        _grad.addColorStop(0.12,`rgba(255,140,40,${0.9   * nave._thrusterAlpha})`);
+        _grad.addColorStop(0.45,`rgba(220,30,0,${0.65    * nave._thrusterAlpha})`);
+        _grad.addColorStop(1,   `rgba(100,0,0,0)`);
+      } else {
+        _grad.addColorStop(0,   `rgba(255,255,255,${0.95 * nave._thrusterAlpha})`);
+        _grad.addColorStop(0.12,`rgba(100,220,255,${0.9  * nave._thrusterAlpha})`);
+        _grad.addColorStop(0.45,`rgba(0,140,255,${0.65   * nave._thrusterAlpha})`);
+        _grad.addColorStop(1,   `rgba(0,60,180,0)`);
+      }
+      ctx.save();
+      ctx.globalAlpha = naveAlpha;
+      ctx.beginPath();
+      ctx.moveTo(_j.ox - _j.w / 2, _startY);
+      ctx.lineTo(_j.ox + _j.w / 2, _startY);
+      ctx.lineTo(_j.ox + _j.w * (0.1 + 0.1 * Math.sin(_t / 80 + _i)), _endY);
+      ctx.lineTo(_j.ox - _j.w * (0.1 + 0.1 * Math.sin(_t / 80 + _i + 1)), _endY);
+      ctx.closePath();
+      ctx.fillStyle = _grad;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+  // ── fim chama ──
+
   // Desenhar a nave
   ctx.drawImage(spriteToUse, -NAVY_SIZE / 2, -NAVY_SIZE / 2, NAVY_SIZE, NAVY_SIZE);
   
@@ -8021,8 +8093,11 @@ function updateProjectiles() {
 
 function updateExplosions() {
   for (let i = explosions.length - 1; i >= 0; i--) {
-    explosions[i].radius += explosions[i].big ? 2.5 : 1.5;
-    if (explosions[i].radius > (explosions[i].big ? 40 : 15)) explosions.splice(i, 1);
+    const e = explosions[i];
+    if (e.maxLife === undefined) { e.maxLife = e.big ? 30 : 20; e.life = e.maxLife; }
+    e.radius += e.big ? 2.8 : 1.8;
+    e.life--;
+    if (e.life <= 0) explosions.splice(i, 1);
   }
 }
 
@@ -9393,25 +9468,76 @@ projectiles.forEach(p => {
 
 
  explosions.forEach(e => {
-  // Flash branco inicial
-  if (e.flash && e.flash > 0) {
-    ctx.save();
-    ctx.globalAlpha = e.flash / 8;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, (e.big ? 50 : 18) + 12 * e.flash, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
-    ctx.restore();
-    e.flash--;
-  }
-  // Explosão principal (amarela/laranja maior)
+  if (e.maxLife === undefined) return;
+  const t = Math.max(0, e.life / e.maxLife); // 1=novo, 0=fim
+  const r = e.radius;
+
+  // Anel de onda de choque
   ctx.save();
   ctx.beginPath();
-  ctx.arc(e.x, e.y, e.big ? e.radius * 2 : e.radius, 0, Math.PI * 2);
-  ctx.fillStyle = e.big ? "orange" : "orange";
-  ctx.globalAlpha = 0.9;
+  ctx.arc(e.x, e.y, r * (e.big ? 2.4 : 2.0), 0, Math.PI * 2);
+  ctx.strokeStyle = `rgba(255,200,80,${t * 0.4})`;
+  ctx.lineWidth = 2 + (1 - t) * 9;
+  ctx.shadowColor = '#FFB300';
+  ctx.shadowBlur = 18;
+  ctx.stroke();
+  ctx.restore();
+
+  // Glow externo
+  const outerR = r * (e.big ? 3.2 : 2.6);
+  const og = ctx.createRadialGradient(e.x, e.y, r * 0.2, e.x, e.y, outerR);
+  og.addColorStop(0,   `rgba(255,220,60,${t * 0.45})`);
+  og.addColorStop(0.5, `rgba(255,80,0,${t * 0.25})`);
+  og.addColorStop(1,   `rgba(180,20,0,0)`);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, outerR, 0, Math.PI * 2);
+  ctx.fillStyle = og;
   ctx.fill();
   ctx.restore();
+
+  // Fireball principal
+  const fg = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r);
+  fg.addColorStop(0,    `rgba(255,255,230,${t * 0.98})`);
+  fg.addColorStop(0.2,  `rgba(255,240,100,${t * 0.92})`);
+  fg.addColorStop(0.55, `rgba(255,120,10,${t * 0.85})`);
+  fg.addColorStop(1,    `rgba(160,20,0,0)`);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+  ctx.fillStyle = fg;
+  ctx.fill();
+  ctx.restore();
+
+  // Núcleo branco quente (só início)
+  if (t > 0.55) {
+    ctx.save();
+    ctx.globalAlpha = (t - 0.55) / 0.45;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, r * 0.32, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Bolinhas de fogo secundárias (big only)
+  if (e.big) {
+    [{ox:-r*0.32,oy:-r*0.22,s:0.58},{ox:r*0.38,oy:-r*0.18,s:0.5},{ox:-r*0.08,oy:r*0.38,s:0.52}].forEach(b => {
+      const bx=e.x+b.ox, by=e.y+b.oy, br=r*b.s;
+      const bg=ctx.createRadialGradient(bx,by,0,bx,by,br);
+      bg.addColorStop(0,   `rgba(255,230,60,${t*0.75})`);
+      bg.addColorStop(0.5, `rgba(255,90,0,${t*0.55})`);
+      bg.addColorStop(1,   `rgba(160,20,0,0)`);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(bx,by,br,0,Math.PI*2);
+      ctx.fillStyle=bg;
+      ctx.fill();
+      ctx.restore();
+    });
+  }
 });
 
 
