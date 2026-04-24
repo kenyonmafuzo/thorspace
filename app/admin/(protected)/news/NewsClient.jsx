@@ -308,7 +308,12 @@ export default function NewsClient({ news, total, page, adminId }) {
   async function handleEdit(form) {
     setMsg(null); setLoading(true);
     try {
-      const res = await fetch("/api/admin/news", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editItem.id, ...form }) });
+      const patch = { id: editItem.id, ...form };
+      // If the original item was a DM but the form is saving without specific users, clear DM status
+      if (editItem.meta?.is_dm && !form.target_user_ids?.length) {
+        patch.clear_dm = true;
+      }
+      const res = await fetch("/api/admin/news", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) });
       const data = await res.json();
       if (!res.ok) { setMsg({ error: data.error }); return; }
       setMsg({ ok: "Salvo!" }); setEditItem(null); router.refresh();

@@ -81,7 +81,10 @@ export default function ModePage() {
         .then(r => r.json())
         .then(({ news }) => {
           const unseen = (news || []).filter(n => !seen.includes(n.id));
-          setAdminModals(unseen);
+          setAdminModals(unseen.map(n => {
+            const tr = n.meta?.translations?.[lang];
+            return { ...n, title: tr?.title || n.title, body: tr?.body || n.body };
+          }));
         })
         .catch(() => {});
     }, [lang]);

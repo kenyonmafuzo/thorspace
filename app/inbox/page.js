@@ -93,7 +93,10 @@ export default function InboxPage() {
           // Global announcements — exclude any that the user already has a personal DM for
           const globalAnnouncements = (notifNewsRes.news || [])
             .filter(n => !personalSourceIds.has(n.id))
-            .map(n => ({ ...n, _src: "global" }));
+            .map(n => {
+              const tr = n.meta?.translations?.[lang];
+              return { ...n, _src: "global", title: tr?.title || n.title, body: tr?.body || n.body };
+            });
 
           // Personal inbox items for the notifications tab:
           // admin_message items only shown here if show_in_notifications=true (or no flag = old-style DM)
@@ -111,7 +114,10 @@ export default function InboxPage() {
           ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
           setGlobalNews(merged);
-          setGameUpdates(updatesRes.news || []);
+          setGameUpdates((updatesRes.news || []).map(n => {
+            const tr = n.meta?.translations?.[lang];
+            return { ...n, title: tr?.title || n.title, body: tr?.body || n.body };
+          }));
         }
 
         // Marcar todas as notificações como vistas (se a coluna viewed existir)

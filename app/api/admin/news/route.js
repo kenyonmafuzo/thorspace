@@ -85,14 +85,14 @@ export async function PATCH(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, translations } = await request.json();
+    const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, translations, clear_dm } = await request.json();
     if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
     const db = getAdminClient();
 
     // Fetch current state to know if it was already published and if it's a DM
     const { data: current } = await db.from("admin_news").select("published, published_at, meta").eq("id", id).single();
     const wasPublished = current?.published ?? false;
-    const isDm = current?.meta?.is_dm === true;
+    const isDm = !clear_dm && current?.meta?.is_dm === true;
 
     const update = { published };
     if (published && !wasPublished) {
@@ -107,10 +107,17 @@ export async function PATCH(request) {
     if (show_in_notifications !== undefined) update.show_in_notifications = !!show_in_notifications;
     if (show_in_game_updates !== undefined) update.show_in_game_updates = !!show_in_game_updates;
     if (lang !== undefined) update.lang = lang;
-    // Merge translations into existing meta, preserving is_dm and dm fields
-    if (translations !== undefined) {
-      update.meta = { ...(current?.meta ?? {}), translations };
+
+    // Handle meta update
+    const existingMeta = current?.meta ?? {};
+    if (clear_dm) {
+      // Strip DM-specific fields, preserve everything else (translations, etc.)
+      const { is_dm, dm_user_ids, dm_usernames, ...cleanMeta } = existingMeta;
+      update.meta = translations !== undefined ? { ...cleanMeta, translations } : cleanMeta;
+    } else if (translations !== undefined) {
+      update.meta = { ...existingMeta, translations };
     }
+
     await db.from("admin_news").update(update).eq("id", id);
 
     // If this is a DM, also propagate changes to the inbox rows
