@@ -9,12 +9,14 @@ import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
+import { useGuest } from "@/src/hooks/useGuest";
 
 export default function RankingPage() {
   const router = useRouter();
   const { t } = useI18n();
   const [loading, setLoading] = useState(true);
   const { userStats } = useUserStats();
+  const { isGuest } = useGuest();
   const [activeTab, setActiveTab] = useState("multiplayer");
   const [multiplayerData, setMultiplayerData] = useState([]);
   const [loadingRanking, setLoadingRanking] = useState(false);
@@ -297,7 +299,13 @@ export default function RankingPage() {
       const { data } = await supabase.auth.getSession();
       const session = data?.session;
       if (!session) {
-        router.replace("/login");
+        if (!isGuest) {
+          router.replace("/login");
+          return;
+        }
+        // Guest: show ranking without highlighting any row
+        setLoading(false);
+        loadRanking();
         return;
       }
       setCurrentUserId(session.user.id);
@@ -337,7 +345,7 @@ export default function RankingPage() {
       window.removeEventListener("thor_wakeup_ready", onWakeupReady);
       window.removeEventListener("thor_stats_updated", handleStatsUpdated);
     };
-  }, [router]);
+  }, [router, isGuest]);
 
   return (
     <div style={{ overflowX: 'hidden' }}>

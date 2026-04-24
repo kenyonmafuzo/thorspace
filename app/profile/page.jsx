@@ -7,9 +7,12 @@ import UserHeader from "@/app/components/UserHeader";
 import MobileHeader from "@/app/components/MobileHeader";
 import { supabase } from "@/lib/supabase";
 import { getLevelFromTotalXp, formatRankDisplay, getRankAssetKey, getLevelProgressFromTotalXp } from "@/lib/xpSystem";
+import { useGuest } from "@/src/hooks/useGuest";
+import GuestWall from "@/app/components/GuestWall";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { isGuest } = useGuest();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
@@ -42,6 +45,11 @@ export default function ProfilePage() {
   const [deleteError, setDeleteError] = useState("");
 
   const loadProfileData = async () => {
+    // Guests have no Supabase session — skip loading entirely
+    if (typeof window !== "undefined" && localStorage.getItem("thor_guest") === "1") {
+      setLoading(false);
+      return;
+    }
     // Timeout de segurança
     const safetyTimeout = setTimeout(() => {
       console.warn("[Profile] Loading timeout - forçando loading=false");
@@ -443,6 +451,10 @@ export default function ProfilePage() {
       setDeleteLoading(false);
     }
   };
+
+  if (isGuest) {
+    return <GuestWall title="Crie sua conta para ver seu perfil" message="Seu perfil mostra estatísticas, edição de username, avatar e muito mais." fullPage />;
+  }
 
   if (loading) {
     return (

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { AVATAR_OPTIONS } from "@/app/lib/avatarOptions";
+import { useGuest } from "@/src/hooks/useGuest";
 
 const PLAN_ACCENTS = {
   "1day":   "#00E5FF",
@@ -16,6 +17,7 @@ const PLAN_ACCENTS = {
 
 export default function VIPPage() {
   const { lang, t } = useI18n();
+  const { isGuest } = useGuest();
 
   // All text / plans / benefits come from the active language dictionary
   const vip      = (typeof t("vip") === "object" ? t("vip") : {});
@@ -165,6 +167,7 @@ export default function VIPPage() {
                                  (vip.debitLabel  || "Debit");
 
   const handlePay = async () => {
+    if (isGuest) { router.push("/login"); return; }
     if (paymentLoading) return;
     setPaymentLoading(true);
     setPaymentError("");

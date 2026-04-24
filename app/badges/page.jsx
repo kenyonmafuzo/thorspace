@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { BADGES_CONFIG, checkUnlockedBadges } from "@/lib/badgesSystem";
 import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
 import { useI18n } from "@/src/hooks/useI18n";
+import { useGuest } from "@/src/hooks/useGuest";
+import GuestWall from "@/app/components/GuestWall";
 
 // Modal de zoom da badge
 function BadgeZoomModal({ badge, onClose }) {
@@ -101,6 +103,7 @@ function BadgeZoomModal({ badge, onClose }) {
 export default function BadgesPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const { isGuest } = useGuest();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const [badgesByCategory, setBadgesByCategory] = useState({});
@@ -110,6 +113,10 @@ export default function BadgesPage() {
       const { data } = await supabase.auth.getSession();
       const session = data?.session;
       if (!session) {
+        if (typeof window !== "undefined" && localStorage.getItem("thor_guest") === "1") {
+          setLoading(false);
+          return;
+        }
         router.replace("/login");
         return;
       }
@@ -177,6 +184,10 @@ export default function BadgesPage() {
       setLoading(false);
     })();
   }, [router]);
+
+  if (isGuest) {
+    return <GuestWall title="Crie sua conta para ver suas badges" message="Ganhe batalhas, suba de nível e desbloqueie conquistas únicas." fullPage />;
+  }
 
   if (loading) {
     return <div style={{ color: "#FFF", minHeight: "100vh", background: "transparent" }}><div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />{t('badges.loading')}</div>;

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { ensureProfileAndOnboarding } from "@/lib/ensureProfile";
 import SocialLinksMini from "@/app/components/SocialLinksMini";
+import { useGuest } from "@/src/hooks/useGuest";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const [alreadyLoggedIn, setAlreadyLoggedIn] = useState(false);
   const [dupSession, setDupSession] = useState(false); // sessão ativa em outro browser/dispositivo
   const [pendingUser, setPendingUser] = useState(null); // usuário aguardando decisão de sessão dupla
+  const { enterGuest } = useGuest();
 
   useEffect(() => {
     // Verificar parâmetros de URL
@@ -233,6 +235,11 @@ export default function LoginPage() {
     } finally {
       setResetLoading(false);
     }
+  }
+
+  function handleGuestLogin() {
+    enterGuest();
+    router.replace("/mode");
   }
 
   async function signInWithGoogle() {
@@ -678,6 +685,29 @@ export default function LoginPage() {
               {loading ? "Entrando..." : "ENTRAR"}
             </button>
           </form>
+          )}
+
+          {!showForgotPassword && !alreadyLoggedIn && !dupSession && (
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              style={{
+                width: "100%",
+                padding: "11px 14px",
+                borderRadius: 10,
+                border: "1px solid rgba(148,163,184,0.25)",
+                background: "rgba(148,163,184,0.06)",
+                color: "#94a3b8",
+                fontFamily: "'Orbitron', sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                marginBottom: 8,
+                letterSpacing: "0.04em",
+              }}
+            >
+              👁 ENTRAR COMO VISITANTE
+            </button>
           )}
 
           {!showForgotPassword && (

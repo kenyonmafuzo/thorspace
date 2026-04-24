@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 import { supabase } from "@/lib/supabase";
+import { useGuest } from "@/src/hooks/useGuest";
 
 
 export default function ModePage() {
@@ -12,6 +13,7 @@ export default function ModePage() {
     const [adminModals, setAdminModals] = useState([]); // queue of admin_news modal items
     const [adminModalIdx, setAdminModalIdx] = useState(0);
     const { userId, isLoading: statsLoading } = useUserStats();
+    const { isGuest } = useGuest();
     const router = useRouter();
     const { t, lang } = useI18n();
     
@@ -127,15 +129,17 @@ export default function ModePage() {
   // Auth guard via context — sem network call, instantâneo após hydration
   useEffect(() => {
     if (statsLoading) return;
-    if (!userId) {
+    if (!userId && !isGuest) {
       router.replace("/login");
       return;
     }
-    const username = localStorage.getItem("thor_username");
-    if (!username) {
-      router.replace("/username");
+    if (!isGuest) {
+      const username = localStorage.getItem("thor_username");
+      if (!username) {
+        router.replace("/username");
+      }
     }
-  }, [userId, statsLoading, router]);
+  }, [userId, statsLoading, isGuest, router]);
 
   return (
     <>
@@ -410,8 +414,13 @@ Boas batalhas!`}
             id="multiplayerBtn"
             className="mode-btn"
             onClick={() => {
+              if (isGuest) {
+                router.push("/login");
+                return;
+              }
               router.push("/multiplayer");
             }}
+            title={isGuest ? "Crie sua conta para jogar multiplayer" : undefined}
           >
             {t('mode.multiplayer')}
           </button>

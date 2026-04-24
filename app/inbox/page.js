@@ -7,6 +7,8 @@ import Link from "next/link";
 import UserHeader from "@/app/components/UserHeader";
 import MobileHeader from "@/app/components/MobileHeader";
 import { useI18n } from "@/src/hooks/useI18n";
+import { useGuest } from "@/src/hooks/useGuest";
+import { useGuest } from "@/src/hooks/useGuest";
 
 
 export default function InboxPage() {
@@ -18,10 +20,37 @@ export default function InboxPage() {
   const [userId, setUserId] = useState(null);
   const [tab, setTab] = useState("notifications");
   const { t, lang } = useI18n();
+  const { isGuest } = useGuest();
   // Import getDailyLoginText at top level
   const { getDailyLoginText } = require("@/lib/i18n/dailyLogin");
 
   useEffect(() => {
+    // Guests see static welcome messages — no DB fetch
+    if (isGuest) {
+      const guestNotifs = [
+        {
+          id: "guest_welcome",
+          type: "system",
+          title: "Bem-vindo ao Thorspace! 🚀",
+          content: "Explore batalhas espaciais por turnos. Crie sua conta gratuita para salvar progresso, subir no ranking e desafiar outros jogadores.",
+          created_at: new Date().toISOString(),
+          _src: "inbox",
+        },
+        {
+          id: "guest_cta",
+          type: "system",
+          title: "Cadastre-se gratuitamente",
+          content: "Com uma conta você acumula XP, desbloqueia badges, entra no ranking global e joga multiplayer.",
+          cta: "Criar conta",
+          cta_url: "/login",
+          created_at: new Date(Date.now() - 1000).toISOString(),
+          _src: "inbox",
+        },
+      ];
+      setGlobalNews(guestNotifs);
+      setLoading(false);
+      return;
+    }
     let mounted = true;
     async function fetchNotifications() {
       setLoading(true);
@@ -105,7 +134,7 @@ export default function InboxPage() {
     }
     fetchNotifications();
     return () => { mounted = false; };
-  }, [lang]);
+  }, [lang, isGuest]);
 
   // Nenhuma ação direta nas notificações
 

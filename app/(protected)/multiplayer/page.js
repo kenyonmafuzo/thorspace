@@ -12,10 +12,17 @@ import InvitePopup from "@/app/components/InvitePopup";
 import SocialLinksMini from "@/app/components/SocialLinksMini";
 import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 import { checkBadgesAfterMultiplayerWin, checkAllBadgesForUser } from "@/lib/badgesIntegration";
+import { useGuest } from "@/src/hooks/useGuest";
 
 export default function MultiplayerPage() {
     const { userStats, isLoading: statsLoading, userId: contextUserId } = useUserStats();
+  const { isGuest } = useGuest();
   const router = useRouter();
+
+  // Guests cannot access multiplayer — redirect immediately
+  useEffect(() => {
+    if (isGuest) router.replace("/mode");
+  }, [isGuest, router]);
   const { t } = useI18n();
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);

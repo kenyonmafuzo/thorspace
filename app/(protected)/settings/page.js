@@ -3,6 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
+import { useGuest } from "@/src/hooks/useGuest";
+import GuestWall from "@/app/components/GuestWall";
 
 const DEFAULT_SETTINGS = {
   audio: { master: true, music: true, sfx: true },
@@ -16,6 +18,7 @@ export default function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState("");
   const [session, setSession] = useState(null);
   const { t } = useI18n();
+  const { isGuest } = useGuest();
   const debounceTimer = useRef(null);
 
   const mergeSettings = (remoteSettings) => {
@@ -132,6 +135,10 @@ export default function SettingsPage() {
     setSaveStatus("Salvo");
     setTimeout(() => setSaveStatus(""), 1500);
   };
+
+  if (isGuest) {
+    return <GuestWall title="Crie sua conta para acessar as configurações" message="Salve preferências de idioma, áudio e mais com uma conta gratuita." fullPage />;
+  }
 
   if (loading) {
     return (

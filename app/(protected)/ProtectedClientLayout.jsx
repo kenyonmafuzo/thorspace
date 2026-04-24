@@ -9,10 +9,19 @@ import NotificationProvider from "../components/notifications/NotificationProvid
 import OnlineNow from "../components/OnlineNow";
 import { useUserStats } from "../components/stats/UserStatsProvider";
 import { supabase } from "@/lib/supabase";
+import { useGuest } from "@/src/hooks/useGuest";
 
 export default function ProtectedClientLayout({ children }) {
   const { userId, userStats, isLoading } = useUserStats();
+  const { isGuest } = useGuest();
   const router = useRouter();
+
+  // When a real user authenticates, clear the guest flag automatically
+  useEffect(() => {
+    if (userId && isGuest) {
+      localStorage.removeItem("thor_guest");
+    }
+  }, [userId, isGuest]);
   const isReady = !!(userStats && (userStats.user_id || userStats.id) && userStats.username);
   // Track whether we ever had an authenticated session in this page lifecycle
   const hadSession = useRef(false);
@@ -40,8 +49,9 @@ export default function ProtectedClientLayout({ children }) {
 
   // Redirecionar para login se auth resolveu sem usuário
   // BUT: skip redirect for 6s after wakeup to let UserStatsProvider recover session
+  // Also skip if user is a guest (no Supabase auth intentional)
   useEffect(() => {
-    if (!isLoading && !userId) {
+    if (!isLoading && !userId && !isGuest) {
       const msSinceWakeup = Date.now() - wakeupTs.current;
       if (msSinceWakeup < 6000) {
         // Just woke up — give UserStatsProvider time to restore session from localStorage
@@ -54,7 +64,7 @@ export default function ProtectedClientLayout({ children }) {
         router.replace("/login");
       }
     }
-  }, [isLoading, userId, router]);
+  }, [isLoading, userId, isGuest, router]);
 
   // Atualiza active_session_at e valida session_token a cada 30s para detectar sessão tomada por outro browser
   useEffect(() => {
@@ -95,7 +105,7 @@ export default function ProtectedClientLayout({ children }) {
   // Exception: wakeup (within 6s) também passa.
   const msSinceWakeup = Date.now() - wakeupTs.current;
   const isWakingUp = msSinceWakeup < 6000 && hadSession.current;
-  if (!userId && !isWakingUp) {
+  if (!userId && !isWakingUp && !isGuest) {
     return (
       <div style={{
         position: "fixed",
@@ -109,8 +119,8 @@ export default function ProtectedClientLayout({ children }) {
   return (
     <NotificationProvider>
       <NotificationsClientRoot>
-        {/* Mantém presença global invisível para amigos */}
-        {isReady && (
+        {/* Presence: only for authenticated users, never for guests */}
+        {isReady && !isGuest && (
           <OnlineNow
             currentUserId={userStats.user_id}
             currentUsername={userStats.username}

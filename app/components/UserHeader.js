@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useProgress } from "@/lib/ProgressContext";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
+import { useGuest } from "@/src/hooks/useGuest";
 import LevelXPBadge from "./LevelXPBadge";
 import RankBadge from "./RankBadge";
 import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
@@ -19,6 +20,7 @@ import { getLevelProgressFromTotalXp } from "@/lib/xpSystem";
 export default function UserHeader() {
   // Todos os hooks e lógica primeiro
   const { userStats, playerProgress, isLoading, refreshUserStats, userId } = useUserStats();
+  const { isGuest } = useGuest();
   const hasUnreadInvites = useUnreadInvites(userId);
   const hasUnreadInbox = useUnreadInboxNotifications(userId);
   const [notificationCount, setNotificationCount] = useState(0);
@@ -113,7 +115,7 @@ export default function UserHeader() {
     setTimeout(() => refreshUserStats && refreshUserStats("tab_visible:header_retry"), 800);
   }
   
-  if (!hasMinimalData) {
+  if (!hasMinimalData && !isGuest) {
     return (
       <div style={{ position: 'fixed', top: 0, right: 12, height: 58, width: 180, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, padding: '12px 18px', backdropFilter: 'blur(6px)', zIndex: 10020 }}>
         <span style={{ width: 80, height: 18, borderRadius: 6, background: 'rgba(0,229,255,0.10)', display: 'inline-block', marginBottom: 4, animation: 'pulse 1.2s infinite alternate' }} />
@@ -364,7 +366,32 @@ export default function UserHeader() {
 
         {/* Rank Badge (substitui o LV 1, LV 2) */}
         {/* Rank e User só aparecem quando stats carregados */}
-        {isLoading || !userStats ? (
+        {isGuest ? (
+          <div
+            onClick={() => handleNavigation("/login")}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 50, padding: "10px 18px",
+              backdropFilter: "blur(6px)", height: 58,
+              cursor: "pointer",
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }}>👤</span>
+            <span style={{ color: "#AAA", fontSize: 12, fontWeight: 700, fontFamily: "'Orbitron',sans-serif", userSelect: "none" }}>Visitante</span>
+            <button
+              onClick={e => { e.stopPropagation(); handleNavigation("/login"); }}
+              style={{
+                background: "linear-gradient(90deg, rgba(0,229,255,0.15), rgba(0,114,255,0.15))",
+                border: "1px solid rgba(0,229,255,0.4)",
+                borderRadius: 20, padding: "4px 12px",
+                fontSize: 11, color: "#00E5FF", fontWeight: 700,
+                cursor: "pointer", fontFamily: "'Orbitron',sans-serif",
+              }}
+            >Entrar</button>
+          </div>
+        ) : isLoading || !userStats ? (
           <>
             <div style={{ width: 70, height: 70, borderRadius: 16, background: "rgba(0,229,255,0.08)", display: "inline-block", marginRight: 16, animation: "pulse 1.2s infinite alternate" }} />
             <div style={{ display: "flex", alignItems: "center", gap: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 50, padding: "12px 18px", backdropFilter: "blur(6px)", width: "fit-content", height: 58 }}>

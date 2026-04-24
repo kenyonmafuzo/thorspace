@@ -23,6 +23,8 @@ import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 import { getAvatarSrc } from "@/app/lib/avatarOptions";
 import { createInboxMessage } from "@/lib/inbox";
 import { useI18n } from "@/src/hooks/useI18n";
+import { useGuest } from "@/src/hooks/useGuest";
+import GuestWall from "@/app/components/GuestWall";
 
 const galaxyBg = (
   <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
@@ -288,6 +290,7 @@ export default function FriendsPage() {
     };
   }, []); // run once on mount only
   const [search, setSearch] = useState("");
+  const { isGuest } = useGuest();
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -894,6 +897,10 @@ if (typeof window !== "undefined") {
         {actionError[profile.id] && <span style={{ color: '#FF7F7F', fontSize: 13, marginLeft: 8 }}>{actionError[profile.id]}</span>}
       </div>
     );
+  }
+
+  if (isGuest) {
+    return <GuestWall title="Crie sua conta para adicionar amigos" message="Conecte-se com outros jogadores, envie convites e jogue multiplayer com amigos." fullPage />;
   }
 
   return (
