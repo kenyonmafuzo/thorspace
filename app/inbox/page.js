@@ -333,9 +333,14 @@ export default function InboxPage() {
                           console.error('[INBOX] Erro ao parsear badge:', e);
                         }
                         
-                        notifTitle = `🏆 Nova Badge Desbloqueada: ${badgeData.title || 'Badge'}`;
-                        text = `${badgeData.description || 'Você desbloqueou uma nova badge!'}\n\nParabéns! Confira sua conquista e exiba com orgulho.`;
-                        cta = "Badge";
+                        // Resolve badge_id from meta (new) or content (legacy)
+                        const badgeId = notif.meta?.badge_id || badgeData.badge_id;
+                        const badgeI18n = badgeId ? t(`badges.list.${badgeId}`) : null;
+                        const badgeTitle = (badgeI18n?.title) || badgeData.title || 'Badge';
+                        const badgeDescription = (badgeI18n?.description) || badgeData.description || '';
+                        notifTitle = t('inbox.badge_unlocked_title', { badgeTitle }) || `🏆 Nova Badge Desbloqueada: ${badgeTitle}`;
+                        text = (t('inbox.badge_unlocked_body', { badgeDescription }) || `${badgeDescription}\n\nParabéns! Confira sua conquista e exiba com orgulho.`).replace('{badgeDescription}', badgeDescription);
+                        cta = t('inbox.badge_unlocked_cta') || "Badge";
                         ctaUrl = "/badges";
                       } else if (notif.type === "vip") {
                         // VIP ativado — dourado
@@ -384,8 +389,8 @@ export default function InboxPage() {
                           textAlign: "left"
                         }}>
                           <div style={{ fontSize: 13, color: "#b3eaff", fontWeight: 600, marginBottom: 2, letterSpacing: 0.2 }}>{dayStr} • {timeStr}</div>
-                          {notif.title && (
-                            <div style={{ fontSize: 15, color: notif.type === "vip" || notif.type === "vip_expired" ? (notif.type === "vip_expired" ? "#FFA000" : "#FFD700") : border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF", fontWeight: 800, marginBottom: 6, letterSpacing: 0.2 }}>{notif.title}</div>
+                          {(notifTitle || notif.title) && (
+                            <div style={{ fontSize: 15, color: notif.type === "vip" || notif.type === "vip_expired" ? (notif.type === "vip_expired" ? "#FFA000" : "#FFD700") : border.includes("FF7F7F") ? "#FF7F7F" : border.includes("00FFB4") ? "#00FFB4" : "#00E5FF", fontWeight: 800, marginBottom: 6, letterSpacing: 0.2 }}>{notifTitle || notif.title}</div>
                           )}
                           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: 0 }}>
                             <span
