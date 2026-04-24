@@ -50,11 +50,38 @@ export default function InboxPage() {
         if (notifErr) throw notifErr;
         if (mounted) {
           setNotifications(notifs || []);
-          // Merge global news into notifications list (sorted by date so newest is always on top)
+
+          // IDs of admin_news items that already have a personal inbox row for this user
+          // (so we don't show both the global announcement AND the inbox DM)
+          const personalSourceIds = new Set(
+            (notifs || [])
+              .map(n => {
+                const m = typeof n.meta === "string" ? JSON.parse(n.meta) : (n.meta ?? {});
+                return m?.source_news_id;
+              })
+              .filter(Boolean)
+          );
+
+          // Global announcements — exclude any that the user already has a personal DM for
+          const globalAnnouncements = (notifNewsRes.news || [])
+            .filter(n => !personalSourceIds.has(n.id))
+            .map(n => ({ ...n, _src: "global" }));
+
+          // Personal inbox items for the notifications tab:
+          // admin_message items only shown here if show_in_notifications=true (or no flag = old-style DM)
+          const inboxForNotifications = (notifs || []).filter(n => {
+            if (n.type !== "admin_message") return true; // all other types always shown
+            const m = typeof n.meta === "string" ? JSON.parse(n.meta) : (n.meta ?? {});
+            // Old DMs without source_news_id: always show
+            if (!m?.source_news_id) return true;
+            return m?.show_in_notifications === true;
+          }).map(n => ({ ...n, _src: "inbox" }));
+
           const merged = [
-            ...(notifNewsRes.news || []).map(n => ({ ...n, _src: "global" })),
-            ...(notifs || []).map(n => ({ ...n, _src: "inbox" })),
+            ...globalAnnouncements,
+            ...inboxForNotifications,
           ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
           setGlobalNews(merged);
           setGameUpdates(updatesRes.news || []);
         }
