@@ -367,30 +367,34 @@ export default function UserHeader() {
         {/* Rank Badge (substitui o LV 1, LV 2) */}
         {/* Rank e User só aparecem quando stats carregados */}
         {isGuest ? (
-          <div
-            onClick={() => handleNavigation("/login")}
-            style={{
-              display: "flex", alignItems: "center", gap: 10,
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 50, padding: "10px 18px",
-              backdropFilter: "blur(6px)", height: 58,
-              cursor: "pointer",
-            }}
-          >
-            <span style={{ fontSize: 18, lineHeight: 1 }}>👤</span>
-            <span style={{ color: "#AAA", fontSize: 12, fontWeight: 700, fontFamily: "'Orbitron',sans-serif", userSelect: "none" }}>Visitante</span>
-            <button
-              onClick={e => { e.stopPropagation(); handleNavigation("/login"); }}
+          <>
+            {/* Spacer matching RankBadge area to keep header height consistent with logged-in layout */}
+            <div style={{ width: 100, height: 100, flexShrink: 0 }} />
+            <div
+              onClick={() => handleNavigation("/login")}
               style={{
-                background: "linear-gradient(90deg, rgba(0,229,255,0.15), rgba(0,114,255,0.15))",
-                border: "1px solid rgba(0,229,255,0.4)",
-                borderRadius: 20, padding: "4px 12px",
-                fontSize: 11, color: "#00E5FF", fontWeight: 700,
-                cursor: "pointer", fontFamily: "'Orbitron',sans-serif",
+                display: "flex", alignItems: "center", gap: 10,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 50, padding: "10px 18px",
+                backdropFilter: "blur(6px)", height: 58,
+                cursor: "pointer",
               }}
-            >Entrar</button>
-          </div>
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }}>👤</span>
+              <span style={{ color: "#AAA", fontSize: 12, fontWeight: 700, fontFamily: "'Orbitron',sans-serif", userSelect: "none" }}>Visitante</span>
+              <button
+                onClick={e => { e.stopPropagation(); handleNavigation("/login"); }}
+                style={{
+                  background: "linear-gradient(90deg, rgba(0,229,255,0.15), rgba(0,114,255,0.15))",
+                  border: "1px solid rgba(0,229,255,0.4)",
+                  borderRadius: 20, padding: "4px 12px",
+                  fontSize: 11, color: "#00E5FF", fontWeight: 700,
+                  cursor: "pointer", fontFamily: "'Orbitron',sans-serif",
+                }}
+              >Entrar</button>
+            </div>
+          </>
         ) : isLoading || !userStats ? (
           <>
             <div style={{ width: 70, height: 70, borderRadius: 16, background: "rgba(0,229,255,0.08)", display: "inline-block", marginRight: 16, animation: "pulse 1.2s infinite alternate" }} />

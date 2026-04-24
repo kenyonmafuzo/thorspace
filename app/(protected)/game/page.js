@@ -20,8 +20,16 @@ export default function GamePage() {
       if (!isMounted) return;
       const session = data?.session;
 
+      const isGuest = typeof window !== "undefined" && localStorage.getItem("thor_guest") === "1";
+      const mode = localStorage.getItem("thor_selected_mode") || "practice";
+
       if (!session) {
-        router.replace("/login");
+        if (!isGuest || mode !== "practice") {
+          router.replace("/login");
+          return;
+        }
+        // Guest in practice mode — load game directly without auth
+        if (isMounted) setIframeUrl("/game/thor.html");
         return;
       }
 
@@ -32,7 +40,6 @@ export default function GamePage() {
       }
 
       // Construir URL correta uma única vez — evita double-load do iframe
-      const mode = localStorage.getItem("thor_selected_mode") || "practice";
       const matchId = localStorage.getItem("thor_match_id");
 
       if (mode === "multiplayer" && matchId) {
@@ -97,7 +104,7 @@ export default function GamePage() {
 
     (async () => {
       try {
-        const username = localStorage.getItem("thor_username") || "";
+        const username = localStorage.getItem("thor_username") || (localStorage.getItem("thor_guest") === "1" ? "Visitante" : "");
         const matchId = localStorage.getItem("thor_match_id") || null;
         const { data } = await supabase.auth.getSession();
         const userId = data?.session?.user?.id || null;

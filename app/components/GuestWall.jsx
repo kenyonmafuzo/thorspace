@@ -24,46 +24,54 @@ export default function GuestWall({
       alignItems: "center",
       justifyContent: "center",
       textAlign: "center",
-      padding: "2.5rem 1.5rem",
-      gap: 16,
+      padding: "36px 28px",
+      gap: 18,
     }}>
-      <div style={{ fontSize: 44, lineHeight: 1 }}>🔒</div>
+      <div style={{ fontSize: 44, lineHeight: 1, filter: "drop-shadow(0 0 12px rgba(0,229,255,0.5))" }}>🔒</div>
       <div style={{
         fontFamily: "'Orbitron', sans-serif",
-        fontSize: "1.25rem",
-        fontWeight: 800,
-        color: "#e2e8f0",
+        fontSize: "1.2rem",
+        fontWeight: 900,
+        color: "#00E5FF",
+        letterSpacing: 1,
+        textShadow: "0 0 16px rgba(0,229,255,0.4)",
       }}>{title}</div>
-      <div style={{ fontSize: 15, color: "#94a3b8", maxWidth: 360, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14, color: "#9FF6FF", maxWidth: 340, lineHeight: 1.7, opacity: 0.85 }}>
         {message}
       </div>
       <button
-        onClick={() => router.push("/login")}
+        onClick={() => router.push("/signup")}
         style={{
           marginTop: 8,
-          padding: "0.7rem 2.2rem",
-          background: "linear-gradient(90deg, #6366f1, #818cf8)",
-          color: "#fff",
+          padding: "12px 32px",
+          background: "linear-gradient(90deg, #00E5FF, #0072FF)",
+          color: "#001018",
           border: "none",
           borderRadius: 10,
           fontFamily: "'Orbitron', sans-serif",
-          fontWeight: 700,
-          fontSize: 15,
+          fontWeight: 900,
+          fontSize: 13,
+          letterSpacing: 1,
           cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(99,102,241,0.4)",
+          boxShadow: "0 0 24px rgba(0,229,255,0.35), 0 4px 16px rgba(0,0,0,0.4)",
+          transition: "opacity 0.2s",
         }}
+        onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; }}
+        onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
       >
-        Cadastre-se
+        Cadastre-se grátis
       </button>
       <button
         onClick={() => router.push("/login")}
         style={{
           background: "none",
           border: "none",
-          color: "#64748b",
-          fontSize: 13,
+          color: "#9FF6FF",
+          fontSize: 12,
           cursor: "pointer",
           textDecoration: "underline",
+          fontFamily: "'Orbitron', sans-serif",
+          opacity: 0.7,
         }}
       >
         Já tenho conta — fazer login
@@ -79,17 +87,22 @@ export default function GuestWall({
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      backgroundImage: "url('/game/images/galaxy-bg.jpg')",
+      backgroundSize: "cover",
+      backgroundPosition: "center",
     }}>
       <div style={{
-        background: "rgba(30,42,80,0.85)",
-        border: "1px solid #334155",
-        borderRadius: 16,
-        maxWidth: 460,
+        background: "linear-gradient(135deg, rgba(0,229,255,0.10) 0%, rgba(0,20,40,0.97) 100%)",
+        border: "2px solid rgba(0,229,255,0.35)",
+        borderRadius: 18,
+        maxWidth: 440,
         width: "90%",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 48px rgba(0,229,255,0.12), 0 16px 60px rgba(0,0,0,0.6)",
+        backdropFilter: "blur(18px)",
       }}>
         {content}
       </div>
     </div>
   );
 }
+

@@ -216,26 +216,33 @@ export default function RankingPage() {
       setLoadingRanking(true);
       setError("");
       try {
-        // Buscar todos os perfis
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, username, avatar_preset, is_vip, vip_name_color, vip_frame_color")
-          .order("username", { ascending: true });
-        if (profilesError) {
-          setError("Erro ao buscar perfis.");
-          setLoadingRanking(false);
-          return;
+        // For guests, use server API to bypass RLS for unauthenticated visitors
+        let profiles, statsData, progressData;
+        if (isGuest) {
+          const res = await fetch("/api/ranking");
+          if (!res.ok) throw new Error("ranking fetch failed");
+          const json = await res.json();
+          profiles = json.profiles || [];
+          statsData = json.statsData || [];
+          progressData = json.progressData || [];
+        } else {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, username, avatar_preset, is_vip, vip_name_color, vip_frame_color")
+            .order("username", { ascending: true });
+          if (profilesError) {
+            setError("Erro ao buscar perfis.");
+            setLoadingRanking(false);
+            return;
+          }
+          profiles = profilesData || [];
+          const [{ data: sData }, { data: prData }] = await Promise.all([
+            supabase.from("player_stats").select("user_id, matches_played, wins, draws, losses, ships_destroyed"),
+            supabase.from("player_progress").select("user_id, level, xp, xp_to_next, total_xp"),
+          ]);
+          statsData = sData || [];
+          progressData = prData || [];
         }
-        // Buscar stats e progress de todos os usuários
-        const userIds = profiles.map(p => p.id);
-        const [{ data: statsData }, { data: progressData }] = await Promise.all([
-          supabase
-            .from("player_stats")
-            .select("user_id, matches_played, wins, draws, losses, ships_destroyed"),
-          supabase
-            .from("player_progress")
-            .select("user_id, level, xp, xp_to_next, total_xp")
-        ]);
         const statsMap = {};
         (statsData || []).forEach(s => { statsMap[s.user_id] = s; });
         const progressMap = {};
@@ -445,7 +452,7 @@ export default function RankingPage() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
               { key: 'geral', label: 'Ranking Geral' },
-              { key: 'confrontos', label: 'Confrontos Diretos' },
+              ...(!isGuest ? [{ key: 'confrontos', label: 'Confrontos Diretos' }] : []),
             ].map(tab => (
               <button
                 key={tab.key}

@@ -469,7 +469,7 @@ export default function VIPPage() {
         {/* Planos */}
         <section style={{ marginBottom: 40 }}>
           <h2 style={sectionTitleStyle}>{vip.sectionPlans}</h2>
-          <div style={plansGridStyle}>
+          <div style={{ ...plansGridStyle, ...(isGuest ? { pointerEvents: "none", opacity: 0.45, filter: "grayscale(0.3)" } : {}) }}>
             {plans.map((plan) => {
               const isSelected = selectedPlan === plan.id;
               const accent = PLAN_ACCENTS[plan.id] || "#00E5FF";
@@ -578,6 +578,7 @@ export default function VIPPage() {
         }}>
           <h2 style={{ ...sectionTitleStyle, marginBottom: 20 }}>{vip.sectionPayment}</h2>
 
+          {!isGuest && (
           <div style={{ display: "flex", gap: 12, marginBottom: 28, flexWrap: "wrap" }}>
             {/* PIX - só PT */}
             {isPT && (
@@ -651,6 +652,7 @@ export default function VIPPage() {
               </button>
             )}
           </div>
+          )}
 
           {/* Resumo do pedido */}
           {currentPlan && (
@@ -678,26 +680,27 @@ export default function VIPPage() {
           <button
             className="pay-btn"
             onClick={handlePay}
-            disabled={paymentLoading}
+            disabled={isGuest || paymentLoading}
             style={{
               width: "100%", padding: "16px 24px",
-              backgroundImage: paymentLoading
+              backgroundImage: (isGuest || paymentLoading)
                 ? "none"
                 : "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
-              backgroundColor: paymentLoading ? "rgba(255,215,0,0.15)" : "transparent",
+              backgroundColor: (isGuest || paymentLoading) ? "rgba(255,215,0,0.15)" : "transparent",
               backgroundSize: "200% auto",
-              animation: paymentLoading ? "none" : "shimmer 3s linear infinite",
-              border: paymentLoading ? "1px solid rgba(255,215,0,0.3)" : "none",
+              animation: (isGuest || paymentLoading) ? "none" : "shimmer 3s linear infinite",
+              border: (isGuest || paymentLoading) ? "1px solid rgba(255,215,0,0.3)" : "none",
               borderRadius: 12,
               fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
-              color: paymentLoading ? "#FFD70088" : "#000",
-              cursor: paymentLoading ? "not-allowed" : "pointer",
+              color: (isGuest || paymentLoading) ? "#FFD70088" : "#000",
+              cursor: (isGuest || paymentLoading) ? "not-allowed" : "pointer",
               letterSpacing: 1,
-              boxShadow: paymentLoading ? "none" : "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
+              opacity: isGuest ? 0.5 : 1,
+              boxShadow: (isGuest || paymentLoading) ? "none" : "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
               transition: "all 0.2s",
             }}
           >
-            {paymentLoading ? "⏳ REDIRECIONANDO..." : `⚡ ${vip.payNow} — ${currentPlan?.price}`}
+            {isGuest ? "🔒 Crie sua conta para assinar" : paymentLoading ? "⏳ REDIRECIONANDO..." : `⚡ ${vip.payNow} — ${currentPlan?.price}`}
           </button>
 
           {paymentError && (
