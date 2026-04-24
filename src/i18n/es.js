@@ -138,6 +138,9 @@ export default {
     friend_declined_you: "{username} rechazó tu solicitud de amistad.",
     friend_removed_you: "{username} te eliminó de su lista de amigos.",
     streak_broken: "⚠️ ¡Racha Perdida! No te conectaste ayer y tu racha de {days} días se ha reiniciado. ¡Comienza una nueva racha iniciando sesión todos los días!",
+    badge_unlocked_title: "🏆 Nueva Insignia Desbloqueada: {badgeTitle}",
+    badge_unlocked_body: "{badgeDescription}\n\n¡Felicitaciones! Revisa tu logro y múestraselo a todos.",
+    badge_unlocked_cta: "Ver Insignias",
   },
   badges: {
     title: "Insignias",

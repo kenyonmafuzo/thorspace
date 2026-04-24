@@ -138,6 +138,9 @@ export default {
     friend_declined_you: "{username} recusou seu pedido de amizade.",
     friend_removed_you: "{username} removeu você da lista de amigos.",
     streak_broken: "⚠️ Sequência Perdida! Você não se conectou ontem e sua sequência de {days} dias foi reiniciada. Comece uma nova sequência fazendo login todos os dias!",
+    badge_unlocked_title: "🏆 Nova Badge Desbloqueada: {badgeTitle}",
+    badge_unlocked_body: "{badgeDescription}\n\nParabéns! Confira sua conquista e exiba com orgulho.",
+    badge_unlocked_cta: "Ver Badges",
   },
   badges: {
     title: "Badges",

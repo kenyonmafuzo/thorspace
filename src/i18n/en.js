@@ -138,6 +138,9 @@ export default {
     friend_declined_you: "{username} declined your friend request.",
     friend_removed_you: "{username} removed you from their friends list.",
     streak_broken: "⚠️ Streak Lost! You didn't connect yesterday and your {days}-day streak has been reset. Start a new streak by logging in every day!",
+    badge_unlocked_title: "🏆 New Badge Unlocked: {badgeTitle}",
+    badge_unlocked_body: "{badgeDescription}\n\nCongratulations! Check out your achievement and show it off.",
+    badge_unlocked_cta: "View Badges",
   },
   badges: {
     title: "Badges",
