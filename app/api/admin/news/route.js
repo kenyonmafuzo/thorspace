@@ -8,10 +8,11 @@ export async function POST(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, target_user_ids } = await request.json();
+    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, target_user_ids, translations } = await request.json();
     if (!title || !body) return NextResponse.json({ error: "Título e conteúdo obrigatórios" }, { status: 400 });
 
     const db = getAdminClient();
+    const newMeta = translations ? { translations } : {};
 
     // Direct message to specific users → record in admin_news + insert inbox rows
     if (target_user_ids?.length) {
@@ -29,7 +30,7 @@ export async function POST(request) {
         show_in_game_updates: !!show_in_game_updates,
         lang: lang ?? "all",
         created_by: session.id,
-        meta: { is_dm: true, dm_user_ids: target_user_ids, dm_usernames },
+        meta: { is_dm: true, dm_user_ids: target_user_ids, dm_usernames, ...newMeta },
       }).select("id").single();
       if (newsErr) throw newsErr;
 
@@ -68,6 +69,7 @@ export async function POST(request) {
       show_in_game_updates: !!show_in_game_updates,
       lang: lang ?? "all",
       created_by: session.id,
+      meta: newMeta,
     }).select("id").single();
 
     if (error) throw error;
@@ -83,7 +85,7 @@ export async function PATCH(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang } = await request.json();
+    const { id, title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, translations } = await request.json();
     if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
     const db = getAdminClient();
 
@@ -94,13 +96,10 @@ export async function PATCH(request) {
 
     const update = { published };
     if (published && !wasPublished) {
-      // Newly published — set published_at now
       update.published_at = new Date().toISOString();
     } else if (!published) {
-      // Unpublishing — clear published_at
       update.published_at = null;
     }
-    // If already published and staying published — keep original published_at untouched
 
     if (title !== undefined) update.title = title;
     if (body !== undefined) update.body = body;
@@ -108,6 +107,10 @@ export async function PATCH(request) {
     if (show_in_notifications !== undefined) update.show_in_notifications = !!show_in_notifications;
     if (show_in_game_updates !== undefined) update.show_in_game_updates = !!show_in_game_updates;
     if (lang !== undefined) update.lang = lang;
+    // Merge translations into existing meta, preserving is_dm and dm fields
+    if (translations !== undefined) {
+      update.meta = { ...(current?.meta ?? {}), translations };
+    }
     await db.from("admin_news").update(update).eq("id", id);
 
     // If this is a DM, also propagate changes to the inbox rows

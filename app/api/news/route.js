@@ -11,7 +11,7 @@ export async function GET(request) {
     const db = getAdminClient();
     let query = db
       .from("admin_news")
-      .select("id, title, body, created_at, lang, show_as_login_modal, show_in_notifications, show_in_game_updates")
+      .select("id, title, body, meta, created_at, lang, show_as_login_modal, show_in_notifications, show_in_game_updates")
       .eq("published", true)
       .order("created_at", { ascending: false });
 

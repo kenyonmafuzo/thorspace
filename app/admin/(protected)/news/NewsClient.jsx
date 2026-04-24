@@ -11,9 +11,18 @@ function formatDate(iso) {
 }
 
 const EMPTY_FORM = {
-  title: "", body: "", published: false, lang: "all",
+  title_pt: "", body_pt: "",
+  title_en: "", body_en: "",
+  title_es: "", body_es: "",
+  published: false,
   show_as_login_modal: false, show_in_notifications: false, show_in_game_updates: false,
 };
+
+const LANG_TAB_CONFIG = [
+  { key: "pt", label: "🇧🇷 Português", flag: "PT" },
+  { key: "en", label: "🇺🇸 Inglês",    flag: "EN" },
+  { key: "es", label: "🇪🇸 Espanhol",  flag: "ES" },
+];
 
 const LANG_LABELS = { all: "Todos os idiomas", pt: "Português", en: "Inglês", es: "Espanhol" };
 const LANG_COLORS = { all: { bg: "#1e2a50", color: "#818cf8" }, pt: { bg: "#052e16", color: "#4ade80" }, en: { bg: "#1e3a5f", color: "#60a5fa" }, es: { bg: "#3b1f00", color: "#fb923c" } };
@@ -119,6 +128,7 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
   const [form, setForm] = useState(initial);
   const [recipientMode, setRecipientMode] = useState("all"); // "all" | "specific"
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [activeLang, setActiveLang] = useState("pt");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const addUser = (u) => setSelectedUsers(prev => prev.find(x => x.id === u.id) ? prev : [...prev, u]);
@@ -126,11 +136,31 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.title_pt || !form.body_pt) {
+      alert("A aba Português (título e conteúdo) é obrigatória.");
+      setActiveLang("pt");
+      return;
+    }
+    const translations = {
+      pt: { title: form.title_pt, body: form.body_pt },
+      en: { title: form.title_en, body: form.body_en },
+      es: { title: form.title_es, body: form.body_es },
+    };
+    const payload = {
+      title: form.title_pt,
+      body:  form.body_pt,
+      translations,
+      lang: "all",
+      published:            form.published,
+      show_as_login_modal:  form.show_as_login_modal,
+      show_in_notifications: form.show_in_notifications,
+      show_in_game_updates: form.show_in_game_updates,
+    };
     if (recipientMode === "specific") {
       if (selectedUsers.length === 0) return;
-      onSave({ ...form, target_user_ids: selectedUsers.map(u => u.id) });
+      onSave({ ...payload, target_user_ids: selectedUsers.map(u => u.id) });
     } else {
-      onSave(form);
+      onSave(payload);
     }
   };
 
@@ -159,33 +189,86 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
         )}
       </div>
 
-      <label className={styles.label}>
-        Título
-        <input className={styles.input} value={form.title} onChange={e => set("title", e.target.value)} required disabled={loading} />
-      </label>
-      <label className={styles.label}>
-        Conteúdo
-        <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
-      </label>
-
-      <label className={styles.label}>
-          Idioma
-          <select className={styles.input} value={form.lang} onChange={e => set("lang", e.target.value)} disabled={loading}>
-            <option value="all">Todos os idiomas (PT + EN + ES)</option>
-            <option value="pt">Português</option>
-            <option value="en">Inglês</option>
-            <option value="es">Espanhol</option>
-          </select>
-        </label>
-        <div className={styles.toggleGroup}>
-          <span className={styles.toggleGroupLabel}>Onde mostrar</span>
-          <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
-          <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
-          <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
-          {recipientMode === "all" && (
-            <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
-          )}
+      {/* Language tabs */}
+      <div style={{ marginBottom: 0 }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "1.5px solid #2d3448", marginBottom: 0 }}>
+          {LANG_TAB_CONFIG.map(tab => {
+            const hasContent = form[`title_${tab.key}`] || form[`body_${tab.key}`];
+            const isActive = activeLang === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveLang(tab.key)}
+                disabled={loading}
+                style={{
+                  padding: "0.45rem 1rem",
+                  borderRadius: "8px 8px 0 0",
+                  border: isActive ? "1.5px solid #6366f1" : "1.5px solid #2d3448",
+                  borderBottom: isActive ? "1.5px solid #111827" : "1.5px solid #2d3448",
+                  background: isActive ? "#1e2a50" : "#111827",
+                  color: isActive ? "#818cf8" : hasContent ? "#94a3b8" : "#4b5563",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  position: "relative",
+                  bottom: -1,
+                }}
+              >
+                {tab.label}
+                {tab.key !== "pt" && !hasContent && (
+                  <span style={{ marginLeft: 5, fontSize: 10, color: "#4b5563" }}>vazio</span>
+                )}
+              </button>
+            );
+          })}
         </div>
+
+        <div style={{
+          background: "#111827",
+          border: "1.5px solid #2d3448",
+          borderTop: "none",
+          borderRadius: "0 0 10px 10px",
+          padding: "16px 16px 8px",
+          marginBottom: 16,
+        }}>
+          {LANG_TAB_CONFIG.map(tab => activeLang === tab.key && (
+            <div key={tab.key}>
+              <label className={styles.label} style={{ marginBottom: 10, display: "block" }}>
+                Título {tab.key === "pt" ? <span style={{ color: "#f87171", fontSize: 11 }}>*obrigatório</span> : <span style={{ color: "#4b5563", fontSize: 11 }}>opcional</span>}
+                <input
+                  className={styles.input}
+                  value={form[`title_${tab.key}`]}
+                  onChange={e => set(`title_${tab.key}`, e.target.value)}
+                  placeholder={tab.key === "pt" ? "Título em Português" : `Título em ${tab.label.split(" ")[1]}`}
+                  disabled={loading}
+                />
+              </label>
+              <label className={styles.label} style={{ display: "block" }}>
+                Conteúdo {tab.key === "pt" ? <span style={{ color: "#f87171", fontSize: 11 }}>*obrigatório</span> : <span style={{ color: "#4b5563", fontSize: 11 }}>opcional</span>}
+                <textarea
+                  className={styles.textarea}
+                  value={form[`body_${tab.key}`]}
+                  onChange={e => set(`body_${tab.key}`, e.target.value)}
+                  placeholder={tab.key === "pt" ? "Conteúdo em Português" : `Conteúdo em ${tab.label.split(" ")[1]}`}
+                  disabled={loading}
+                  rows={6}
+                />
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.toggleGroup}>
+        <span className={styles.toggleGroupLabel}>Onde mostrar</span>
+        <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
+        <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
+        <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
+        {recipientMode === "all" && (
+          <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
+        )}
+      </div>
 
       <div className={styles.formActions}>
         <button className={styles.submitBtn} type="submit"
@@ -244,7 +327,18 @@ export default function NewsClient({ news, total, page, adminId }) {
         <button className={styles.back} onClick={() => { setEditItem(null); setMsg(null); }}>← Voltar</button>
         <h1 className={styles.pageTitle}>Editar notícia</h1>
         <NewsForm
-          initial={{ title: editItem.title, body: editItem.body, published: editItem.published, lang: editItem.lang ?? "all", show_as_login_modal: editItem.show_as_login_modal ?? false, show_in_notifications: editItem.show_in_notifications ?? false, show_in_game_updates: editItem.show_in_game_updates ?? false }}
+          initial={{
+            title_pt: editItem.meta?.translations?.pt?.title ?? editItem.title ?? "",
+            body_pt:  editItem.meta?.translations?.pt?.body  ?? editItem.body  ?? "",
+            title_en: editItem.meta?.translations?.en?.title ?? "",
+            body_en:  editItem.meta?.translations?.en?.body  ?? "",
+            title_es: editItem.meta?.translations?.es?.title ?? "",
+            body_es:  editItem.meta?.translations?.es?.body  ?? "",
+            published:             editItem.published,
+            show_as_login_modal:   editItem.show_as_login_modal   ?? false,
+            show_in_notifications: editItem.show_in_notifications ?? false,
+            show_in_game_updates:  editItem.show_in_game_updates  ?? false,
+          }}
           onSave={handleEdit} onCancel={() => { setEditItem(null); setMsg(null); }} loading={loading} msg={msg}
         />
       </div>
