@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
+import { supabase } from "@/lib/supabase";
 
 
 export default function ModePage() {
@@ -82,6 +83,31 @@ export default function ModePage() {
         })
         .catch(() => {});
     }, [lang]);
+
+    // Load DM inbox items that should show as modal (admin_message with show_as_login_modal in meta)
+    useEffect(() => {
+      if (!userId) return;
+      const seenRaw = localStorage.getItem("thor_seen_news") || "[]";
+      let seen = [];
+      try { seen = JSON.parse(seenRaw); } catch {}
+      supabase
+        .from("inbox")
+        .select("id, title, content, meta")
+        .eq("user_id", userId)
+        .eq("type", "admin_message")
+        .then(({ data }) => {
+          const dmModals = (data || [])
+            .filter(item => {
+              const meta = typeof item.meta === "string" ? JSON.parse(item.meta) : (item.meta ?? {});
+              return meta?.show_as_login_modal === true && !seen.includes(`dm_${item.id}`);
+            })
+            .map(item => ({ id: `dm_${item.id}`, title: item.title, body: item.content }));
+          if (dmModals.length > 0) {
+            setAdminModals(prev => [...prev, ...dmModals]);
+          }
+        })
+        .catch(() => {});
+    }, [userId]);
 
     const handleCloseAdminModal = () => {
       const current = adminModals[adminModalIdx];

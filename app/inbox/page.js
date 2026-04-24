@@ -50,7 +50,12 @@ export default function InboxPage() {
         if (notifErr) throw notifErr;
         if (mounted) {
           setNotifications(notifs || []);
-          setGlobalNews(notifNewsRes.news || []);
+          // Merge global news into notifications list (sorted by date so newest is always on top)
+          const merged = [
+            ...(notifNewsRes.news || []).map(n => ({ ...n, _src: "global" })),
+            ...(notifs || []).map(n => ({ ...n, _src: "inbox" })),
+          ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          setGlobalNews(merged);
           setGameUpdates(updatesRes.news || []);
         }
 
@@ -143,7 +148,7 @@ export default function InboxPage() {
                   <div style={{ fontSize: 16, opacity: 0.7, marginBottom: 24 }}>Loading…</div>
                 ) : error ? (
                   <div style={{ color: "#FFB3B3", marginBottom: 24 }}>{error}</div>
-                ) : notifications.length === 0 ? (
+                ) : globalNews.length === 0 ? (
                   <div style={{
                     background: "rgba(0,229,255,0.07)",
                     border: "1px solid #00E5FF22",
@@ -158,23 +163,24 @@ export default function InboxPage() {
                   </div>
                 ) : (
                   <div style={{ width: "100%", maxWidth: 480, marginLeft: 0, marginRight: "auto", marginBottom: 32 }}>
-                    {/* Global announcements pinned at top */}
-                    {globalNews.map(n => (
-                      <div key={`gn-${n.id}`} style={{
-                        marginBottom: 24,
-                        background: "rgba(99,102,241,0.12)",
-                        border: "1.5px solid #6366f155",
-                        borderRadius: 12,
-                        padding: 18,
-                        boxShadow: "0 2px 12px #6366f111",
-                      }}>
-                        <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>📢 Anúncio</div>
-                        <div style={{ fontSize: 15, color: "#e0e7ff", fontWeight: 700, marginBottom: 6 }}>{n.title}</div>
-                        <div style={{ fontSize: 14, color: "#a5b4fc", whiteSpace: "pre-line" }}>{n.body}</div>
-                        <div style={{ fontSize: 12, color: "#6366f1", marginTop: 8 }}>{new Date(n.created_at).toLocaleDateString("pt-BR")}</div>
-                      </div>
-                    ))}
-                    {notifications.map((notif, idx) => {
+                    {/* Merged & sorted by date: newest first */}
+                    {globalNews.map((n, idx) => {
+                      if (n._src === "global") return (
+                        <div key={`gn-${n.id}`} style={{
+                          marginBottom: 24,
+                          background: "rgba(99,102,241,0.12)",
+                          border: "1.5px solid #6366f155",
+                          borderRadius: 12,
+                          padding: 18,
+                          boxShadow: "0 2px 12px #6366f111",
+                        }}>
+                          <div style={{ fontSize: 11, color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}> 📢 Anúncio</div>
+                          <div style={{ fontSize: 15, color: "#e0e7ff", fontWeight: 700, marginBottom: 6 }}>{n.title}</div>
+                          <div style={{ fontSize: 14, color: "#a5b4fc", whiteSpace: "pre-line" }}>{n.body}</div>
+                          <div style={{ fontSize: 12, color: "#6366f1", marginTop: 8 }}>{new Date(n.created_at).toLocaleDateString("pt-BR")}</div>
+                        </div>
+                      );
+                      const notif = n;
                       // Fonte do texto: prioriza notif.content, t(...) só como fallback
                       let text, notifTitle;
                       const date = new Date(notif.created_at);
@@ -366,7 +372,7 @@ export default function InboxPage() {
                 <div style={{ fontSize: 14, color: "#9FF6FF", marginBottom: 18 }}>{t("inbox.updatesDesc") || "Latest news and patch notes"}</div>
                 {loading ? (
                   <div style={{ fontSize: 16, opacity: 0.7, marginBottom: 24 }}>Loading…</div>
-                ) : gameUpdates.length === 0 ? (
+                ) : gameUpdates.length === 0 && !notifications.some(n => n.type === "admin_message" && n.meta?.show_in_game_updates) ? (
                   <div style={{
                     background: "rgba(0,229,255,0.07)",
                     border: "1px solid #00E5FF22",
@@ -381,6 +387,24 @@ export default function InboxPage() {
                   </div>
                 ) : (
                   <div style={{ width: "100%", maxWidth: 480, marginLeft: 0, marginRight: "auto", marginBottom: 32 }}>
+                    {/* Personal DMs with show_in_game_updates, sorted newest first */}
+                    {notifications
+                      .filter(n => n.type === "admin_message" && n.meta?.show_in_game_updates)
+                      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                      .map(n => (
+                        <div key={`dm-gu-${n.id}`} style={{
+                          marginBottom: 24,
+                          background: "rgba(139,92,246,0.10)",
+                          border: "1.5px solid #7c3aed66",
+                          borderRadius: 12,
+                          padding: 18,
+                          boxShadow: "0 2px 12px #7c3aed11",
+                        }}>
+                          <div style={{ fontSize: 15, color: "#c4b5fd", fontWeight: 700, marginBottom: 6 }}>{n.title}</div>
+                          <div style={{ fontSize: 14, color: "#a78bfa", whiteSpace: "pre-line" }}>{n.content}</div>
+                          <div style={{ fontSize: 12, color: "#7c3aed", marginTop: 8 }}>{new Date(n.created_at).toLocaleDateString("pt-BR")}</div>
+                        </div>
+                      ))}
                     {gameUpdates.map(n => (
                       <div key={n.id} style={{
                         marginBottom: 24,

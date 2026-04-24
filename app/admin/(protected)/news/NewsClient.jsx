@@ -210,19 +210,14 @@ export default function NewsClient({ news, total, page, adminId }) {
   async function handleCreate(form) {
     setMsg(null); setLoading(true);
     try {
-      // DM to specific users: fire one request per user
-      if (form.target_user_ids?.length) {
-        await Promise.all(form.target_user_ids.map(uid =>
-          fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: form.title, body: form.body, lang: form.lang, show_as_login_modal: form.show_as_login_modal, show_in_notifications: form.show_in_notifications, show_in_game_updates: form.show_in_game_updates, target_user_id: uid }) })
-        ));
-        setMsg({ ok: `Mensagem enviada para ${form.target_user_ids.length} usuário${form.target_user_ids.length !== 1 ? "s" : ""}!` });
-        setShowForm(false);
-        return;
-      }
+      // DM: send one request with all target_user_ids — API handles the rest
       const res = await fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) { setMsg({ error: data.error }); return; }
+      if (form.target_user_ids?.length) {
+        setMsg({ ok: `Mensagem enviada para ${form.target_user_ids.length} usuário${form.target_user_ids.length !== 1 ? "s" : ""}!` });
+        setShowForm(false); router.refresh(); return;
+      }
       setMsg({ ok: "Notícia criada!" }); setShowForm(false); router.refresh();
     } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
   }
@@ -275,15 +270,29 @@ export default function NewsClient({ news, total, page, adminId }) {
           </thead>
           <tbody>
             {news.length === 0 && <tr><td colSpan={5} className={styles.empty}>Sem notícias ainda.</td></tr>}
-            {news.map(n => (
+            {news.map(n => {
+              const isDm = n.meta?.is_dm === true;
+              const dmUsernames = n.meta?.dm_usernames ?? [];
+              return (
               <tr key={n.id}>
-                <td className={styles.titleCell}>{n.title}</td>
+                <td className={styles.titleCell}>
+                  {n.title}
+                  {isDm && (
+                    <div style={{ marginTop: 3, fontSize: 11, color: "#a78bfa" }}>
+                      ✉️ Para: {dmUsernames.length > 0 ? dmUsernames.join(", ") : `${(n.meta?.dm_user_ids ?? []).length} usuário(s)`}
+                    </div>
+                  )}
+                </td>
                 <td><LangBadge lang={n.lang} /></td>
                 <td className={styles.deliveryCell}>
-                  <DeliveryBadge label="Modal" active={n.show_as_login_modal} />
-                  <DeliveryBadge label="Notif." active={n.show_in_notifications} />
-                  <DeliveryBadge label="Updates" active={n.show_in_game_updates} />
-                  {!n.show_as_login_modal && !n.show_in_notifications && !n.show_in_game_updates && <span className={styles.noneTag}>—</span>}
+                  {isDm ? (
+                    <span style={{ background: "#2d1a4d", color: "#c4b5fd", border: "1px solid #7c3aed66", borderRadius: 5, padding: "0.15rem 0.5rem", fontSize: "0.7rem", fontWeight: 700 }}>DM</span>
+                  ) : (<>
+                    <DeliveryBadge label="Modal" active={n.show_as_login_modal} />
+                    <DeliveryBadge label="Notif." active={n.show_in_notifications} />
+                    <DeliveryBadge label="Updates" active={n.show_in_game_updates} />
+                    {!n.show_as_login_modal && !n.show_in_notifications && !n.show_in_game_updates && <span className={styles.noneTag}>—</span>}
+                  </>)}
                 </td>
                 <td><span className={`${styles.badge} ${n.published ? styles.published : styles.draft}`}>{n.published ? "Publicado" : "Rascunho"}</span></td>
                 <td>{formatDate(n.created_at)}</td>
@@ -292,7 +301,7 @@ export default function NewsClient({ news, total, page, adminId }) {
                   <button className={styles.deleteBtn} onClick={() => handleDelete(n.id)}>Apagar</button>
                 </td>
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

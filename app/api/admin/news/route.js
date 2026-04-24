@@ -8,24 +8,54 @@ export async function POST(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, target_user_id } = await request.json();
+    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, target_user_ids } = await request.json();
     if (!title || !body) return NextResponse.json({ error: "Título e conteúdo obrigatórios" }, { status: 400 });
 
     const db = getAdminClient();
 
-    // Direct message to a specific user → insert into inbox
-    if (target_user_id) {
-      const { error } = await db.from("inbox").insert({
-        user_id: target_user_id,
+    // Direct message to specific users → record in admin_news + insert inbox rows
+    if (target_user_ids?.length) {
+      // Fetch recipient usernames for display in the admin list
+      const { data: profiles } = await db.from("profiles").select("id, username").in("id", target_user_ids);
+      const dm_usernames = (profiles || []).map(p => p.username);
+
+      // Insert one admin_news record so admins can see, edit, delete the DM
+      const { data: newsRow, error: newsErr } = await db.from("admin_news").insert({
+        title, body,
+        published: true,
+        published_at: new Date().toISOString(),
+        show_as_login_modal: !!show_as_login_modal,
+        show_in_notifications: !!show_in_notifications,
+        show_in_game_updates: !!show_in_game_updates,
+        lang: lang ?? "all",
+        created_by: session.id,
+        meta: { is_dm: true, dm_user_ids: target_user_ids, dm_usernames },
+      }).select("id").single();
+      if (newsErr) throw newsErr;
+
+      const newsId = newsRow.id;
+      const inboxMeta = {
+        source_news_id: newsId,
+        show_as_login_modal: !!show_as_login_modal,
+        show_in_notifications: !!show_in_notifications,
+        show_in_game_updates: !!show_in_game_updates,
+      };
+
+      // Insert one inbox row per recipient
+      const inboxRows = target_user_ids.map(uid => ({
+        user_id: uid,
         type: "admin_message",
         title,
         content: body,
         lang: lang ?? "all",
+        meta: inboxMeta,
         created_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-      await auditLog({ adminUserId: session.id, action: "news.dm", targetType: "user", targetId: target_user_id });
-      return NextResponse.json({ ok: true, dm: true });
+      }));
+      const { error: inboxErr } = await db.from("inbox").insert(inboxRows);
+      if (inboxErr) throw inboxErr;
+
+      await auditLog({ adminUserId: session.id, action: "news.dm", targetType: "news", targetId: newsId });
+      return NextResponse.json({ ok: true, dm: true, id: newsId });
     }
 
     const { data, error } = await db.from("admin_news").insert({
@@ -57,10 +87,10 @@ export async function PATCH(request) {
     if (!id) return NextResponse.json({ error: "id obrigatório" }, { status: 400 });
     const db = getAdminClient();
 
-    // Only update published_at when transitioning from unpublished → published
-    // (fetch current state to know if it was already published)
-    const { data: current } = await db.from("admin_news").select("published, published_at").eq("id", id).single();
+    // Fetch current state to know if it was already published and if it's a DM
+    const { data: current } = await db.from("admin_news").select("published, published_at, meta").eq("id", id).single();
     const wasPublished = current?.published ?? false;
+    const isDm = current?.meta?.is_dm === true;
 
     const update = { published };
     if (published && !wasPublished) {
@@ -79,6 +109,23 @@ export async function PATCH(request) {
     if (show_in_game_updates !== undefined) update.show_in_game_updates = !!show_in_game_updates;
     if (lang !== undefined) update.lang = lang;
     await db.from("admin_news").update(update).eq("id", id);
+
+    // If this is a DM, also propagate changes to the inbox rows
+    if (isDm) {
+      const inboxUpdate = {};
+      if (title !== undefined) inboxUpdate.title = title;
+      if (body !== undefined) inboxUpdate.content = body;
+      if (lang !== undefined) inboxUpdate.lang = lang;
+      // Update meta flags while preserving source_news_id
+      inboxUpdate.meta = {
+        source_news_id: id,
+        show_as_login_modal: show_as_login_modal !== undefined ? !!show_as_login_modal : undefined,
+        show_in_notifications: show_in_notifications !== undefined ? !!show_in_notifications : undefined,
+        show_in_game_updates: show_in_game_updates !== undefined ? !!show_in_game_updates : undefined,
+      };
+      await db.from("inbox").update(inboxUpdate).contains("meta", { source_news_id: id });
+    }
+
     await auditLog({ adminUserId: session.id, action: published ? "news.publish" : "news.unpublish", targetType: "news", targetId: id });
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -93,6 +140,11 @@ export async function DELETE(request) {
   try {
     const { id } = await request.json();
     const db = getAdminClient();
+    // If this is a DM, delete the associated inbox rows first
+    const { data: record } = await db.from("admin_news").select("meta").eq("id", id).single();
+    if (record?.meta?.is_dm) {
+      await db.from("inbox").delete().contains("meta", { source_news_id: id });
+    }
     await db.from("admin_news").delete().eq("id", id);
     await auditLog({ adminUserId: session.id, action: "news.delete", targetType: "news", targetId: id });
     return NextResponse.json({ ok: true });
