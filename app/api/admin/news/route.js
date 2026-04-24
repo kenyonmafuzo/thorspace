@@ -8,10 +8,25 @@ export async function POST(request) {
   if (!session) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
 
   try {
-    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang } = await request.json();
+    const { title, body, published, show_as_login_modal, show_in_notifications, show_in_game_updates, lang, target_user_id } = await request.json();
     if (!title || !body) return NextResponse.json({ error: "Título e conteúdo obrigatórios" }, { status: 400 });
 
     const db = getAdminClient();
+
+    // Direct message to a specific user → insert into inbox
+    if (target_user_id) {
+      const { error } = await db.from("inbox").insert({
+        user_id: target_user_id,
+        type: "admin_message",
+        title,
+        content: body,
+        created_at: new Date().toISOString(),
+      });
+      if (error) throw error;
+      await auditLog({ adminUserId: session.id, action: "news.dm", targetType: "user", targetId: target_user_id });
+      return NextResponse.json({ ok: true, dm: true });
+    }
+
     const { data, error } = await db.from("admin_news").insert({
       title,
       body,

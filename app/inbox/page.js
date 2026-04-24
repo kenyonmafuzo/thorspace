@@ -286,6 +286,15 @@ export default function InboxPage() {
                         text = notif.content || "Seu VIP expirou.";
                         cta = notif.cta || "Renovar VIP";
                         ctaUrl = notif.cta_url || "/vip";
+                      } else if (notif.type === "admin_message") {
+                        // Mensagem direta do admin — roxo
+                        bg = "rgba(139,92,246,0.10)";
+                        border = "1.5px solid #7c3aed66";
+                        color = "#c4b5fd";
+                        notifTitle = notif.title || "Mensagem do admin";
+                        text = notif.content || "";
+                        cta = undefined;
+                        ctaUrl = undefined;
                       } else {
                         // Outros tipos de notificação
                         const username = notif.meta?.username || 'Alguém';
@@ -294,7 +303,7 @@ export default function InboxPage() {
                           : t(`inbox.${notif.type}`, { username }) || `Notificação: ${notif.type}`;
                       }
                       // Definir CTA padrão apenas para notificações de amizade (não vip, badge_unlocked, daily_login, streak_broken, vip_expired, friend_accepted)
-                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "vip" && notif.type !== "vip_expired" && notif.type !== "system" && notif.type !== "friend_accepted" && notif.cta && t(`inbox.cta_friends`)) {
+                      if (notif.type !== "daily_login" && notif.type !== "streak_broken" && notif.type !== "badge_unlocked" && notif.type !== "vip" && notif.type !== "vip_expired" && notif.type !== "system" && notif.type !== "friend_accepted" && notif.type !== "admin_message" && notif.cta && t(`inbox.cta_friends`)) {
                         cta = t(`inbox.cta_friends`);
                       }
                       return (

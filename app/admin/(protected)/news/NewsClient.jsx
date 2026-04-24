@@ -1,7 +1,7 @@
 "use client";
 // app/admin/(protected)/news/NewsClient.jsx
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./news.module.css";
 
@@ -89,9 +89,87 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
   );
 }
 
+function DirectMessageForm({ onSave, onCancel, loading, msg }) {
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef(null);
+
+  useEffect(() => {
+    if (!query || query.length < 2) { setResults([]); return; }
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data.users || []);
+      } finally { setSearching(false); }
+    }, 300);
+  }, [query]);
+
+  return (
+    <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!selectedUser) return; onSave({ title, body, target_user_id: selectedUser.id }); }}>
+      {msg?.error && <p className={styles.error}>{msg.error}</p>}
+      {msg?.ok    && <p className={styles.success}>{msg.ok}</p>}
+      <label className={styles.label}>
+        Destinatário
+        {selectedUser ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 6 }}>
+            <span style={{ background: "#1e2a50", color: "#818cf8", border: "1px solid #6366f144", borderRadius: 6, padding: "0.3rem 0.7rem", fontSize: "0.9rem", fontWeight: 700 }}>
+              @{selectedUser.username}
+            </span>
+            <button type="button" onClick={() => { setSelectedUser(null); setQuery(""); }} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 13 }}>✕ Remover</button>
+          </div>
+        ) : (
+          <div style={{ position: "relative" }}>
+            <input
+              className={styles.input}
+              placeholder="Buscar por username…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              autoComplete="off"
+            />
+            {(results.length > 0 || searching) && (
+              <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a2035", border: "1px solid #2d3448", borderRadius: 8, zIndex: 10, maxHeight: 200, overflowY: "auto" }}>
+                {searching && <div style={{ padding: "8px 12px", color: "#94a3b8", fontSize: 13 }}>Buscando…</div>}
+                {results.map(u => (
+                  <button key={u.id} type="button"
+                    style={{ display: "block", width: "100%", textAlign: "left", background: "none", border: "none", color: "#e2e8f0", padding: "8px 12px", cursor: "pointer", fontSize: 14 }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#2d3448"}
+                    onMouseLeave={e => e.currentTarget.style.background = "none"}
+                    onClick={() => { setSelectedUser(u); setQuery(""); setResults([]); }}>
+                    @{u.username}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </label>
+      <label className={styles.label}>
+        Título
+        <input className={styles.input} value={title} onChange={e => setTitle(e.target.value)} required disabled={loading} />
+      </label>
+      <label className={styles.label}>
+        Mensagem
+        <textarea className={styles.textarea} value={body} onChange={e => setBody(e.target.value)} required disabled={loading} rows={6} />
+      </label>
+      <div className={styles.formActions}>
+        <button className={styles.submitBtn} type="submit" disabled={loading || !selectedUser}>{loading ? "Enviando…" : "Enviar mensagem"}</button>
+        <button className={styles.cancelBtn} type="button" onClick={onCancel} disabled={loading}>Cancelar</button>
+      </div>
+    </form>
+  );
+}
+
 export default function NewsClient({ news, total, page, adminId }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
+  const [showDmForm, setShowDmForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState(null);
@@ -105,6 +183,16 @@ export default function NewsClient({ news, total, page, adminId }) {
       const data = await res.json();
       if (!res.ok) { setMsg({ error: data.error }); return; }
       setMsg({ ok: "Notícia criada!" }); setShowForm(false); router.refresh();
+    } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
+  }
+
+  async function handleSendDm(form) {
+    setMsg(null); setLoading(true);
+    try {
+      const res = await fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      const data = await res.json();
+      if (!res.ok) { setMsg({ error: data.error }); return; }
+      setMsg({ ok: "Mensagem enviada!" }); setShowDmForm(false);
     } catch { setMsg({ error: "Erro de conexão" }); } finally { setLoading(false); }
   }
 
@@ -141,11 +229,18 @@ export default function NewsClient({ news, total, page, adminId }) {
     <div>
       <div className={styles.header}>
         <h1 className={styles.pageTitle}>Notícias</h1>
-        <button className={styles.newBtn} onClick={() => { setShowForm(!showForm); setMsg(null); }}>
-          {showForm ? "✕ Cancelar" : "+ Nova notícia"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className={styles.newBtn} style={{ background: "#1e3a5f", borderColor: "#3b82f6" }} onClick={() => { setShowDmForm(!showDmForm); setShowForm(false); setMsg(null); }}>
+            {showDmForm ? "✕ Cancelar" : "✉ Mensagem direta"}
+          </button>
+          <button className={styles.newBtn} onClick={() => { setShowForm(!showForm); setShowDmForm(false); setMsg(null); }}>
+            {showForm ? "✕ Cancelar" : "+ Nova notícia"}
+          </button>
+        </div>
       </div>
 
+      {msg?.ok && !showForm && !showDmForm && <p className={styles.success} style={{ marginBottom: 16 }}>{msg.ok}</p>}
+      {showDmForm && <DirectMessageForm onSave={handleSendDm} onCancel={() => { setShowDmForm(false); setMsg(null); }} loading={loading} msg={msg} />}
       {showForm && <NewsForm onSave={handleCreate} onCancel={() => { setShowForm(false); setMsg(null); }} loading={loading} msg={msg} />}
 
       <div className={styles.tableWrap}>
