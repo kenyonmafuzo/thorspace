@@ -29,6 +29,7 @@ const handle = "@ThorspaceGame";
 export default function SocialLinksMini() {
   const [hoverX, setHoverX] = React.useState(false);
   const [hoverIG, setHoverIG] = React.useState(false);
+  const [hoverYT, setHoverYT] = React.useState(false);
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12, opacity: 0.6 }}>
@@ -61,6 +62,22 @@ export default function SocialLinksMini() {
             <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" strokeWidth="2"/>
             <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="2"/>
             <circle cx="17" cy="7" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
+      </a>
+      <a
+        href="https://www.youtube.com/@Thorspace"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={linkStyle}
+        onMouseEnter={() => setHoverYT(true)}
+        onMouseLeave={() => setHoverYT(false)}
+      >
+        <span style={hoverYT ? { ...iconStyle, ...hoverStyle } : iconStyle}>
+          {/* YouTube SVG */}
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.58 7.19a2.76 2.76 0 0 0-1.94-1.95C18.01 4.75 12 4.75 12 4.75s-6.01 0-7.64.49A2.76 2.76 0 0 0 2.42 7.19 28.9 28.9 0 0 0 2 12a28.9 28.9 0 0 0 .42 4.81 2.76 2.76 0 0 0 1.94 1.95c1.63.49 7.64.49 7.64.49s6.01 0 7.64-.49a2.76 2.76 0 0 0 1.94-1.95A28.9 28.9 0 0 0 22 12a28.9 28.9 0 0 0-.42-4.81Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
+            <path d="M10 15.5v-7l6 3.5-6 3.5Z" fill="currentColor"/>
           </svg>
         </span>
       </a>

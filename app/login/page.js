@@ -706,7 +706,7 @@ export default function LoginPage() {
                 letterSpacing: "0.04em",
               }}
             >
-              👁 ENTRAR COMO VISITANTE
+              ENTRAR COMO VISITANTE
             </button>
           )}
 
