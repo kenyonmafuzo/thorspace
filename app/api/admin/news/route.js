@@ -20,6 +20,7 @@ export async function POST(request) {
         type: "admin_message",
         title,
         content: body,
+        lang: lang ?? "all",
         created_at: new Date().toISOString(),
       });
       if (error) throw error;

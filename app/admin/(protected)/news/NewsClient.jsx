@@ -168,9 +168,7 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
         <textarea className={styles.textarea} value={form.body} onChange={e => set("body", e.target.value)} required disabled={loading} rows={6} />
       </label>
 
-      {/* These fields only make sense for "all" broadcasts */}
-      {recipientMode === "all" && (<>
-        <label className={styles.label}>
+      <label className={styles.label}>
           Idioma
           <select className={styles.input} value={form.lang} onChange={e => set("lang", e.target.value)} disabled={loading}>
             <option value="all">Todos os idiomas (PT + EN + ES)</option>
@@ -184,9 +182,10 @@ function NewsForm({ initial = EMPTY_FORM, onSave, onCancel, loading, msg }) {
           <Toggle label="Modal de login" hint="Popup quando o usuário entra no jogo pela primeira vez após publicar" checked={form.show_as_login_modal} onChange={v => set("show_as_login_modal", v)} disabled={loading} />
           <Toggle label="Aba Notificações (Inbox)" hint="Aparece na aba Notifications do inbox para todos" checked={form.show_in_notifications} onChange={v => set("show_in_notifications", v)} disabled={loading} />
           <Toggle label="Aba Game Updates (Inbox)" hint="Aparece na aba Game Updates do inbox para todos" checked={form.show_in_game_updates} onChange={v => set("show_in_game_updates", v)} disabled={loading} />
-          <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
+          {recipientMode === "all" && (
+            <Toggle label="Publicado" hint="Visível no site (desligado = rascunho)" checked={form.published} onChange={v => set("published", v)} disabled={loading} />
+          )}
         </div>
-      </>)}
 
       <div className={styles.formActions}>
         <button className={styles.submitBtn} type="submit"
@@ -215,7 +214,7 @@ export default function NewsClient({ news, total, page, adminId }) {
       if (form.target_user_ids?.length) {
         await Promise.all(form.target_user_ids.map(uid =>
           fetch("/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title: form.title, body: form.body, target_user_id: uid }) })
+            body: JSON.stringify({ title: form.title, body: form.body, lang: form.lang, show_as_login_modal: form.show_as_login_modal, show_in_notifications: form.show_in_notifications, show_in_game_updates: form.show_in_game_updates, target_user_id: uid }) })
         ));
         setMsg({ ok: `Mensagem enviada para ${form.target_user_ids.length} usuário${form.target_user_ids.length !== 1 ? "s" : ""}!` });
         setShowForm(false);
