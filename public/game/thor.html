@@ -6747,6 +6747,31 @@ let explosions = [];
 let wrecks = [];
 let winner = null;
 
+// ── Strike banners ──
+const _strikeImgs = {
+  1: new Image(),
+  2: new Image(),
+  3: new Image()
+};
+_strikeImgs[1].src = 'images/strikes/strike.png';
+_strikeImgs[2].src = 'images/strikes/doublestrike.png';
+_strikeImgs[3].src = 'images/strikes/triplestrike.png';
+let _strikeBanner = null;     // banner do jogador (grande, topo centro)
+let _enemyStrikeBanner = null; // banner do oponente (pequeno, canto inferior direito)
+
+function triggerStrikeBanner(kills) {
+  const img = _strikeImgs[Math.min(kills, 3)];
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+  _strikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+}
+
+function triggerEnemyStrikeBanner(losses) {
+  const img = _strikeImgs[Math.min(losses, 3)];
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+  _enemyStrikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+}
+// ── fim strike banners ──
+
 
 const spritePlayer = new Image();
 spritePlayer.src = "images/spaceschip.png";
@@ -7694,6 +7719,7 @@ function checkNaveCollisions() {
           // ✅ XP: Colisão com nave inimiga
           registerXPEvent('ENEMY_COLLISION');
           roundKills++;
+          triggerStrikeBanner(roundKills);
           roundCollisionLosses++; // Contar separadamente
           
           explosions.push({ x: playerNaves[i].x, y: playerNaves[i].y, radius: 1, big: true, flash: 8 });
@@ -7994,6 +8020,7 @@ function updateProjectiles() {
               cpuDestroyed++;
               playerScore += 100;
               roundKills++;
+              triggerStrikeBanner(roundKills);
               registerXPEvent('DESTROY_ENEMY_SHIP');
               
               const aliveFriendly = playerNaves.filter(n => n.hp > 0).length;
@@ -8005,6 +8032,7 @@ function updateProjectiles() {
               navesPerdidas++;
               playerScore -= 50;
               roundLosses++;
+              triggerEnemyStrikeBanner(roundLosses);
               // Track clutch for P2: P2 had only 1 ship alive when making this kill
               const aliveP2Ships = cpuNaves.filter(n => n.hp > 0).length;
               if (aliveP2Ships === 1) p2ClutchThisRound = true;
@@ -9648,6 +9676,65 @@ particles.forEach(p => {
   ctx.restore();
 });
 
+  // ── Desenhar strike banner ──
+  if (_strikeBanner) {
+    const _sb = _strikeBanner;
+    const _FADE_IN  = 8;   // frames
+    const _HOLD     = 80;  // frames
+    const _FADE_OUT = 30;  // frames
+    _sb.timer++;
+    if (_sb.phase === 'in') {
+      _sb.alpha = Math.min(1, _sb.timer / _FADE_IN);
+      if (_sb.timer >= _FADE_IN) { _sb.phase = 'hold'; _sb.timer = 0; }
+    } else if (_sb.phase === 'hold') {
+      _sb.alpha = 1;
+      if (_sb.timer >= _HOLD) { _sb.phase = 'out'; _sb.timer = 0; }
+    } else {
+      _sb.alpha = Math.max(0, 1 - _sb.timer / _FADE_OUT);
+      if (_sb.timer >= _FADE_OUT) { _strikeBanner = null; }
+    }
+    if (_strikeBanner) {
+      const _bw = Math.min(340, canvas.width * 0.55);
+      const _bh = _bw * (_sb.img.naturalHeight / _sb.img.naturalWidth);
+      const _bx = (canvas.width - _bw) / 2;
+      const _by = canvas.height * 0.12;
+      ctx.save();
+      ctx.globalAlpha = _sb.alpha;
+      ctx.drawImage(_sb.img, _bx, _by, _bw, _bh);
+      ctx.restore();
+    }
+  }
+  // ── fim strike banner ──
+
+  // ── Desenhar strike banner do oponente (pequeno, canto inferior direito) ──
+  if (_enemyStrikeBanner) {
+    const _eb = _enemyStrikeBanner;
+    const _FADE_IN  = 8;
+    const _HOLD     = 80;
+    const _FADE_OUT = 30;
+    _eb.timer++;
+    if (_eb.phase === 'in') {
+      _eb.alpha = Math.min(1, _eb.timer / _FADE_IN);
+      if (_eb.timer >= _FADE_IN) { _eb.phase = 'hold'; _eb.timer = 0; }
+    } else if (_eb.phase === 'hold') {
+      _eb.alpha = 1;
+      if (_eb.timer >= _HOLD) { _eb.phase = 'out'; _eb.timer = 0; }
+    } else {
+      _eb.alpha = Math.max(0, 1 - _eb.timer / _FADE_OUT);
+      if (_eb.timer >= _FADE_OUT) { _enemyStrikeBanner = null; }
+    }
+    if (_enemyStrikeBanner) {
+      const _bw = Math.min(180, canvas.width * 0.28);
+      const _bh = _bw * (_eb.img.naturalHeight / _eb.img.naturalWidth);
+      const _bx = canvas.width - _bw - 48;
+      const _by = canvas.height - _bh - 48;
+      ctx.save();
+      ctx.globalAlpha = _eb.alpha * 0.82;
+      ctx.drawImage(_eb.img, _bx, _by, _bw, _bh);
+      ctx.restore();
+    }
+  }
+  // ── fim strike banner oponente ──
 
 }
 
