@@ -3,6 +3,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "./analytics.module.css";
+import OnlineCard from "./OnlineCard";
 
 const COUNTRY_NAMES = {
   BR: "Brasil", US: "EUA", PT: "Portugal", AR: "Argentina",
@@ -139,6 +140,7 @@ export default function AnalyticsClient({ data, period }) {
 
       {/* Overview cards */}
       <div className={styles.statsGrid}>
+        <OnlineCard />
         <StatCard label="Total de visitas"    value={overview.totalViews}    change={overview.viewsChange} />
         <StatCard label="Visitantes únicos"   value={overview.uniqueVisitors} sub="por dia (fingerprint anônimo)" />
         <StatCard label="Média por dia"
