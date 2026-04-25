@@ -759,7 +759,7 @@ export default function VIPPage() {
                 {vip.nameColorLabel || "COR DO NOME"}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4"].map(c => (
+                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4","#000000"].map(c => (
                   <button key={c} onClick={() => setVipNameColor(c)} style={{
                     width: 34, height: 34, borderRadius: "50%", background: c,
                     border: vipNameColor === c ? "3px solid #FFF" : "3px solid rgba(255,255,255,0.2)",
@@ -777,7 +777,7 @@ export default function VIPPage() {
               <div style={{ color: "#FFD700", fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, marginBottom: 14 }}>
                 {vip.avatarLabel || "IMAGEM DO PERFIL"}
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 4 }}>
                 {/* Naves padrão do jogo */}
                 {AVATAR_OPTIONS.map((opt) => {
                   const isSelected = vipAvatar === opt.src;
@@ -822,6 +822,7 @@ export default function VIPPage() {
                   { src: "/game/images/nave_protecao_red_vip.png",    name: "Vanguard VIP (Vermelho)" },
                   { src: "/game/images/nave_normal_vip.png",          name: "Titan VIP (Azul)" },
                   { src: "/game/images/nave_normal_red_vip.png",      name: "Titan VIP (Vermelho)" },
+                  { src: "/game/images/perfil/crown.png",             name: "Crown VIP" },
                 ].map((opt) => {
                   const isSelected = vipAvatar === opt.src;
                   return (
@@ -860,7 +861,7 @@ export default function VIPPage() {
                 })}
 
                 {/* Slots futuros */}
-                {[1, 2].map((n) => (
+                {[1].map((n) => (
                   <div
                     key={`soon-${n}`}
                     style={{
@@ -888,7 +889,7 @@ export default function VIPPage() {
                 {vip.frameColorLabel || "COR DO FRAME / BORDA"}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4"].map(c => (
+                {["#FFD700","#00E5FF","#a855f7","#FF4D4D","#00FF88","#FFFFFF","#FF9500","#FF69B4","#000000"].map(c => (
                   <button key={c} onClick={() => setVipFrameColor(c)} style={{
                     width: 34, height: 34, borderRadius: "50%", background: c,
                     border: vipFrameColor === c ? "3px solid #FFF" : "3px solid rgba(255,255,255,0.2)",
