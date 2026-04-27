@@ -3818,7 +3818,16 @@ async function initMultiplayerMode(matchId) {
         
         if (sessionError) {
           console.warn('[PVP] ⚠️ setSession falhou (token expirado?):', sessionError.message);
-          // Continuar com userId da URL mesmo se setSession falhar
+          // Solicitar tokens frescos ao parent e tentar novamente
+          if (window.self !== window.top) {
+            console.warn('[PVP] Solicitando tokens frescos ao parent para retry...');
+            window.__pvpInitializedForMatchId = null; // permitir nova tentativa
+            window.parent.postMessage(
+              { type: 'THOR:REQUEST_FRESH_TOKENS', payload: { matchId } },
+              window.location.origin
+            );
+            return null; // null = aguardando retry; não mostrar alerta de erro
+          }
           myUserId = urlParams.userId;
         } else if (!sessionData?.session) {
           console.warn('[PVP] ⚠️ setSession não retornou sessão');
@@ -10647,7 +10656,7 @@ showOnly("modeSelectionScreen");
                 phase = 'select';
                 currentPhase = 'select';
                 ensurePvpInteractivePhase('initMultiplayerMode');
-              } else {
+              } else if (success !== null) {
                 console.error('[PVP] ❌ FALHA ao inicializar multiplayer - initMultiplayerMode retornou false');
                 alert('Erro ao inicializar multiplayer: Falha na inicialização (verifique console)');
               }

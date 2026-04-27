@@ -354,6 +354,32 @@ export default function GamePage() {
       return;
     }
 
+    if (msg.type === "THOR:REQUEST_FRESH_TOKENS") {
+      // Game's setSession failed — send a fresh THOR:INIT with force-refreshed tokens
+      const { matchId: reqMatchId } = msg.payload || {};
+      try {
+        // refreshSession() forces a real token exchange (not cached)
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        const freshToken   = refreshed?.session?.access_token  || '';
+        const freshRefresh = refreshed?.session?.refresh_token || '';
+        const freshUserId  = refreshed?.session?.user?.id      || null;
+        const win = iframeRef.current?.contentWindow;
+        const uname = localStorage.getItem("thor_username") || "";
+        if (win && freshToken && freshRefresh) {
+          win.postMessage(
+            { type: "THOR:INIT", payload: { userId: freshUserId, username: uname, matchId: reqMatchId, access_token: freshToken, refresh_token: freshRefresh } },
+            window.location.origin
+          );
+          console.log("[GamePage] THOR:REQUEST_FRESH_TOKENS — resent THOR:INIT with refreshed tokens");
+        } else {
+          console.error("[GamePage] THOR:REQUEST_FRESH_TOKENS — no session after refresh, cannot recover");
+        }
+      } catch (e) {
+        console.error("[GamePage] Error handling THOR:REQUEST_FRESH_TOKENS:", e);
+      }
+      return;
+    }
+
     if (msg.type === "THOR:RETURN_TO_CHAT") {
       // Usuário clicou no botão "Return to Lobby" após uma partida multiplayer
       const payload = msg.payload || {};
