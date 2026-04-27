@@ -8838,6 +8838,12 @@ async function updateMatchWinner(localWinner, myLost, oppLost) {
 function fillEndScoreUI(hideDetails = false, hideTotal = false) {
   updateScoreBoard();
 
+  // Quando score-details está oculto o margin-bottom negativo do .score-board
+  // colaria o botão no texto de placar — zerar para dar espaço correto.
+  document.querySelectorAll(".score-board").forEach(el => {
+    el.style.marginBottom = hideDetails ? '24px' : '';
+  });
+
   document.querySelectorAll(".score-details").forEach(el => {
     if (hideDetails) {
       el.style.display = 'none';
