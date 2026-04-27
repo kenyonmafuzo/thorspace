@@ -2626,9 +2626,6 @@ function startTurnWindow(deadlineISO) {
   // AAA: RESET DO NOVO ROUND
   // =========================
 
-  // ✅ Resetar contadores de kills/losses do round anterior (banners de strike)
-  resetRoundXPTracking();
-
   // 1) Destravar input do setup do round
   inputLocked = false;
 
@@ -3098,6 +3095,10 @@ function resetRoundState() {
   roundEndHPReceived = false;
   roundEndHPTimeout = 0;
   window.__roundEndHPSent = false; // permite P1 reenviar a cada novo round
+  // ✅ Resetar contadores de kills/losses AGORA (início do combate) — após este ponto
+  // todos os HP_UPDATEs do round anterior já chegaram; resetar aqui evita que eventos
+  // atrasados do DB corrompam roundKills/roundLosses do novo round.
+  resetRoundXPTracking();
   // Nota: target e shot das naves NÃO são limpos aqui — são definidos logo antes
   // de combatPhase='combat' e zerados pelo game loop no bloco 'cleanup'.
 }
