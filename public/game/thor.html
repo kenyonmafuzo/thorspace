@@ -8599,66 +8599,71 @@ function checkWinCondition() {
     finalScoreSaved = { myLost, oppLost };
     debug.win('[WIN] 💾 finalScoreSaved atualizado:', finalScoreSaved);
 
-    // Determinar vencedor baseado em kills
+    // ⏳ Se houver banner de strike ativo, aguardar ele terminar antes de mostrar
+    // a tela de resultado (para o jogador ver o Triple Strike completo).
+    // O game loop continua rodando (gameActive=false só para a lógica de jogo,
+    // o draw loop ainda processa os banners), então basta esperar via rAF poll.
+    // Determinar vencedor baseado em kills (calcular agora, mostrar depois)
     let localWinner;
+    let _showResult;
     if (oppLost > myLost) {
-      localWinner = "VICTORY"; // Eu ganhei
-      winner = "VICTORY"; // Correto para a tela
+      localWinner = "VICTORY";
+      winner = "VICTORY";
       debug.win('[WIN] 🎉 VITÓRIA LOCAL (oppLost > myLost)');
-      
-      // ✅ XP: Processar eventos de vitória
       processMatchEndXPEvents('win');
       applyMatchXP();
-      
-      showVictoryScreen();
+      _showResult = () => showVictoryScreen();
     }
     else if (oppLost < myLost) {
-      localWinner = "DEFEAT"; // Eu perdi
-      winner = "DEFEAT"; // Correto para a tela
+      localWinner = "DEFEAT";
+      winner = "DEFEAT";
       debug.win('[WIN] 😢 DERROTA LOCAL (oppLost < myLost)');
-      
-      // ✅ XP: Processar eventos de derrota
       debug.win('[WIN] 🔍 ANTES processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
       processMatchEndXPEvents('defeat');
       debug.win('[WIN] 🔍 DEPOIS processMatchEndXPEvents(defeat) - xpTotalMatch:', xpTotalMatch);
       applyMatchXP();
-      
-      showDefeatScreen();
+      _showResult = () => showDefeatScreen();
     }
     else {
       localWinner = "DRAW";
       winner = "Empate!";
       debug.win('[WIN] 🤝 EMPATE LOCAL (oppLost == myLost)');
-      
-      // ✅ XP: Processar eventos de empate
       processMatchEndXPEvents('draw');
       applyMatchXP();
-      
-      showDrawScreen();
+      _showResult = () => showDrawScreen();
     }
 
-    document.getElementById('gameCanvas').style.display = "none";
-    
-    
     // 🎯 SALVAR XP FINAL PARA O CHAT
     finalXpForChat = xpTotalMatch;
-    
-    // 🎮 ARQUITETURA AAA: Authority Pattern
-    // Apenas Player1 (host) tem autoridade para processar fim de jogo no servidor
+
+    // 🎮 ARQUITETURA AAA: Authority Pattern (iniciar em paralelo sem bloquear a UI)
     if (multiplayerMode && supabaseClient && matchData) {
       const isPlayer1 = myUserId === matchData.player1_id;
-      
       if (isPlayer1) {
         debug.win('[WIN] 👑 SOU HOST (Player1) - Processando fim de jogo com autoridade');
-        // Host processa TUDO: match update + stats de AMBOS jogadores
         updateMatchAsAuthority(localWinner, myLost, oppLost).catch(err => {
           console.error('[WIN] Erro ao processar fim de jogo:', err);
         });
       } else {
         debug.win('[WIN] 👥 SOU CLIENT (Player2) - Aguardando confirmação do host via Realtime');
-        // Client apenas atualiza display local, servidor é atualizado pelo host
-        // Stats serão atualizadas pelo host no servidor
       }
+    }
+
+    // ⏳ Aguardar banner de strike terminar antes de mostrar tela de resultado
+    const _doShowResult = () => {
+      _showResult();
+      document.getElementById('gameCanvas').style.display = "none";
+    };
+
+    const _bannerDone = () => !_strikeBanner && !_enemyStrikeBanner;
+    if (_bannerDone()) {
+      _doShowResult();
+    } else {
+      const _pollBanner = () => {
+        if (_bannerDone()) { _doShowResult(); }
+        else { requestAnimationFrame(_pollBanner); }
+      };
+      requestAnimationFrame(_pollBanner);
     }
 
     // ⚠️ NÃO enviar mensagem aqui - será enviado pelo botão "Voltar ao Lobby"
@@ -9964,8 +9969,15 @@ let _lastFrameMs = 0;
 
 function gameLoop(now) {
   if (!gameActive) {
-    window._gameLoopActive = false; // mark loop as stopped so it can restart next session
-    _lastFrameMs = 0;
+    // Se houver banner de strike ainda visível, manter o loop rodando para
+    // o jogador ver o Triple Strike antes da tela de resultado.
+    if (_strikeBanner || _enemyStrikeBanner) {
+      requestAnimationFrame(gameLoop);
+      drawGame(); // renderizar somente o draw (banners incluídos)
+    } else {
+      window._gameLoopActive = false; // mark loop as stopped so it can restart next session
+      _lastFrameMs = 0;
+    }
     return;
   }
   // Compute dt: clamp between 0.5 and 2.0 so spiral-death on tab-wake is prevented.
