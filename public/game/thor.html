@@ -6819,13 +6819,23 @@ let _enemyStrikeBanner = null; // banner do oponente (pequeno, canto inferior di
 function triggerStrikeBanner(kills) {
   const img = _strikeImgs[Math.min(kills, 3)];
   if (!img || !img.complete || img.naturalWidth === 0) return;
-  _strikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+  // Upgrade: keep current alpha/phase so the banner doesn't flicker when kills increment
+  if (_strikeBanner && _strikeBanner.phase !== 'out') {
+    _strikeBanner.img = img;
+  } else {
+    _strikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+  }
 }
 
 function triggerEnemyStrikeBanner(losses) {
   const img = _strikeImgs[Math.min(losses, 3)];
   if (!img || !img.complete || img.naturalWidth === 0) return;
-  _enemyStrikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+  // Upgrade: keep current alpha/phase so the banner doesn't flicker when losses increment
+  if (_enemyStrikeBanner && _enemyStrikeBanner.phase !== 'out') {
+    _enemyStrikeBanner.img = img;
+  } else {
+    _enemyStrikeBanner = { img, alpha: 0, phase: 'in', timer: 0 };
+  }
 }
 // ── fim strike banners ──
 
