@@ -199,11 +199,11 @@ background: rgba(0, 165, 242, 0.04);
   background: rgba(0,229,255,0.28);
 }
 #bgm-mute-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
+  position: fixed;
+  right: 8px;
+  top: 16px;
+  transform: none;
+  z-index: 10020;
   background: none;
   border: none;
   cursor: pointer;
@@ -437,6 +437,11 @@ background: rgba(0, 165, 242, 0.04);
   .end-btn {
     padding: 12px 8vw;
     font-size: 1.2rem;
+  }
+  #tutorialHintInner {
+    font-size: 18px;
+    padding: 12px 18px;
+    max-width: 92vw;
   }
 }
 
@@ -1424,7 +1429,8 @@ background: rgba(0, 165, 242, 0.04);
 
       <div class="score-total"></div>
 
-      <button id="restartVictory" class="end-btn">Return to Lobby</button>
+      <button id="playAgainVictory" class="end-btn" style="display:none; background: linear-gradient(90deg,#00E5FF,#0080ff 90%); color:#000;">Jogar Novamente</button>
+      <button id="restartVictory" class="end-btn" style="margin-top:12px;">Return to Lobby</button>
     </div>
   </div>
 </div>
@@ -1442,7 +1448,8 @@ background: rgba(0, 165, 242, 0.04);
 
       <div class="score-total"></div>
 
-      <button id="restartDefeat" class="end-btn">Return to Lobby</button>
+      <button id="playAgainDefeat" class="end-btn" style="display:none; background: linear-gradient(90deg,#00E5FF,#0080ff 90%); color:#000;">Jogar Novamente</button>
+      <button id="restartDefeat" class="end-btn" style="margin-top:12px;">Return to Lobby</button>
     </div>
   </div>
 </div>
@@ -1460,7 +1467,8 @@ background: rgba(0, 165, 242, 0.04);
 
       <div class="score-total"></div>
 
-      <button id="restartDraw" class="end-btn">Return to Lobby</button>
+      <button id="playAgainDraw" class="end-btn" style="display:none; background: linear-gradient(90deg,#00E5FF,#0080ff 90%); color:#000;">Jogar Novamente</button>
+      <button id="restartDraw" class="end-btn" style="margin-top:12px;">Return to Lobby</button>
     </div>
   </div>
 </div>
@@ -2292,6 +2300,8 @@ const translations = {
     draw: 'EMPATE',
     practiceXpWarning: 'XP ganho neste modo não afeta Ranking ou Level competitivo',
     returnToLobby: 'Retornar ao Lobby',
+    homePage: 'PÁGINA INICIAL',
+    playAgain: 'JOGAR NOVAMENTE',
     buildYourTurn: 'Monte sua jogada! Você tem',
     seconds: 'segundos',
     chooseDestination: 'Agora, escolha o destino dentro da área para mover esta nave.',
@@ -2333,6 +2343,8 @@ const translations = {
     draw: 'DRAW',
     practiceXpWarning: 'XP earned in this mode does not affect Ranking or Competitive Level',
     returnToLobby: 'Return to Lobby',
+    homePage: 'HOME',
+    playAgain: 'PLAY AGAIN',
     buildYourTurn: 'Build your turn! You have',
     seconds: 'seconds',
     chooseDestination: 'Now, choose the destination within the area to move this ship.',
@@ -2374,6 +2386,8 @@ const translations = {
     draw: 'EMPATE',
     practiceXpWarning: 'El XP ganado en este modo no afecta el Ranking ni el Nivel competitivo',
     returnToLobby: 'Volver al Lobby',
+    homePage: 'INICIO',
+    playAgain: 'JUGAR DE NUEVO',
     buildYourTurn: '¡Construye tu turno! Tienes',
     seconds: 'segundos',
     chooseDestination: 'Ahora, elige el destino dentro del área para mover esta nave.',
@@ -6564,6 +6578,25 @@ document.getElementById('restartVictory').onclick = backToStartMenu;
 document.getElementById('restartDefeat').onclick = backToStartMenu;
 document.getElementById('restartDraw').onclick = backToStartMenu;
 
+// "Jogar Novamente" — só visível no modo prática (solo)
+(function() {
+  const ids = ['playAgainVictory', 'playAgainDefeat', 'playAgainDraw'];
+  ids.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.onclick = restartGame;
+  });
+  function showPracticeButtons() {
+    if (!multiplayerMode) {
+      ids.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = '';
+      });
+    }
+  }
+  // Expose so THOR:INIT handler can call it after multiplayerMode is set
+  window._showPracticeButtons = showPracticeButtons;
+})();
+
 // Função para criar partículas de explosão
 function spawnExplosionParticles(x, y, color = "#fff") {
   // Sparks — rápidos, streak
@@ -6698,6 +6731,12 @@ function playRandomBgm() {
   bgmBattle.play().catch(e => {});
   const muteBtn = document.getElementById('bgm-mute-btn');
   if (muteBtn) muteBtn.style.display = 'flex';
+  // Sincronizar ícone do botão com o estado atual do mute
+  const _effectiveMuted = bgmMuted || musicMuted;
+  const _iconOn  = document.getElementById('bgm-icon-on');
+  const _iconOff = document.getElementById('bgm-icon-off');
+  if (_iconOn)  _iconOn.style.display  = _effectiveMuted ? 'none' : '';
+  if (_iconOff) _iconOff.style.display = _effectiveMuted ? '' : 'none';
   const hintsBtn2 = document.getElementById('hints-btn');
   if (hintsBtn2) hintsBtn2.style.display = 'flex';
 }
@@ -8783,6 +8822,9 @@ function fillEndScoreUI(hideDetails = false, hideTotal = false) {
   document.querySelectorAll(".score-total").forEach(el => {
     if (hideTotal) {
       el.style.display = 'none';
+      // Ocultar também o aviso de prática se existir como sibling
+      const _w = el.nextElementSibling;
+      if (_w && _w.classList.contains('practice-xp-warning')) _w.style.display = 'none';
     } else {
       el.style.display = 'block';
       const displayValue = xpTotalMatch === 0 ? '0' : (xpTotalMatch > 0 ? `+${xpTotalMatch}` : `${xpTotalMatch}`);
@@ -8856,7 +8898,9 @@ function showVictoryScreen() {
   const victoryTextEl = document.getElementById('victoryText');
   const victoryBtnEl = document.getElementById('restartVictory');
   if (victoryTextEl) victoryTextEl.textContent = t('victory');
-  if (victoryBtnEl) victoryBtnEl.textContent = t('returnToLobby');
+  if (victoryBtnEl) victoryBtnEl.textContent = t('homePage');
+  const playAgainVictoryEl = document.getElementById('playAgainVictory');
+  if (playAgainVictoryEl) playAgainVictoryEl.textContent = t('playAgain');
   
   fillEndScoreUI(); // ✅ aqui já vai atualizar o header também
   
@@ -8886,7 +8930,9 @@ function showDefeatScreen() {
   const defeatTextEl = document.getElementById('defeatText');
   const defeatBtnEl = document.getElementById('restartDefeat');
   if (defeatTextEl) defeatTextEl.textContent = t('defeat');
-  if (defeatBtnEl) defeatBtnEl.textContent = t('returnToLobby');
+  if (defeatBtnEl) defeatBtnEl.textContent = t('homePage');
+  const playAgainDefeatEl = document.getElementById('playAgainDefeat');
+  if (playAgainDefeatEl) playAgainDefeatEl.textContent = t('playAgain');
   
   // ✅ Ocultar score details e total XP na derrota
   fillEndScoreUI(true, true);
@@ -8914,7 +8960,9 @@ function showDrawScreen() {
   const drawTextEl = document.getElementById('drawText');
   const drawBtnEl = document.getElementById('restartDraw');
   if (drawTextEl) drawTextEl.textContent = t('draw');
-  if (drawBtnEl) drawBtnEl.textContent = t('returnToLobby');
+  if (drawBtnEl) drawBtnEl.textContent = t('homePage');
+  const playAgainDrawEl = document.getElementById('playAgainDraw');
+  if (playAgainDrawEl) playAgainDrawEl.textContent = t('playAgain');
   
   fillEndScoreUI();
   
@@ -9008,16 +9056,10 @@ function restartGame() {
   document.getElementById("gameContour").style.visibility = "hidden";
   document.getElementById("hudTop").style.display = "none";
 
-  // Mostra apenas a seleção de naves
-  document.getElementById("naveSelectScreen").style.display = "flex";
-  document.getElementById("thorspace-logo").style.display = "none";
-  document.getElementById("startContainer").style.display = "none";
-  document.getElementById("modeSelectionScreen").style.display = "none";
+  // Volta ao fluxo de seleção de naves (igual ao botão Praticar)
+  hideEndScreens();
+  document.getElementById('practiceBtn').onclick();
 
-  // Reseta seleção de naves
-  window.selectedNaves = [];
-  updatePreviews();
-  
   // Em multiplayer: resetar flags. O timer SÓ inicia quando o jogador clicar
   // "Pronto!" (após oponente confirmar presença). Nunca começa automaticamente.
   if (multiplayerMode) {
@@ -9039,6 +9081,35 @@ function restartGame() {
   roundTextAlpha = 0;
   roundTextFadeIn = true;
   roundTextTimer = 0;
+  // Resetar flags de tela de resultado para permitir nova partida
+  window.resultScreenShown = false;
+  scoreMessageSent = false;
+
+  // Ocultar banner de matchup (fica visível do jogo anterior)
+  const _matchupEl = document.getElementById('matchupBanner');
+  if (_matchupEl) _matchupEl.style.display = 'none';
+
+  // Resetar estado de combate para evitar continuação da partida anterior
+  matchEndProcessed = false;
+  combatPhase = 'idle';
+  movementComplete = false;
+  shootingComplete = false;
+  roundLocked = false;
+
+  // Repor posições iniciais das naves CPU (initCpuNaves não reseta x/y)
+  const _cpuInitPos = [{x:700,y:520},{x:540,y:520},{x:700,y:350}];
+  cpuNaves.forEach((n, i) => {
+    n.x = _cpuInitPos[i].x;
+    n.y = _cpuInitPos[i].y;
+    n.target = null;
+    n.shot = null;
+    n.hp = 0;
+    n.initialized = false;
+  });
+
+  // Resetar banners de strike
+  _strikeBanner = null;
+  _enemyStrikeBanner = null;
 }
 
 
@@ -9104,6 +9175,77 @@ ctx.translate(shakeX, shakeY);
   cpuNaves.forEach(n => {
     if (n.hp > 0) drawNave(n, n.sprite, true);
   });
+
+  // Linhas persistentes de planejamento para naves já configuradas (só na fase de seleção)
+  if (phase === 'select' || phase === 'selectMove' || phase === 'selectShot') {
+    const _isMobLine = window.innerWidth <= 600 && window.innerHeight > window.innerWidth;
+    const _planLw = _isMobLine ? 3 : 2;
+    const _markR   = _isMobLine ? 10 : 6;
+    const _markLw  = _isMobLine ? 2.5 : 2;
+
+    // Linha + marcador vermelho imediato do tiro para nave selecionada aguardando clique de movimento
+    if (selectedNave !== null && selectedNave.shot && !selectedNave.target && selectedNave.hp > 0) {
+      ctx.save();
+      // Linha da nave até o alvo do tiro
+      ctx.beginPath();
+      ctx.moveTo(selectedNave.x, selectedNave.y);
+      ctx.lineTo(selectedNave.shot.x, selectedNave.shot.y);
+      ctx.strokeStyle = 'rgba(255, 60, 60, 0.75)';
+      ctx.lineWidth = _planLw;
+      ctx.setLineDash([6, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Círculo marcador
+      ctx.beginPath();
+      ctx.arc(selectedNave.shot.x, selectedNave.shot.y, _markR, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 60, 60, 0.9)';
+      ctx.lineWidth = _markLw;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    playerNaves.forEach(n => {
+      if (n.hp <= 0) return;
+      // Linha vermelha: nave → alvo do tiro (nave.shot)
+      if (n.shot && n !== selectedNave) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(n.shot.x, n.shot.y);
+        ctx.strokeStyle = 'rgba(255, 60, 60, 0.75)';
+        ctx.lineWidth = _planLw;
+        ctx.setLineDash([6, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Marcador no alvo do tiro
+        ctx.beginPath();
+        ctx.arc(n.shot.x, n.shot.y, _markR, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 60, 60, 0.9)';
+        ctx.lineWidth = _markLw;
+        ctx.stroke();
+        ctx.restore();
+      }
+      // Linha azul: nave → destino do movimento (nave.target)
+      if (n.target && n !== selectedNave) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(n.target.x, n.target.y);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.75)';
+        ctx.lineWidth = _planLw;
+        ctx.setLineDash([6, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Marcador no destino do movimento
+        ctx.beginPath();
+        ctx.arc(n.target.x, n.target.y, _markR, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.9)';
+        ctx.lineWidth = _markLw;
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  }
 
   // Efeitos visuais para nave selecionada
   if (selectedNave !== null && selectedNave.hp > 0) {
@@ -10441,6 +10583,7 @@ startBtn.onclick = () => {
   document.getElementById("startContainer").style.display = "none";
   document.getElementById("thorspace-logo").style.display = "none"; // Esconde logo se ainda estiver visível
 showOnly("modeSelectionScreen");
+  if (window._showPracticeButtons) window._showPracticeButtons();
 
 };
 
@@ -10532,6 +10675,7 @@ showOnly("modeSelectionScreen");
           showOnly('naveSelectScreen');
           window.selectedNaves = [];
           updatePreviews();
+          if (window._showPracticeButtons) window._showPracticeButtons();
         }
       }
     });
