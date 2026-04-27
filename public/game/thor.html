@@ -2626,6 +2626,9 @@ function startTurnWindow(deadlineISO) {
   // AAA: RESET DO NOVO ROUND
   // =========================
 
+  // ✅ Resetar contadores de kills/losses do round anterior (banners de strike)
+  resetRoundXPTracking();
+
   // 1) Destravar input do setup do round
   inputLocked = false;
 
@@ -4674,9 +4677,15 @@ function processHitEvent(event) {
     if (targetTeamInverted === 'cpu') {
       cpuDestroyed++;
       playerScore += 100;
+      // ✅ P2: Strike banner — nave inimiga destruída
+      roundKills++;
+      triggerStrikeBanner(roundKills);
     } else {
       playerDestroyed++;
       navesPerdidas++;
+      // ✅ P2: Enemy strike banner — nave aliada destruída
+      roundLosses++;
+      triggerEnemyStrikeBanner(roundLosses);
     }
   }
 }
