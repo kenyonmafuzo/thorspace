@@ -265,15 +265,44 @@ export default function ModePage() {
           .home-subcard { width: 90px; }
           .home-card-label { font-size: 10px; letter-spacing: 1.5px; bottom: 38px; }
         }
-        /* iPhone e telas muito pequenas — evita corte lateral */
-        @media (max-width: 480px) {
-          .home-grid { padding: 0 8px; width: 100%; box-sizing: border-box; }
-          .home-row { gap: 4px; width: 100%; justify-content: center; }
-          .home-row-top { gap: 4px; }
-          .home-card { width: calc((100vw - 40px) / 3); height: calc((100vw - 40px) / 3 * 1.03); }
-          .home-subcard { width: calc((100vw - 40px) / 4); }
-          .home-card-label { font-size: 9px; letter-spacing: 1px; bottom: calc((100vw - 40px) / 3 * 0.22); }
-          .home-subcard-label { font-size: 8px; }
+        /* ── Mobile: layout vertical em pilha ── */
+        @media (max-width: 767px) {
+          .home-outer-wrap {
+            position: relative !important;
+            top: auto !important; left: auto !important;
+            width: 100% !important; height: auto !important;
+            justify-content: flex-start !important;
+            padding: 12px 12px 32px !important;
+            box-sizing: border-box !important;
+            overflow: visible !important;
+          }
+          .home-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            width: 100% !important;
+            padding: 0 !important;
+          }
+          .home-row { display: contents !important; }
+          /* Multiplayer — linha 1, largura total, em destaque */
+          .card-multiplayer { order: 1; width: 100% !important; height: 170px !important; }
+          /* Praticar e Campanha — linha 2, lado a lado */
+          .card-praticar    { order: 2; width: calc(50% - 5px) !important; height: 130px !important; }
+          .card-campanha    { order: 3; width: calc(50% - 5px) !important; height: 130px !important; }
+          /* Ranking e Badges — linha 3 */
+          .subcard-ranking  { order: 4; width: calc(50% - 5px) !important; }
+          .subcard-badges   { order: 5; width: calc(50% - 5px) !important; }
+          /* Amigos e VIP — linha 4 */
+          .subcard-amigos   { order: 6; width: calc(50% - 5px) !important; }
+          .subcard-vip      { order: 7; width: calc(50% - 5px) !important; }
+          /* Labels */
+          .card-multiplayer .home-card-label { font-size: 13px; bottom: 14px; }
+          .card-praticar .home-card-label,
+          .card-campanha .home-card-label { font-size: 10px; letter-spacing: 1.5px; bottom: 10px; }
+          .home-subcard-label { font-size: 9px; bottom: 10px; }
         }
       `}</style>
 
@@ -465,6 +494,7 @@ Boas batalhas!`}
 
       {/* 🏠 HOME — grid de cards */}
       <div
+        className="home-outer-wrap"
         style={{
           position: "fixed",
           top: 58, left: 0,
@@ -485,7 +515,7 @@ Boas batalhas!`}
 
             {/* PRATICAR */}
             <div
-              className="home-card"
+              className="home-card card-praticar"
               role="button"
               tabIndex={0}
               onClick={() => {
@@ -502,7 +532,7 @@ Boas batalhas!`}
 
             {/* MULTIPLAYER */}
             <div
-              className="home-card"
+              className="home-card card-multiplayer"
               role="button"
               tabIndex={0}
               onClick={() => {
@@ -517,7 +547,7 @@ Boas batalhas!`}
             </div>
 
             {/* CAMPANHA — desativado */}
-            <div className="home-card disabled" role="button" aria-disabled="true">
+            <div className="home-card disabled card-campanha" role="button" aria-disabled="true">
               <img className="home-card-bg" src="/game/images/menu/menu_campanha.png?v=3" alt="Campanha" draggable={false} />
               <span className="home-card-label" style={{ color: '#707070' }}>{t('mode.campaign')}</span>
             </div>
@@ -526,7 +556,7 @@ Boas batalhas!`}
           {/* ── Linha 2: Ranking, Badges, Amigos, VIP ── */}
           <div className="home-row">
 
-            <div className="home-subcard" role="button" tabIndex={0}
+            <div className="home-subcard subcard-ranking" role="button" tabIndex={0}
               onClick={() => router.push("/ranking")}
               onKeyDown={e => e.key === "Enter" && router.push("/ranking")}
             >
@@ -534,7 +564,7 @@ Boas batalhas!`}
               <span className="home-subcard-label" style={{ color: '#a27326' }}>{t('mode.ranking')}</span>
             </div>
 
-            <div className="home-subcard" role="button" tabIndex={0}
+            <div className="home-subcard subcard-badges" role="button" tabIndex={0}
               onClick={() => router.push("/badges")}
               onKeyDown={e => e.key === "Enter" && router.push("/badges")}
             >
@@ -542,7 +572,7 @@ Boas batalhas!`}
               <span className="home-subcard-label" style={{ color: '#763db5' }}>{t('mode.badges')}</span>
             </div>
 
-            <div className="home-subcard" role="button" tabIndex={0}
+            <div className="home-subcard subcard-amigos" role="button" tabIndex={0}
               onClick={() => router.push("/friends")}
               onKeyDown={e => e.key === "Enter" && router.push("/friends")}
             >
@@ -550,7 +580,7 @@ Boas batalhas!`}
               <span className="home-subcard-label" style={{ color: '#2c68a9' }}>{t('mode.friends')}</span>
             </div>
 
-            <div className="home-subcard" role="button" tabIndex={0}
+            <div className="home-subcard subcard-vip" role="button" tabIndex={0}
               onClick={() => router.push("/vip")}
               onKeyDown={e => e.key === "Enter" && router.push("/vip")}
             >
