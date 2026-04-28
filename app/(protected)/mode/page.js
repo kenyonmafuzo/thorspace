@@ -158,7 +158,7 @@ export default function ModePage() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 20px;
+          gap: 0px;
         }
         .home-row {
           display: flex;
@@ -166,16 +166,16 @@ export default function ModePage() {
           justify-content: center;
           align-items: flex-end;
         }
-        .home-row-top { gap: 10px; }
+        .home-row-top { gap: 0px; }
 
         /* Primary cards (row 1) */
         .home-card {
           position: relative;
-          width: 230px;
-          height: 236px;
+          width: 270px;
+          height: 277px;
           cursor: pointer;
           border-radius: 16px;
-          overflow: hidden;
+          overflow: visible;
           user-select: none;
           transition: transform 0.22s cubic-bezier(.22,.68,0,1.4), filter 0.22s;
         }
@@ -190,6 +190,10 @@ export default function ModePage() {
           object-fit: cover;
           object-position: center;
           border-radius: 16px;
+          /* bg is absolutely positioned so the card itself can clip it */
+          position: absolute;
+          inset: 0;
+          z-index: 0;
         }
         .home-card-img {
           position: absolute;
@@ -198,6 +202,7 @@ export default function ModePage() {
           object-fit: contain;
           object-position: center;
           pointer-events: none;
+          z-index: 2;
           transition: transform 0.32s cubic-bezier(.22,.68,0,1.4);
         }
         .home-card:hover .home-card-img {
@@ -205,7 +210,7 @@ export default function ModePage() {
         }
         .home-card-label {
           position: absolute;
-          bottom: 55px;
+          bottom: 71px;
           left: 0; right: 0;
           z-index: 3;
           text-align: center;
@@ -249,16 +254,16 @@ export default function ModePage() {
         }
 
         @media (max-width: 900px) {
-          .home-card { width: 180px; height: 185px; }
+          .home-card { width: 210px; height: 216px; }
           .home-subcard { width: 112px; }
-          .home-card-label { font-size: 11px; bottom: 43px; }
+          .home-card-label { font-size: 12px; bottom: 50px; }
           .home-subcard-label { font-size: 10px; }
         }
         @media (max-width: 680px) {
-          .home-row { gap: 12px; }
-          .home-card { width: 140px; height: 144px; }
+          .home-row { gap: 10px; }
+          .home-card { width: 160px; height: 164px; }
           .home-subcard { width: 90px; }
-          .home-card-label { font-size: 9px; letter-spacing: 1.5px; bottom: 33px; }
+          .home-card-label { font-size: 10px; letter-spacing: 1.5px; bottom: 38px; }
         }
       `}</style>
 
@@ -481,7 +486,7 @@ Boas batalhas!`}
               onKeyDown={e => e.key === "Enter" && (() => { localStorage.setItem("thor_selected_mode","practice"); localStorage.removeItem("thor_match_id"); router.push("/game"); })()}
             >
               <img className="home-card-bg" src="/game/images/menu/menu_praticar_card.png" alt="" draggable={false} />
-              <img className="home-card-img" src="/game/images/menu/menu_praticar_img.png?v=2" alt="Praticar" draggable={false} style={{ top: '6%', width: '70%', height: '70%' }} />
+              <img className="home-card-img" src="/game/images/menu/menu_praticar_img.png?v=2" alt="Praticar" draggable={false} style={{ top: '3%', left: '62%', width: '70%', height: '70%' }} />
               <span className="home-card-label" style={{ color: '#53b2f7' }}>{t('mode.practice')}</span>
             </div>
 
