@@ -4,11 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 /**
  * useGuest — manages the guest session flag in localStorage.
  * A guest is a user who clicked "Entrar como visitante" and has no Supabase auth.
+ * isGuest is initialized synchronously from localStorage to avoid a race condition
+ * where ProtectedClientLayout redirects to /login before the useEffect fires.
  */
 export function useGuest() {
   const [isGuest, setIsGuest] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("thor_guest") === "1";
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("thor_guest") === "1";
+    }
+    return false;
   });
 
   const enterGuest = useCallback(() => {

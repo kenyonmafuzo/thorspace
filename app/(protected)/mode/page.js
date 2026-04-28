@@ -152,17 +152,113 @@ export default function ModePage() {
       <style>{`
         .mobile-only-notice { display: none; }
         .mode-desktop-content { display: block; }
-        /* Scale down content on smaller desktops so nothing clips or crowds the header */
-        @media (min-width: 769px) and (max-width: 1100px) {
-          #modeSelectionScreen h2 { font-size: 22px !important; margin-bottom: 32px !important; }
-          .mode-btn { width: 200px !important; font-size: 14px !important; padding: 10px 20px !important; }
+
+        /* ── Home card grid ── */
+        .home-grid {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
         }
-        @media (min-width: 769px) and (max-width: 900px) {
-          #modeSelectionScreen h2 { font-size: 18px !important; margin-bottom: 24px !important; }
-          .mode-btn { width: 180px !important; font-size: 13px !important; padding: 9px 16px !important; }
+        .home-row {
+          display: flex;
+          gap: 20px;
+          justify-content: center;
+          align-items: flex-end;
         }
-        @media (max-width: 768px) {
-          #modeTitle { font-size: 18px !important; margin-bottom: 28px !important; text-align: center !important; }
+        .home-row-top { gap: 10px; }
+
+        /* Primary cards (row 1) */
+        .home-card {
+          position: relative;
+          width: 230px;
+          height: 236px;
+          cursor: pointer;
+          border-radius: 16px;
+          overflow: hidden;
+          user-select: none;
+          transition: transform 0.22s cubic-bezier(.22,.68,0,1.4), filter 0.22s;
+        }
+        .home-card:hover { transform: translateY(-6px) scale(1.03); filter: brightness(1.08); }
+        .home-card.disabled { cursor: default; opacity: 0.6; pointer-events: none; }
+        .home-card.disabled:hover { transform: none; filter: none; }
+
+        .home-card-bg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
+          border-radius: 16px;
+        }
+        .home-card-img {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          object-fit: contain;
+          object-position: center;
+          pointer-events: none;
+          transition: transform 0.32s cubic-bezier(.22,.68,0,1.4);
+        }
+        .home-card:hover .home-card-img {
+          transform: translateX(-50%) translateY(-8px) scale(1.06);
+        }
+        .home-card-label {
+          position: absolute;
+          bottom: 55px;
+          left: 0; right: 0;
+          z-index: 3;
+          text-align: center;
+          font-family: 'Orbitron', sans-serif;
+          font-weight: 700;
+          font-size: 13px;
+          letter-spacing: 2.5px;
+          text-shadow: 0 0 14px currentColor, 0 2px 8px #000c;
+          text-transform: uppercase;
+        }
+
+        /* Secondary cards (row 2) */
+        .home-subcard {
+          position: relative;
+          width: 140px;
+          cursor: pointer;
+          border-radius: 14px;
+          overflow: hidden;
+          user-select: none;
+          transition: transform 0.22s cubic-bezier(.22,.68,0,1.4), filter 0.22s;
+        }
+        .home-subcard:hover { transform: translateY(-5px) scale(1.04); filter: brightness(1.1); }
+
+        .home-subcard-img {
+          display: block;
+          width: 100%;
+          border-radius: 14px;
+        }
+        .home-subcard-label {
+          position: absolute;
+          bottom: 12px;
+          left: 0; right: 0;
+          z-index: 3;
+          text-align: center;
+          font-family: 'Orbitron', sans-serif;
+          font-weight: 700;
+          font-size: 9px;
+          letter-spacing: 1.5px;
+          text-shadow: 0 0 10px currentColor, 0 2px 6px #000c;
+          text-transform: uppercase;
+        }
+
+        @media (max-width: 900px) {
+          .home-card { width: 180px; height: 185px; }
+          .home-subcard { width: 112px; }
+          .home-card-label { font-size: 11px; bottom: 43px; }
+          .home-subcard-label { font-size: 10px; }
+        }
+        @media (max-width: 680px) {
+          .home-row { gap: 12px; }
+          .home-card { width: 140px; height: 144px; }
+          .home-subcard { width: 90px; }
+          .home-card-label { font-size: 9px; letter-spacing: 1.5px; bottom: 33px; }
         }
       `}</style>
 
@@ -338,13 +434,10 @@ Boas batalhas!`}
       
       {/* 🌌 FUNDO DA GALÁXIA */}
       <div
-        id="galaxyBg"
         style={{
           position: "fixed",
-          top: 0,
-          left: 0,
-          width: "100vw",
-          height: "100vh",
+          top: 0, left: 0,
+          width: "100vw", height: "100vh",
           zIndex: 0,
           backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)",
           backgroundSize: "cover, cover",
@@ -352,85 +445,105 @@ Boas batalhas!`}
           backgroundPosition: "center center, center center",
           opacity: 0.35,
           pointerEvents: "none",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
         }}
       />
 
-      {/* 🎮 TELA DE MODOS */}
+      {/* 🏠 HOME — grid de cards */}
       <div
-        id="modeSelectionScreen"
         style={{
           position: "fixed",
-          top: 58,
-          left: 0,
+          top: 58, left: 0,
           width: "100vw",
           height: "calc(100vh - 58px)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          background: "transparent",
           zIndex: 2,
           overflow: "hidden",
         }}
       >
-        <h2
-          id="modeTitle"
-          style={{
-            fontFamily: "'Orbitron',sans-serif",
-            fontWeight: 700,
-            color: "#0ff",
-            fontSize: "clamp(18px, 5vw, 32px)",
-            textShadow: "0 0 16px #0ff9",
-            marginBottom: 50,
-            textAlign: "center",
-            width: "100%",
-            padding: "0 24px",
-            boxSizing: "border-box",
-          }}
-        >
-          {t('mode.chooseMode')}
-        </h2>
+        <div className="home-grid">
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 20,
-          }}
-        >
-          <button 
-            id="practiceBtn" 
-            className="mode-btn"
-            onClick={() => {
-              localStorage.setItem("thor_selected_mode", "practice");
-              localStorage.removeItem("thor_match_id");
-              router.push("/game");
-            }}
-          >
-            {t('mode.practice')}
-          </button>
+          {/* ── Linha 1: Praticar, Multiplayer, Campanha ── */}
+          <div className="home-row home-row-top">
 
-          <button
-            id="multiplayerBtn"
-            className="mode-btn"
-            onClick={() => {
-              if (isGuest) {
-                router.push("/login");
-                return;
-              }
-              router.push("/multiplayer");
-            }}
-            title={isGuest ? "Crie sua conta para jogar multiplayer" : undefined}
-          >
-            {t('mode.multiplayer')}
-          </button>
+            {/* PRATICAR */}
+            <div
+              className="home-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                localStorage.setItem("thor_selected_mode", "practice");
+                localStorage.removeItem("thor_match_id");
+                router.push("/game");
+              }}
+              onKeyDown={e => e.key === "Enter" && (() => { localStorage.setItem("thor_selected_mode","practice"); localStorage.removeItem("thor_match_id"); router.push("/game"); })()}
+            >
+              <img className="home-card-bg" src="/game/images/menu/menu_praticar_card.png" alt="" draggable={false} />
+              <img className="home-card-img" src="/game/images/menu/menu_praticar_img.png?v=2" alt="Praticar" draggable={false} style={{ top: '6%', width: '70%', height: '70%' }} />
+              <span className="home-card-label" style={{ color: '#53b2f7' }}>{t('mode.practice')}</span>
+            </div>
 
-          <button id="campaignBtn" className="mode-btn" disabled>
-            {t('mode.campaign')}
-          </button>
+            {/* MULTIPLAYER */}
+            <div
+              className="home-card"
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (isGuest) { router.push("/login"); return; }
+                router.push("/multiplayer");
+              }}
+              onKeyDown={e => e.key === "Enter" && (() => { if (isGuest) { router.push("/login"); return; } router.push("/multiplayer"); })()}
+            >
+              <img className="home-card-bg" src="/game/images/menu/menu_multiplayer_card.png" alt="" draggable={false} />
+              <img className="home-card-img" src="/game/images/menu/menu_multiplayer_img.png" alt="Multiplayer" draggable={false} style={{ top: '-3%', width: '100%', height: '100%' }} />
+              <span className="home-card-label" style={{ color: '#e2abde' }}>{t('mode.multiplayer')}</span>
+            </div>
+
+            {/* CAMPANHA — desativado */}
+            <div className="home-card disabled" role="button" aria-disabled="true">
+              <img className="home-card-bg" src="/game/images/menu/menu_campanha.png?v=3" alt="Campanha" draggable={false} />
+              <span className="home-card-label" style={{ color: '#707070' }}>{t('mode.campaign')}</span>
+            </div>
+          </div>
+
+          {/* ── Linha 2: Ranking, Badges, Amigos, VIP ── */}
+          <div className="home-row">
+
+            <div className="home-subcard" role="button" tabIndex={0}
+              onClick={() => router.push("/ranking")}
+              onKeyDown={e => e.key === "Enter" && router.push("/ranking")}
+            >
+              <img className="home-subcard-img" src="/game/images/menu/submenu_ranking.png" alt="Ranking" draggable={false} />
+              <span className="home-subcard-label" style={{ color: '#a27326' }}>{t('mode.ranking')}</span>
+            </div>
+
+            <div className="home-subcard" role="button" tabIndex={0}
+              onClick={() => router.push("/badges")}
+              onKeyDown={e => e.key === "Enter" && router.push("/badges")}
+            >
+              <img className="home-subcard-img" src="/game/images/menu/submenu_badges.png" alt="Badges" draggable={false} />
+              <span className="home-subcard-label" style={{ color: '#763db5' }}>{t('mode.badges')}</span>
+            </div>
+
+            <div className="home-subcard" role="button" tabIndex={0}
+              onClick={() => router.push("/friends")}
+              onKeyDown={e => e.key === "Enter" && router.push("/friends")}
+            >
+              <img className="home-subcard-img" src="/game/images/menu/submenu_amigos.png" alt="Amigos" draggable={false} />
+              <span className="home-subcard-label" style={{ color: '#2c68a9' }}>{t('mode.friends')}</span>
+            </div>
+
+            <div className="home-subcard" role="button" tabIndex={0}
+              onClick={() => router.push("/vip")}
+              onKeyDown={e => e.key === "Enter" && router.push("/vip")}
+            >
+              <img className="home-subcard-img" src="/game/images/menu/submenu_vip.png?v=2" alt="VIP" draggable={false} />
+              <span className="home-subcard-label" style={{ color: '#ecb756' }}>{t('mode.vip')}</span>
+            </div>
+
+          </div>
         </div>
       </div>
       </div> {/* end mode-desktop-content */}

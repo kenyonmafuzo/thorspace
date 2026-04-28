@@ -27,10 +27,11 @@ export default function UserHeader() {
   const [isVipActive, setIsVipActive] = useState(false);
   const [vipNameColor, setVipNameColor] = useState('#FFD700');
   const [vipFrameColor, setVipFrameColor] = useState('#FFD700');
-  const [vipAvatarUrl, setVipAvatarUrl] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('thor_vip_avatar') || '';
-    return '';
-  });
+  const [vipAvatarUrl, setVipAvatarUrl] = useState('');
+
+  useEffect(() => {
+    setVipAvatarUrl(localStorage.getItem('thor_vip_avatar') || '');
+  }, []);
     // Tooltip state for each button
     const [hoveredBtn, setHoveredBtn] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -186,9 +187,6 @@ export default function UserHeader() {
 
   return (
     <>
-      <style>{`
-        @media (max-width: 768px) { #userHeader { display: none !important; } }
-      `}</style>
       <div id="userHeader" style={headerStyle}>
         {/* Logo — upper left */}
         <img

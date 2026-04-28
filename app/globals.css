@@ -253,6 +253,7 @@ button, .mode-btn, .end-btn {
   font-family: 'Orbitron', sans-serif;
   font-size: 15px;
 }
+@media (max-width: 768px) { #userHeader { display: none !important; } }
 
 .user-header-name {
   color: #0ff;

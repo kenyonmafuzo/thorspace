@@ -95,7 +95,11 @@ export default {
     chooseMode: "Escolha o modo de jogo",
     practice: "Praticar",
     multiplayer: "Multiplayer",
-    campaign: "Modo Campanha",
+    campaign: "Campanha",
+    ranking: "Ranking",
+    badges: "Badges",
+    friends: "Amigos",
+    vip: "VIP",
   },
   ranking: {
     title: "Ranking",
