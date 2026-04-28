@@ -271,46 +271,63 @@ export default function ModePage() {
             position: relative !important;
             top: auto !important; left: auto !important;
             width: 100% !important; height: auto !important;
+            display: flex !important;
+            flex-direction: column !important;
             justify-content: flex-start !important;
-            padding: 8px 10px 24px !important;
+            align-items: center !important;
+            padding: 0 0 24px !important;
             box-sizing: border-box !important;
             overflow: visible !important;
           }
           .home-grid {
-            display: flex !important;
-            flex-direction: row !important;
-            flex-wrap: wrap !important;
-            justify-content: center !important;
-            align-items: flex-start !important;
-            gap: 8px !important;
-            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            grid-template-areas:
+              "multiplayer multiplayer"
+              "praticar    campanha"
+              "ranking     badges"
+              "amigos      vip" !important;
+            column-gap: 28px !important;
+            row-gap: 10px !important;
+            width: 82% !important;
+            margin: 0 auto !important;
             padding: 0 !important;
           }
           .home-row { display: contents !important; }
-          /* Multiplayer — linha 1, largura total, em destaque */
-          .card-multiplayer { order: 1; width: 100% !important; height: 130px !important; }
-          /* Praticar e Campanha — linha 2, lado a lado */
-          .card-praticar    { order: 2; width: calc(50% - 4px) !important; height: 100px !important; }
-          .card-campanha    { order: 3; width: calc(50% - 4px) !important; height: 100px !important; }
-          /* Ranking e Badges — linha 3 */
-          .subcard-ranking  { order: 4; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
-          .subcard-badges   { order: 5; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
-          /* Amigos e VIP — linha 4 */
-          .subcard-amigos   { order: 6; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
-          .subcard-vip      { order: 7; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
-          /* Subcard image fill */
-          .subcard-ranking .home-subcard-img,
-          .subcard-badges .home-subcard-img,
-          .subcard-amigos .home-subcard-img,
-          .subcard-vip .home-subcard-img {
-            width: 100% !important; height: 100% !important;
-            object-fit: cover !important; border-radius: 12px !important;
+          /* Multiplayer — centralizado, 75% do grid */
+          .card-multiplayer {
+            grid-area: multiplayer !important;
+            width: 65% !important; height: auto !important;
+            aspect-ratio: 1.4 !important;
+            justify-self: center !important;
+            overflow: hidden !important;
+          }
+          /* Praticar / Campanha */
+          .card-praticar {
+            grid-area: praticar !important; width: 100% !important;
+            height: auto !important; aspect-ratio: 1/1 !important;
+            overflow: hidden !important;
+          }
+          .card-campanha {
+            grid-area: campanha !important; width: 100% !important;
+            height: auto !important; aspect-ratio: 1/1 !important;
+            overflow: hidden !important;
+          }
+          /* Subcards — proporção natural do PNG */
+          .subcard-ranking { grid-area: ranking !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; }
+          .subcard-badges  { grid-area: badges  !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; }
+          .subcard-amigos  { grid-area: amigos  !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; margin-top: 36px !important; }
+          .subcard-vip     { grid-area: vip     !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; margin-top: 36px !important; }
+          /* Imagem dos subcards — 70% centralizado */
+          .home-subcard .home-subcard-img {
+            width: 70% !important; height: auto !important; display: block !important;
+            margin: 0 auto !important;
           }
           /* Labels */
-          .card-multiplayer .home-card-label { font-size: 12px; letter-spacing: 2px; bottom: 10px; }
+          .card-multiplayer .home-card-label { font-size: 12px !important; letter-spacing: 2px; bottom: 33px; }
           .card-praticar .home-card-label,
-          .card-campanha .home-card-label    { font-size: 9px; letter-spacing: 1.5px; bottom: 8px; }
-          .home-subcard-label { font-size: 8px; letter-spacing: 1px; bottom: 8px; }
+          .card-campanha .home-card-label    { font-size: 9px !important; letter-spacing: 1.5px; bottom: 46px; }
+          .home-subcard-label { font-size: 8px !important; letter-spacing: 1px; bottom: 8px; }
         }
       `}</style>
 
