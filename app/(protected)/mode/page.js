@@ -265,6 +265,16 @@ export default function ModePage() {
           .home-subcard { width: 90px; }
           .home-card-label { font-size: 10px; letter-spacing: 1.5px; bottom: 38px; }
         }
+        /* iPhone e telas muito pequenas — evita corte lateral */
+        @media (max-width: 480px) {
+          .home-grid { padding: 0 8px; width: 100%; box-sizing: border-box; }
+          .home-row { gap: 4px; width: 100%; justify-content: center; }
+          .home-row-top { gap: 4px; }
+          .home-card { width: calc((100vw - 40px) / 3); height: calc((100vw - 40px) / 3 * 1.03); }
+          .home-subcard { width: calc((100vw - 40px) / 4); }
+          .home-card-label { font-size: 9px; letter-spacing: 1px; bottom: calc((100vw - 40px) / 3 * 0.22); }
+          .home-subcard-label { font-size: 8px; }
+        }
       `}</style>
 
 
