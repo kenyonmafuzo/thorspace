@@ -272,7 +272,7 @@ export default function ModePage() {
             top: auto !important; left: auto !important;
             width: 100% !important; height: auto !important;
             justify-content: flex-start !important;
-            padding: 12px 12px 32px !important;
+            padding: 8px 10px 24px !important;
             box-sizing: border-box !important;
             overflow: visible !important;
           }
@@ -282,27 +282,35 @@ export default function ModePage() {
             flex-wrap: wrap !important;
             justify-content: center !important;
             align-items: flex-start !important;
-            gap: 10px !important;
+            gap: 8px !important;
             width: 100% !important;
             padding: 0 !important;
           }
           .home-row { display: contents !important; }
           /* Multiplayer — linha 1, largura total, em destaque */
-          .card-multiplayer { order: 1; width: 100% !important; height: 170px !important; }
+          .card-multiplayer { order: 1; width: 100% !important; height: 130px !important; }
           /* Praticar e Campanha — linha 2, lado a lado */
-          .card-praticar    { order: 2; width: calc(50% - 5px) !important; height: 130px !important; }
-          .card-campanha    { order: 3; width: calc(50% - 5px) !important; height: 130px !important; }
+          .card-praticar    { order: 2; width: calc(50% - 4px) !important; height: 100px !important; }
+          .card-campanha    { order: 3; width: calc(50% - 4px) !important; height: 100px !important; }
           /* Ranking e Badges — linha 3 */
-          .subcard-ranking  { order: 4; width: calc(50% - 5px) !important; }
-          .subcard-badges   { order: 5; width: calc(50% - 5px) !important; }
+          .subcard-ranking  { order: 4; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
+          .subcard-badges   { order: 5; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
           /* Amigos e VIP — linha 4 */
-          .subcard-amigos   { order: 6; width: calc(50% - 5px) !important; }
-          .subcard-vip      { order: 7; width: calc(50% - 5px) !important; }
+          .subcard-amigos   { order: 6; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
+          .subcard-vip      { order: 7; width: calc(50% - 4px) !important; height: 90px !important; overflow: hidden; border-radius: 12px; }
+          /* Subcard image fill */
+          .subcard-ranking .home-subcard-img,
+          .subcard-badges .home-subcard-img,
+          .subcard-amigos .home-subcard-img,
+          .subcard-vip .home-subcard-img {
+            width: 100% !important; height: 100% !important;
+            object-fit: cover !important; border-radius: 12px !important;
+          }
           /* Labels */
-          .card-multiplayer .home-card-label { font-size: 13px; bottom: 14px; }
+          .card-multiplayer .home-card-label { font-size: 12px; letter-spacing: 2px; bottom: 10px; }
           .card-praticar .home-card-label,
-          .card-campanha .home-card-label { font-size: 10px; letter-spacing: 1.5px; bottom: 10px; }
-          .home-subcard-label { font-size: 9px; bottom: 10px; }
+          .card-campanha .home-card-label    { font-size: 9px; letter-spacing: 1.5px; bottom: 8px; }
+          .home-subcard-label { font-size: 8px; letter-spacing: 1px; bottom: 8px; }
         }
       `}</style>
 
