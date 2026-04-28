@@ -118,8 +118,10 @@ export default function UserHeader() {
   
   if (!hasMinimalData && !isGuest) {
     return (
-      <div style={{ position: 'fixed', top: 0, right: 12, height: 58, width: 180, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, padding: '12px 18px', backdropFilter: 'blur(6px)', zIndex: 10020 }}>
-        <span style={{ width: 80, height: 18, borderRadius: 6, background: 'rgba(0,229,255,0.10)', display: 'inline-block', marginBottom: 4, animation: 'pulse 1.2s infinite alternate' }} />
+      <div id="userHeader" style={{ position: 'fixed', top: 15, left: 0, right: 0, height: 58, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0px 12px 0px 0px', zIndex: 10020 }}>
+        <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 50, padding: '12px 18px', backdropFilter: 'blur(6px)' }}>
+          <span style={{ width: 80, height: 18, borderRadius: 6, background: 'rgba(0,229,255,0.10)', display: 'inline-block', animation: 'pulse 1.2s infinite alternate' }} />
+        </div>
       </div>
     );
   }
@@ -177,12 +179,15 @@ export default function UserHeader() {
     justifyContent: "flex-end",
     alignItems: "center",
     width: "100%",
+    height: 58,
     gap: 16,
     position: "fixed",
-    top: 0,
+    top: 15,
+    left: 0,
     right: 0,
     zIndex: 10020,
     padding: "0px 12px 0px 0px",
+    minWidth: 0,
   };
 
   return (
@@ -190,20 +195,21 @@ export default function UserHeader() {
       <div id="userHeader" style={headerStyle}>
         {/* Logo — upper left */}
         <img
-          src="/game/images/thorspace.png"
+          src="/game/images/logo/logo_thorspace.png"
           alt="ThorSpace"
           onClick={() => handleNavigation("/mode")}
           style={{
             position: "absolute",
-            left: -14,
+            left: 21,
             top: "50%",
             transform: "translateY(-50%)",
-            height: 178,
+            height: 78,
             width: "auto",
             cursor: "pointer",
             objectFit: "contain",
             filter: "drop-shadow(0 0 6px rgba(0,229,255,0.35))",
             userSelect: "none",
+            zIndex: 10021,
           }}
         />
         {/* Jogar SVG Icon Button */}

@@ -245,15 +245,17 @@ button, .mode-btn, .end-btn {
 #userHeader {
   display: flex;
   position: fixed;
-  top: 18px;
-  right: 38px;
-  z-index: 9000;
+  top: 15px;
+  left: 0;
+  right: 0;
+  z-index: 10020;
   align-items: center;
   gap: 13px;
   font-family: 'Orbitron', sans-serif;
   font-size: 15px;
 }
-@media (max-width: 768px) { #userHeader { display: none !important; } }
+@media (max-width: 767px) { #userHeader { display: none !important; } }
+@media (min-width: 768px) { #userHeader { display: flex !important; } }
 
 .user-header-name {
   color: #0ff;
@@ -361,17 +363,17 @@ body::before {
 }
 
 /* ── Mobile: content starts below transparent fixed header ── */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   /* .mobile-page-content is the explicit <main> wrapper in ProtectedClientLayout.
      220px clears MobileHeader (logo overflow + row2).
      env(safe-area-inset-top) adds notch height when viewport-fit=cover is active.
      Selectors do NOT touch body / #__next / [data-nextjs-scroll-focus-boundary]. */
   .mobile-page-content {
-    padding-top: calc(220px + env(safe-area-inset-top, 0px));
+    padding-top: calc(150px + env(safe-area-inset-top, 0px));
   }
   main.mobile-page-content { margin-top: 0 !important; }
   /* Pages that render their own padding (outside ProtectedClientLayout) */
-  .mobile-cpad { padding-top: calc(220px + env(safe-area-inset-top, 0px)) !important; }
+  .mobile-cpad { padding-top: calc(150px + env(safe-area-inset-top, 0px)) !important; }
 
   /* ── Per-page vertical alignment fixes ───────────────────────────────────
      PROTECTED pages (inside ProtectedClientLayout → already get 220px from
@@ -383,9 +385,9 @@ body::before {
   /* STANDALONE pages (own MobileHeader, NO layout wrapper).
      Outer wrapper padding-top → 0; inner <main> → 220px to match ranking. */
   .profile-outer  { padding-top:  0   !important; }
-  .profile-main   { margin-top:   220px !important; }
+  .profile-main   { margin-top:   150px !important; }
   .badges-outer   { padding-top:  0   !important; }
-  .badges-main    { margin-top:   220px !important; }
+  .badges-main    { margin-top:   150px !important; }
 
   /* Bottom: home indicator */
   body {

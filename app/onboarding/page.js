@@ -246,7 +246,7 @@ export default function OnboardingPage() {
   return (
     <main style={pageStyles}>
       <div style={wrapper}>
-        <img src="/game/images/thorspace.png" alt="Thorspace" style={{ width: '100%', maxWidth: 420, height: 54, objectFit: 'contain', margin: '0 auto 18px auto' }} />
+        <img src="/game/images/logo/logo_thorspace.png" alt="Thorspace" style={{ width: '100%', maxWidth: 420, height: 54, objectFit: 'contain', margin: '0 auto 18px auto' }} />
         <div style={card}>
           <h2 style={{ fontFamily: "'Orbitron', sans-serif", color: '#9FF6FF', marginTop: 0 }}>Complete seu cadastro</h2>
           {error ? <div style={{ color: '#FFB3B3', marginBottom: 8 }}>{error}</div> : null}

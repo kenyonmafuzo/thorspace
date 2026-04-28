@@ -312,11 +312,11 @@ export default function LoginPage() {
 
   // Logo fora do box e com mesma largura do box
   const logoStyles = {
-    width: "100%",
+    width: "80%",
     maxWidth: 420,
     height: "auto",
     display: "block",
-    margin: "0 auto 18px auto",
+    margin: "0px auto 98px",
     objectFit: "contain",
   };
 
@@ -425,7 +425,7 @@ export default function LoginPage() {
       <div style={overlayStyle} aria-hidden />
       <div style={wrapper}>
         <img
-          src="/game/images/thorspace.png"
+          src="/game/images/logo/logo_thorspace.png"
           alt="Thorspace"
           style={logoStyles}
         />

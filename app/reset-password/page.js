@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&display=swap" rel="stylesheet" />
       <div style={overlayStyle} aria-hidden />
       <div style={wrapper}>
-        <img src="/game/images/thorspace.png" alt="Thorspace" style={logoStyles} />
+        <img src="/game/images/logo/logo_thorspace.png" alt="Thorspace" style={logoStyles} />
 
         <div style={card}>
           <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 6, color: "#E6FBFF" }}>

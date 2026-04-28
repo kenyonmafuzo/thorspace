@@ -154,9 +154,9 @@ export default function MobileHeader() {
     <>
       <style>{`
         .mobile-header { display: none; }
-        @media (max-width: 768px) { .mobile-header { display: flex; } }
+        @media (max-width: 767px) { .mobile-header { display: flex; } }
         .mobile-header-gradient { display: none; }
-        @media (max-width: 768px) { .mobile-header-gradient { display: block; } }
+        @media (max-width: 767px) { .mobile-header-gradient { display: block; } }
       `}</style>
 
       {/* ── GRADIENT FADE: preto → transparente cobrindo a área do header ── */}
@@ -175,11 +175,8 @@ export default function MobileHeader() {
       />
 
       {/* ── TOP BAR (2 rows) ── */}
-      {/* top: calc(-115px + env(safe-area-inset-top)) compensates for viewport-fit=cover
-          shifting y=0 to physical screen top. This keeps Row 2 (tier/pill) visually
-          at the same position relative to the safe content area. */}
       <div className="mobile-header" style={{
-        position: "fixed", top: "calc(-115px + env(safe-area-inset-top, 0px))", left: 0, right: 0,
+        position: "fixed", top: "env(safe-area-inset-top, 0px)", left: 0, right: 0,
         background: "transparent",
         zIndex: 10020,
         flexDirection: "column",
@@ -188,18 +185,17 @@ export default function MobileHeader() {
 
         {/* Row 1 — Logo centered */}
         <div style={{
-          display: "flex", alignItems: "flex-start", justifyContent: "center",
-          paddingTop: 40, paddingBottom: 12, width: "100%",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          paddingTop: 16, paddingBottom: 0, width: "100%",
         }}>
           <img
-            src="/game/images/thorspace.png"
+            src="/game/images/logo/logo_thorspace.png"
             alt="ThorSpace"
             onClick={() => nav("/mode")}
             style={{
-              height: 282, width: "auto", cursor: "pointer",
+              height: 102, width: "auto", cursor: "pointer",
               objectFit: "contain",
-              filter: "drop-shadow(0 0 16px rgba(0,229,255,0.65))",
-              marginBottom: "-100px",
+              filter: "drop-shadow(0 0 8px rgba(0,229,255,0.55))",
             }}
           />
         </div>

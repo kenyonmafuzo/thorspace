@@ -314,7 +314,7 @@ export default function SignupPage() {
       <div style={wrapper}>
         {logoImageWorks ? (
           <img
-            src="/game/images/thorspace.png"
+            src="/game/images/logo/logo_thorspace.png"
             alt="Thorspace"
             style={{ width: '100%', maxWidth: 480, height: 329, objectFit: 'contain', margin: '-130px auto -92px auto' }}
             onError={() => setLogoImageWorks(false)}
