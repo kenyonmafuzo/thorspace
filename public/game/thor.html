@@ -9328,10 +9328,10 @@ if (phase === "selectShot" || (phase === "select" && nave.shot && !nave.target))
     // Cinza transparente se fora de alcance, ciano se dentro
     const targetColor = withinRange ? "#0ff" : "rgba(150,150,150,0.45)";
     // Mobile: larger circles so the target is easy to see under a finger
-    const _outerR = _isMob ? 28 : 14;
-    const _innerR = _isMob ? 12 : 7;
-    const _crossL = _isMob ? 10 : 5;
-    const _lw2    = _isMob ? 3  : 2;
+    const _outerR = _isMob ? 55 : 14;
+    const _innerR = _isMob ? 22 : 7;
+    const _crossL = _isMob ? 20 : 5;
+    const _lw2    = _isMob ? 4  : 2;
     
     // Círculo externo
     ctx.beginPath();
@@ -9371,11 +9371,11 @@ if (phase === "selectShot" || (phase === "select" && nave.shot && !nave.target))
 if (phase === "selectMove" || (phase === "select" && !nave.shot)) {
     ctx.save();
     // Mobile: larger shot crosshair
-    const _sOuter = _isMob ? 34 : 18;
-    const _sInner = _isMob ? 13 : 7;
-    const _sArm   = _isMob ? 20 : 10;
-    const _sLw    = _isMob ? 4  : 2;
-    const _sLwO   = _isMob ? 5  : 3;
+    const _sOuter = _isMob ? 65 : 18;
+    const _sInner = _isMob ? 25 : 7;
+    const _sArm   = _isMob ? 42 : 10;
+    const _sLw    = _isMob ? 5  : 2;
+    const _sLwO   = _isMob ? 6  : 3;
 
     // Círculo externo
     ctx.beginPath();

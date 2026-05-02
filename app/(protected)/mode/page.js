@@ -287,8 +287,8 @@ export default function ModePage() {
               "praticar    campanha"
               "ranking     badges"
               "amigos      vip" !important;
-            column-gap: 28px !important;
-            row-gap: 10px !important;
+            column-gap: 4px !important;
+            row-gap: 6px !important;
             width: 82% !important;
             margin: 0 auto !important;
             padding: 0 !important;
@@ -297,7 +297,7 @@ export default function ModePage() {
           /* Multiplayer — centralizado, 75% do grid */
           .card-multiplayer {
             grid-area: multiplayer !important;
-            width: 65% !important; height: auto !important;
+            width: 50% !important; height: auto !important;
             aspect-ratio: 1.4 !important;
             justify-self: center !important;
             overflow: hidden !important;
@@ -306,28 +306,32 @@ export default function ModePage() {
           .card-praticar {
             grid-area: praticar !important; width: 100% !important;
             height: auto !important; aspect-ratio: 1/1 !important;
-            overflow: hidden !important;
+            overflow: hidden !important; margin-top: -8px !important;
           }
           .card-campanha {
             grid-area: campanha !important; width: 100% !important;
             height: auto !important; aspect-ratio: 1/1 !important;
-            overflow: hidden !important;
+            overflow: hidden !important; margin-top: -8px !important;
           }
-          /* Subcards — proporção natural do PNG */
-          .subcard-ranking { grid-area: ranking !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; }
-          .subcard-badges  { grid-area: badges  !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; }
-          .subcard-amigos  { grid-area: amigos  !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; margin-top: 36px !important; }
-          .subcard-vip     { grid-area: vip     !important; width: 100% !important; height: auto !important; overflow: hidden !important; border-radius: 12px !important; margin-top: 36px !important; }
-          /* Imagem dos subcards — 70% centralizado */
+          /* Subcards — proporção natural do PNG, mesmo tamanho que praticar/campanha */
+          .subcard-ranking { grid-area: ranking !important; width: 80% !important; overflow: hidden !important; border-radius: 12px !important; position: relative !important; justify-self: center !important; margin-top: -8px !important; }
+          .subcard-badges  { grid-area: badges  !important; width: 80% !important; overflow: hidden !important; border-radius: 12px !important; position: relative !important; justify-self: center !important; margin-top: -8px !important; }
+          .subcard-amigos  { grid-area: amigos  !important; width: 80% !important; overflow: hidden !important; border-radius: 12px !important; position: relative !important; justify-self: center !important; margin-top: 10px !important; }
+          .subcard-vip     { grid-area: vip     !important; width: 80% !important; overflow: hidden !important; border-radius: 12px !important; position: relative !important; justify-self: center !important; margin-top: 10px !important; }
+          /* Imagem dos subcards — preenche o card mantendo proporção original */
           .home-subcard .home-subcard-img {
-            width: 70% !important; height: auto !important; display: block !important;
-            margin: 0 auto !important;
+            width: 100% !important; height: auto !important; display: block !important;
+          }
+          /* Imagem dos subcards — preenche o quadrado */
+          .home-subcard .home-subcard-img {
+            width: 100% !important; height: 100% !important; display: block !important;
+            object-fit: cover !important;
           }
           /* Labels */
-          .card-multiplayer .home-card-label { font-size: 12px !important; letter-spacing: 2px; bottom: 33px; }
+          .card-multiplayer .home-card-label { font-size: 9px !important; letter-spacing: 1.5px; bottom: 20px; }
           .card-praticar .home-card-label,
           .card-campanha .home-card-label    { font-size: 9px !important; letter-spacing: 1.5px; bottom: 46px; }
-          .home-subcard-label { font-size: 8px !important; letter-spacing: 1px; bottom: 8px; }
+          .home-subcard-label { font-size: 8px !important; letter-spacing: 1px; bottom: 16px; }
         }
       `}</style>
 

@@ -369,11 +369,11 @@ body::before {
      env(safe-area-inset-top) adds notch height when viewport-fit=cover is active.
      Selectors do NOT touch body / #__next / [data-nextjs-scroll-focus-boundary]. */
   .mobile-page-content {
-    padding-top: calc(150px + env(safe-area-inset-top, 0px));
+    padding-top: calc(185px + env(safe-area-inset-top, 0px));
   }
   main.mobile-page-content { margin-top: 0 !important; }
   /* Pages that render their own padding (outside ProtectedClientLayout) */
-  .mobile-cpad { padding-top: calc(150px + env(safe-area-inset-top, 0px)) !important; }
+  .mobile-cpad { padding-top: calc(185px + env(safe-area-inset-top, 0px)) !important; }
 
   /* ── Per-page vertical alignment fixes ───────────────────────────────────
      PROTECTED pages (inside ProtectedClientLayout → already get 220px from
