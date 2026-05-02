@@ -1555,6 +1555,9 @@ background: rgba(0, 165, 242, 0.04);
 <audio id="sfx-explode" src="sounds/sfx-explode.mp3"></audio>
 <audio id="sfx-winner" src="sounds/sfx-winner.mp3"></audio>
 <audio id="sfx-loss" src="sounds/sfx-loss.mp3"></audio>
+<audio id="sfx-strike" src="sounds/strike.mp3"></audio>
+<audio id="sfx-doublestrike" src="sounds/doublestrike.mp3"></audio>
+<audio id="sfx-triplestrike" src="sounds/triplestrike.mp3"></audio>
 <audio id="bgm-battle" loop></audio>
 
 
@@ -6709,6 +6712,9 @@ const sfxShot = document.getElementById("sfx-shot");
 const sfxExplode = document.getElementById("sfx-explode");
 const sfxWinner = document.getElementById("sfx-winner");
 const sfxLoss = document.getElementById("sfx-loss");
+const sfxStrike       = document.getElementById("sfx-strike");
+const sfxDoubleStrike = document.getElementById("sfx-doublestrike");
+const sfxTripleStrike = document.getElementById("sfx-triplestrike");
 const bgmBattle = document.getElementById("bgm-battle");
 bgmBattle.volume = 0.15;
 const BGM_TRACKS = [
@@ -6820,6 +6826,12 @@ let _enemyStrikeBanner = null; // banner do oponente (pequeno, canto inferior di
 function triggerStrikeBanner(kills) {
   const img = _strikeImgs[Math.min(kills, 3)];
   if (!img || !img.complete || img.naturalWidth === 0) return;
+  // Play strike sound
+  if (!sfxMuted) {
+    const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
+    const _sfx = _sfxMap[Math.min(kills, 3)];
+    if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
+  }
   // Upgrade: keep current alpha/phase so the banner doesn't flicker when kills increment
   if (_strikeBanner && _strikeBanner.phase !== 'out') {
     _strikeBanner.img = img;
