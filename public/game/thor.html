@@ -6826,11 +6826,16 @@ let _enemyStrikeBanner = null; // banner do oponente (pequeno, canto inferior di
 function triggerStrikeBanner(kills) {
   const img = _strikeImgs[Math.min(kills, 3)];
   if (!img || !img.complete || img.naturalWidth === 0) return;
-  // Play strike sound
+  // Debounce strike sound: espera 350ms para ver se mais naves morrem
+  // e toca apenas um som com base no roundKills final
   if (!sfxMuted) {
-    const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
-    const _sfx = _sfxMap[Math.min(kills, 3)];
-    if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
+    if (window._strikeSoundTimer) clearTimeout(window._strikeSoundTimer);
+    window._strikeSoundTimer = setTimeout(function() {
+      window._strikeSoundTimer = null;
+      const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
+      const _sfx = _sfxMap[Math.min(roundKills, 3)];
+      if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
+    }, 350);
   }
   // Upgrade: keep current alpha/phase so the banner doesn't flicker when kills increment
   if (_strikeBanner && _strikeBanner.phase !== 'out') {
