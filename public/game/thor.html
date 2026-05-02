@@ -6840,7 +6840,7 @@ function triggerStrikeBanner(kills) {
       const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
       const _sfx = _sfxMap[Math.min(roundKills, 3)];
       if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
-    }, 350);
+    }, 700);
   }
   // Upgrade: keep current alpha/phase so the banner doesn't flicker when kills increment
   if (_strikeBanner && _strikeBanner.phase !== 'out') {
@@ -8677,7 +8677,7 @@ function checkWinCondition() {
       document.getElementById('gameCanvas').style.display = "none";
     };
 
-    const _bannerDone = () => !_strikeBanner && !_enemyStrikeBanner;
+    const _bannerDone = () => !_strikeBanner && !_enemyStrikeBanner && !window._strikeSoundTimer;
     if (_bannerDone()) {
       _doShowResult();
     } else {
