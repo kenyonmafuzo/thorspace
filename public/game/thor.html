@@ -3210,6 +3210,11 @@ function applyResolvedTurn(actions) {
     window.__combatWatchdog = null;
   }, 20000);
   
+  // Pré-calcular kills esperados para o som correto de strike
+  window._expectedStrikeKills = playerNaves.filter(n => n.hp > 0 && n.shot).length;
+  window._strikeSoundPlayed = false;
+  if (window._strikeSoundTimer) { clearTimeout(window._strikeSoundTimer); window._strikeSoundTimer = null; }
+
   // Disparar projéteis IMEDIATAMENTE
   fireProjectiles();
   
@@ -6837,8 +6842,9 @@ function triggerStrikeBanner(kills) {
       window._strikeSoundTimer = null;
       if (window._strikeSoundPlayed) return; // já tocou neste round
       window._strikeSoundPlayed = true;
+      const kills = window._expectedStrikeKills || roundKills;
       const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
-      const _sfx = _sfxMap[Math.min(roundKills, 3)];
+      const _sfx = _sfxMap[Math.min(kills, 3)];
       if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
     }, 700);
   }
