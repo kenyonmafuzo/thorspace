@@ -32,7 +32,13 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
   const botRotateRef = useRef(null);
   const botUsersRef = useRef([]);  // always-current ref for use inside closures
 
-  // Fetch bot profiles once and rotate a random subset every 45s
+  // Fetch bot profiles once and show a time-of-day-based subset.
+  // Periods (Brazil time, UTC-3):
+  //   00–06 madrugada  : 2–3 bots
+  //   06–12 manhã      : 3–5 bots
+  //   12–18 tarde      : 5–7 bots
+  //   18–23 noite pico : 7–10 bots
+  //   23–24 noite tarde: 4–6 bots
   useEffect(() => {
     let mounted = true;
     supabase
@@ -42,20 +48,43 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
       .then(({ data }) => {
         if (!mounted || !data || data.length === 0) return;
         const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+        const getBotCount = () => {
+          // Use local hour in UTC-3 (Brazil)
+          const h = (new Date().getUTCHours() + 21) % 24; // UTC-3
+          if (h >= 0  && h < 6)  return 2 + Math.floor(Math.random() * 2); // 2–3
+          if (h >= 6  && h < 12) return 3 + Math.floor(Math.random() * 3); // 3–5
+          if (h >= 12 && h < 18) return 5 + Math.floor(Math.random() * 3); // 5–7
+          if (h >= 18 && h < 23) return 7 + Math.floor(Math.random() * 4); // 7–10
+          return 4 + Math.floor(Math.random() * 3);                         // 4–6
+        };
+
         const pickBots = () => {
-          const count = 3 + Math.floor(Math.random() * 4); // 3–6 bots online
+          const count = Math.min(getBotCount(), data.length);
           const subset = shuffle(data).slice(0, count);
           if (mounted) {
             botUsersRef.current = subset;
             setBotUsers(subset);
           }
         };
+
         pickBots();
-        botRotateRef.current = setInterval(pickBots, 45000);
+
+        // Re-pick when crossing into the next clock hour (period boundary)
+        const scheduleNextPick = () => {
+          if (!mounted) return;
+          const now = new Date();
+          const msToNextHour = (60 - now.getMinutes()) * 60000 - now.getSeconds() * 1000 - now.getMilliseconds();
+          botRotateRef.current = setTimeout(() => {
+            pickBots();
+            scheduleNextPick();
+          }, msToNextHour);
+        };
+        scheduleNextPick();
       });
     return () => {
       mounted = false;
-      if (botRotateRef.current) clearInterval(botRotateRef.current);
+      if (botRotateRef.current) clearTimeout(botRotateRef.current);
     };
   }, []);
 

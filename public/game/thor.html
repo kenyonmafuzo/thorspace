@@ -2880,8 +2880,9 @@ function startTurnWindow(deadlineISO) {
               handleMatchUpdate({ new: row });
               return;
             }
-            // (B) Checar last_seen do oponente no DB
+            // (B) Checar last_seen do oponente no DB (não aplicar em bot mode — P1 escreve pelo bot)
             const isP1 = myUserId === matchData.player1_id;
+            if (botMode && !isP1) return; // P2 nunca deveria existir em bot mode, mas por segurança
             const oppLastSeen = isP1 ? row.player2_last_seen : row.player1_last_seen;
             const elapsed = oppLastSeen
               ? Date.now() - new Date(oppLastSeen).getTime()
@@ -4167,17 +4168,25 @@ function startHeartbeat() {
   checkOpponentHeartbeat();
 }
 
-// Enviar meu heartbeat
+// Enviar meu heartbeat (e o do bot, se for bot mode)
 async function sendHeartbeat() {
   if (!supabaseClient || !matchData || currentPhase === 'finished') return;
   
   try {
     const isPlayer1 = myUserId === matchData.player1_id;
     const field = isPlayer1 ? 'player1_last_seen' : 'player2_last_seen';
-    
+    const now = new Date().toISOString();
+    const updateData = { [field]: now };
+
+    // 🤖 BOT: P1 também atualiza o heartbeat do bot (player2_last_seen)
+    // para evitar WO por timeout de heartbeat
+    if (botMode && isPlayer1) {
+      updateData.player2_last_seen = now;
+    }
+
     await supabaseClient
       .from('matches')
-      .update({ [field]: new Date().toISOString() })
+      .update(updateData)
       .eq('id', matchData.id);
     
     debug.log('[HEARTBEAT] ❤️ Enviado');
@@ -4191,6 +4200,7 @@ async function sendHeartbeat() {
 // Se oponente não está na presence → WO imediato.
 function checkOpponentPresenceForWO() {
   if (currentPhase !== 'battle' || !matchStateChannel || !multiplayerMode) return;
+  if (botMode) return; // 🤖 bot nunca entra na presence, nunca aplicar WO
 
   const presenceState = matchStateChannel.presenceState();
   const opponentOnline = isUserInPresence(presenceState, opponentUserId);
@@ -4217,6 +4227,7 @@ function checkOpponentHeartbeat() {
 
   opponentLastSeenCheck = setInterval(async () => {
     if (currentPhase !== 'battle' || !matchData) return;
+    if (botMode) return; // 🤖 bot heartbeat é escrito pelo P1, nunca aplicar WO contra bot
 
     try {
       const { data, error } = await supabaseClient
