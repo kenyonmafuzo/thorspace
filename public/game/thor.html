@@ -2456,6 +2456,47 @@ let opponentVipColor = '#FF4444'; // Cor VIP do oponente
 let opponentShotPreferences = {}; // Shot preferences do oponente (ex: {"1": "pulse", "2": "energy", "3": "plasma"})
 let matchData = null;
 
+// ============================================
+// BOT MODE
+// ============================================
+const BOT_IDS = new Set([
+  "0c765f72-0f17-4d12-91ee-fbfb0f3f6144", // AnaX
+  "789e7d0b-170c-4d0d-b008-4f72d6cde1ee", // AndréOrbit
+  "1fd048a9-9c6d-4640-b60f-99122169970d", // BrunoStrike
+  "3153ad33-779b-48fc-8140-3edf5002879b", // CarolX
+  "73dba2b8-4da1-41a2-805d-7949d0ab756e", // DiegoRush
+  "b7a6a3d0-0036-4e07-9c22-1a8c4e46746c", // FelipeX
+  "b7e2fca5-0181-47e5-91fc-b23ff80d17b8", // GabiPlay
+  "bf253181-6fcc-4334-b58d-480686c77c7b", // LeoHunter
+  "75027538-9d7e-4f83-8847-dbc6908f126d", // LucasBR
+  "18057b53-0e72-4e20-bd74-5c960df02dd0", // MatheusGG
+  "94eb12f0-029d-4283-8c9b-650728f72e5b", // PedroNova
+  "aff8c5ea-c817-40ae-a9a7-de39845a1d1e", // RafaPro
+  "4fab5997-3bbd-45e6-b44a-0cc4753617c4", // RenanFPS
+  "06183d30-d5fe-4e4c-a465-29a202dd1001", // ThiagoFire
+  "384d1c71-a823-4dbf-a311-3908c7d375c3", // ViniShadow
+]);
+// Difficulty per-bot: 0.3 = bad, 0.6 = medium, 0.9 = good (shot accuracy)
+const BOT_DIFFICULTY = {
+  "0c765f72-0f17-4d12-91ee-fbfb0f3f6144": 0.40, // AnaX       — fácil
+  "789e7d0b-170c-4d0d-b008-4f72d6cde1ee": 0.60, // AndréOrbit — médio
+  "1fd048a9-9c6d-4640-b60f-99122169970d": 0.55, // BrunoStrike— médio
+  "3153ad33-779b-48fc-8140-3edf5002879b": 0.30, // CarolX     — fácil
+  "73dba2b8-4da1-41a2-805d-7949d0ab756e": 0.65, // DiegoRush  — médio
+  "b7a6a3d0-0036-4e07-9c22-1a8c4e46746c": 0.75, // FelipeX    — bom
+  "b7e2fca5-0181-47e5-91fc-b23ff80d17b8": 0.35, // GabiPlay   — fácil
+  "bf253181-6fcc-4334-b58d-480686c77c7b": 0.80, // LeoHunter  — bom
+  "75027538-9d7e-4f83-8847-dbc6908f126d": 0.50, // LucasBR    — médio
+  "18057b53-0e72-4e20-bd74-5c960df02dd0": 0.60, // MatheusGG  — médio
+  "94eb12f0-029d-4283-8c9b-650728f72e5b": 0.70, // PedroNova  — bom
+  "aff8c5ea-c817-40ae-a9a7-de39845a1d1e": 0.72, // RafaPro    — bom
+  "4fab5997-3bbd-45e6-b44a-0cc4753617c4": 0.85, // RenanFPS   — difícil
+  "06183d30-d5fe-4e4c-a465-29a202dd1001": 0.68, // ThiagoFire — médio
+  "384d1c71-a823-4dbf-a311-3908c7d375c3": 0.90, // ViniShadow — difícil
+};
+let botMode = false;     // true quando oponente é bot
+let botDifficulty = 0.5; // 0–1: chance de acertar o jogador
+
 // 🛡️ AAA GUARD: Prevenir processamento duplo de fim de jogo
 let matchEndProcessed = false;
 
@@ -2861,6 +2902,65 @@ function startTurnWindow(deadlineISO) {
   
 }
 
+// ============================================
+// BOT AI: gerar ação automática para o bot (red team)
+// ============================================
+function generateBotAction() {
+  const cW = canvas ? canvas.width  : 800;
+  const cH = canvas ? canvas.height : 600;
+  const half = NAVY_SIZE / 2;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  const botShips = cpuNaves; // bot é sempre red (cpu)
+  const alivePlayer = playerNaves.filter(n => n && n.hp > 0);
+
+  const ships = botShips.map((nave, idx) => {
+    if (!nave || nave.hp <= 0) {
+      return { index: idx, target: null, shot: null, hp: nave ? nave.hp : 0, maxHp: nave ? nave.maxHp : 0, angle: 0, shotType: 'plasma' };
+    }
+
+    // — Move: wander around the bot's half (top half, y < cH/2) —
+    let tx, ty;
+    let attempts = 0;
+    do {
+      tx = clamp(nave.x + (Math.random() - 0.5) * 220, half, cW - half);
+      ty = clamp(nave.y + (Math.random() - 0.5) * 150, half, cH / 2 - half);
+      attempts++;
+      // avoid piling up on own ships
+      const collision = botShips.some((other, j) =>
+        j !== idx && other && other.hp > 0 &&
+        Math.hypot((other.x - tx), (other.y - ty)) < NAVY_SIZE * 1.2
+      );
+      if (!collision) break;
+    } while (attempts < 10);
+
+    // — Shot: aim at a random alive player ship with difficulty-based jitter —
+    let sx, sy;
+    if (alivePlayer.length > 0 && Math.random() < botDifficulty) {
+      const target = alivePlayer[Math.floor(Math.random() * alivePlayer.length)];
+      const jitter = 120 * (1 - botDifficulty);
+      sx = clamp(target.x + (Math.random() - 0.5) * jitter, 0, cW);
+      sy = clamp(target.y + (Math.random() - 0.5) * jitter, 0, cH);
+    } else {
+      // Random miss
+      sx = Math.random() * cW;
+      sy = clamp(Math.random() * cH / 2 + cH / 2, 0, cH); // aim at player half
+    }
+
+    return {
+      index: idx,
+      target: { x: tx, y: ty },
+      shot:   { x: sx, y: sy },
+      hp: nave.hp,
+      maxHp: nave.maxHp || nave.hp,
+      angle: nave.angle || 0,
+      shotType: nave.shotType || 'plasma'
+    };
+  });
+
+  return { type: 'play', ships };
+}
+
 // Enviar minha ação do turno
 async function submitMyAction(actionPayload) {
   if (!multiplayerMode || !supabaseClient || !matchData || myActionSubmitted) {
@@ -2897,7 +2997,6 @@ async function submitMyAction(actionPayload) {
     // Travar todas as naves até o próximo round
     if (playerNaves) playerNaves.forEach(n => n.locked = true);
 
-
     // Travar UI e mostrar "Aguardando oponente..."
     const legendArea = document.getElementById('legendArea');
     if (legendArea) {
@@ -2905,7 +3004,26 @@ async function submitMyAction(actionPayload) {
       legendArea.style.color = '#FFB84D';
     }
 
-    // Removido: banner central de aguarde. Só usar legendArea no HUD.
+    // 🤖 BOT: submeter ação do bot automaticamente com pequeno delay
+    if (botMode && myTeam === 'blue') {
+      const botDelay = 600 + Math.random() * 1200; // 0.6–1.8s de "think time"
+      setTimeout(async () => {
+        try {
+          const botAction = generateBotAction();
+          const { error: botErr } = await supabaseClient
+            .from('matches')
+            .update({ action_red: botAction, submitted_red: true })
+            .eq('id', matchData.id);
+          if (botErr) {
+            console.warn('[BOT] Erro ao enviar ação do bot:', botErr);
+          } else {
+            debug.pvp('[BOT] 🤖 Ação do bot enviada');
+          }
+        } catch (e) {
+          console.warn('[BOT] Exceção ao enviar ação do bot:', e);
+        }
+      }, botDelay);
+    }
 
     // NÃO cancelar turnTimerInterval: precisa continuar para disparar maybeResolveTurn() no deadline
     // caso o oponente submeta depois do nosso 300ms check inicial.
@@ -3961,6 +4079,14 @@ async function initMultiplayerMode(matchId) {
     // STEP 6: Buscar username do oponente (com cache e maybeSingle)
     opponentUsername = await getOpponentUsername(opponentUserId);
     debug.pvp('[PVP] ✓ Oponente:', opponentUsername);
+
+    // STEP 6.4: Detectar modo BOT
+    if (BOT_IDS.has(opponentUserId)) {
+      botMode = true;
+      botDifficulty = BOT_DIFFICULTY[opponentUserId] ?? 0.5;
+      opponentInGame = true; // bot está sempre "em jogo"
+      debug.pvp('[PVP] 🤖 BOT MODE ativado — dificuldade:', botDifficulty);
+    }
     
     // STEP 6.5: Buscar shot preferences do oponente
     opponentShotPreferences = await getOpponentShotPreferences(opponentUserId);
@@ -5070,8 +5196,8 @@ async function handleMatchUpdate(payload) {
       } catch (e) { console.warn('[SYNC] Erro ao enviar ANIM_READY:', e); }
     }
 
-    // Se oponente já enviou ANIM_READY antes de mim
-    if (opponentAnimReady) {
+    // Se oponente já enviou ANIM_READY antes de mim (ou é bot — responde imediatamente)
+    if (opponentAnimReady || botMode) {
       if (animReadyTimeout) { clearTimeout(animReadyTimeout); animReadyTimeout = null; }
       applyResolvedTurn(pendingAnimActions);
     } else {

@@ -28,6 +28,66 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
+  const [botUsers, setBotUsers] = useState([]);
+  const botRotateRef = useRef(null);
+  const botUsersRef = useRef([]);  // always-current ref for use inside closures
+
+  // Fetch bot profiles once and rotate a random subset every 45s
+  useEffect(() => {
+    let mounted = true;
+    supabase
+      .from("profiles")
+      .select("id, username, avatar_preset")
+      .eq("is_bot", true)
+      .then(({ data }) => {
+        if (!mounted || !data || data.length === 0) return;
+        const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+        const pickBots = () => {
+          const count = 3 + Math.floor(Math.random() * 4); // 3–6 bots online
+          const subset = shuffle(data).slice(0, count);
+          if (mounted) {
+            botUsersRef.current = subset;
+            setBotUsers(subset);
+          }
+        };
+        pickBots();
+        botRotateRef.current = setInterval(pickBots, 45000);
+      });
+    return () => {
+      mounted = false;
+      if (botRotateRef.current) clearInterval(botRotateRef.current);
+    };
+  }, []);
+
+  // When bot roster rotates, re-trigger presence rebuild so the list updates
+  useEffect(() => {
+    const ch = presenceChannelRef.current;
+    if (!ch) return;
+    // Rebuild using the latest presence state + new bots
+    const state = ch.presenceState();
+    const users = [];
+    Object.keys(state).forEach((key) => {
+      const presences = state[key];
+      if (presences && presences.length > 0) {
+        const p = presences[0];
+        users.push({
+          userId: p.user_id,
+          username: p.username || "Unknown",
+          avatar: p.avatar || "normal",
+          status: p.status || "online",
+          isVip: p.is_vip || false,
+          vipNameColor: p.vip_name_color || "#FFD700",
+          vipFrameColor: p.vip_frame_color || "#FFD700",
+          vipAvatar: p.vip_avatar || null,
+        });
+      }
+    });
+    botUsers.forEach(bot => {
+      users.push({ userId: bot.id, username: bot.username, avatar: bot.avatar_preset || "normal", status: "online", isBot: true });
+    });
+    setOnlineUsers(users);
+    if (typeof window !== "undefined") window.__onlineUserIds = users.map(u => u.userId);
+  }, [botUsers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch friend IDs so we can sort friends to the top of the list
   useEffect(() => {
@@ -135,7 +195,21 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
         });
 
 
-        // Adicionar fake players se a flag estiver ativada
+        // Adicionar bots como jogadores online (sempre lê do ref, nunca stale)
+        const currentBots = botUsersRef.current;
+        if (currentBots && currentBots.length > 0) {
+          currentBots.forEach(bot => {
+            users.push({
+              userId: bot.id,
+              username: bot.username,
+              avatar: bot.avatar_preset || "normal",
+              status: "online",
+              isBot: true,
+            });
+          });
+        }
+
+        // Adicionar fake players se a flag estiver ativada (desenvolvimento)
         if (process.env.NEXT_PUBLIC_FAKE_PLAYERS === "1") {
           users.push(
             {
@@ -436,6 +510,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
                   display: "inline-flex", alignItems: "center", gap: 3,
                 }}>
                   {user.isVip && <span style={{ fontSize: 9, lineHeight: 1 }}>💎</span>}
+                  {user.isBot && <span style={{ fontSize: 9, lineHeight: 1 }} title="Bot">🤖</span>}
                   {user.username || "Player"}
                   {isCurrentUser && <span style={{ color: "#FFD700" }}> ({t('multiplayer.you')})</span>}
                 </span>
@@ -443,7 +518,7 @@ export default function OnlineNow({ currentUserId, currentUsername, currentAvata
                 {!isCurrentUser && (
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // ⬅️ IMPORTANTE: não dispara o clique do item
+                      e.stopPropagation();
                       if (user.isFake) {
                         onChallenge(user.userId, user.username, { fake: true });
                       } else {

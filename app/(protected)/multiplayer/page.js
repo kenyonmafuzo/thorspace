@@ -14,6 +14,25 @@ import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 import { checkBadgesAfterMultiplayerWin, checkAllBadgesForUser } from "@/lib/badgesIntegration";
 import { useGuest } from "@/src/hooks/useGuest";
 
+// Bot player UUIDs — must match what's in the profiles table (is_bot = true)
+const BOT_IDS = new Set([
+  "0c765f72-0f17-4d12-91ee-fbfb0f3f6144", // AnaX
+  "789e7d0b-170c-4d0d-b008-4f72d6cde1ee", // AndréOrbit
+  "1fd048a9-9c6d-4640-b60f-99122169970d", // BrunoStrike
+  "3153ad33-779b-48fc-8140-3edf5002879b", // CarolX
+  "73dba2b8-4da1-41a2-805d-7949d0ab756e", // DiegoRush
+  "b7a6a3d0-0036-4e07-9c22-1a8c4e46746c", // FelipeX
+  "b7e2fca5-0181-47e5-91fc-b23ff80d17b8", // GabiPlay
+  "bf253181-6fcc-4334-b58d-480686c77c7b", // LeoHunter
+  "75027538-9d7e-4f83-8847-dbc6908f126d", // LucasBR
+  "18057b53-0e72-4e20-bd74-5c960df02dd0", // MatheusGG
+  "94eb12f0-029d-4283-8c9b-650728f72e5b", // PedroNova
+  "aff8c5ea-c817-40ae-a9a7-de39845a1d1e", // RafaPro
+  "4fab5997-3bbd-45e6-b44a-0cc4753617c4", // RenanFPS
+  "06183d30-d5fe-4e4c-a465-29a202dd1001", // ThiagoFire
+  "384d1c71-a823-4dbf-a311-3908c7d375c3", // ViniShadow
+]);
+
 export default function MultiplayerPage() {
     const { userStats, isLoading: statsLoading, userId: contextUserId } = useUserStats();
   const { isGuest } = useGuest();
@@ -486,6 +505,82 @@ export default function MultiplayerPage() {
     if (options.fake && allowFake) {
       if (typeof window !== "undefined" && window.__invitePopup) {
         window.__invitePopup.receiveFakeInvite(targetUserId, targetUsername);
+      }
+      return;
+    }
+
+    // ── BOT challenge: criar match e auto-aceitar via API ────────────────────
+    if (BOT_IDS.has(targetUserId)) {
+      try {
+        if (typeof window !== "undefined" && window.__invitePopup) {
+          window.__invitePopup.showSent(`Conectando com ${targetUsername}...`);
+        }
+
+        // Criar match
+        const { data: newMatch, error: matchError } = await supabase
+          .from("matches")
+          .insert({
+            mode: "multiplayer",
+            state: "pending",
+            invite_from: currentUser.id,
+            invite_to: targetUserId,
+            player1_id: currentUser.id,
+            player2_id: targetUserId,
+            player1: currentUser.id,
+            player2: targetUserId,
+            created_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+
+        if (matchError || !newMatch) {
+          console.error("[BOT] Error creating match:", matchError);
+          if (typeof window !== "undefined" && window.__invitePopup) {
+            window.__invitePopup.showInfo("Erro ao criar partida.");
+          }
+          return;
+        }
+
+        // Get session tokens for API auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
+        if (!session) {
+          console.error("[BOT] No session for API call");
+          return;
+        }
+
+        // Auto-accept via server API
+        const res = await fetch("/api/bot-match", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            matchId: newMatch.id,
+            botUserId: targetUserId,
+            accessToken: session.access_token,
+            refreshToken: session.refresh_token,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error("[BOT] API error:", err);
+          return;
+        }
+
+        // Store bot flag so the game knows opponent is a bot
+        localStorage.setItem("thor_opponent_is_bot", "1");
+        localStorage.setItem("thor_match_id", newMatch.id);
+        localStorage.setItem("thor_match_opponent_name", targetUsername);
+        localStorage.setItem("thor_match_opponent_id", targetUserId);
+        localStorage.setItem("thor_match_source", "multiplayer");
+        localStorage.setItem("thor_selected_mode", "multiplayer");
+
+        // Brief pause so DB change propagates before navigation
+        await new Promise(r => setTimeout(r, 400));
+
+        router.push(`/game?mode=multiplayer&matchId=${newMatch.id}`);
+      } catch (err) {
+        console.error("[BOT] Exception:", err);
       }
       return;
     }
