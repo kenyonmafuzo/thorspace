@@ -3349,6 +3349,9 @@ function resetRoundXPTracking() {
   roundCollisionLosses = 0;
   roundHitStreaks = {};
   p2ClutchThisRound = false;
+  // Reset strike sound flag for new round
+  window._strikeSoundPlayed = false;
+  if (window._strikeSoundTimer) { clearTimeout(window._strikeSoundTimer); window._strikeSoundTimer = null; }
   // Sticky: once true (was losing at any point), stays true until match reset
   wasLosingBeforeRound = wasLosingBeforeRound || (cpuDestroyed - playerDestroyed) < 0;
 }
@@ -6827,11 +6830,13 @@ function triggerStrikeBanner(kills) {
   const img = _strikeImgs[Math.min(kills, 3)];
   if (!img || !img.complete || img.naturalWidth === 0) return;
   // Debounce strike sound: espera 350ms para ver se mais naves morrem
-  // e toca apenas um som com base no roundKills final
-  if (!sfxMuted) {
+  // Flag garante que só toca UMA vez por round
+  if (!sfxMuted && !window._strikeSoundPlayed) {
     if (window._strikeSoundTimer) clearTimeout(window._strikeSoundTimer);
     window._strikeSoundTimer = setTimeout(function() {
       window._strikeSoundTimer = null;
+      if (window._strikeSoundPlayed) return; // já tocou neste round
+      window._strikeSoundPlayed = true;
       const _sfxMap = { 1: sfxStrike, 2: sfxDoubleStrike, 3: sfxTripleStrike };
       const _sfx = _sfxMap[Math.min(roundKills, 3)];
       if (_sfx) { _sfx.currentTime = 0; _sfx.play().catch(e => {}); }
