@@ -251,7 +251,6 @@ export default function RankingPage() {
         const merged = profiles.map(profile => {
           const stats = statsMap[profile.id] || {};
           const progress = progressMap[profile.id] || {};
-          const matches_played = Number(stats.matches_played ?? 0);
           const wins = Number(stats.wins ?? 0);
           const losses = Number(stats.losses ?? 0);
           const draws = Number(stats.draws ?? 0);
