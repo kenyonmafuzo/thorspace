@@ -253,6 +253,9 @@ export default function RankingPage() {
           const progress = progressMap[profile.id] || {};
           const matches_played = Number(stats.matches_played ?? 0);
           const wins = Number(stats.wins ?? 0);
+          const losses = Number(stats.losses ?? 0);
+          const draws = Number(stats.draws ?? 0);
+          const matches_played = wins + losses + draws; // sempre consistente
           const total_xp = Number(progress.total_xp ?? 0);
           // Calcula level dinamicamente a partir do total_xp (consistente com header/perfil)
           const calculatedProgress = getLevelProgressFromTotalXp(total_xp);
@@ -275,8 +278,8 @@ export default function RankingPage() {
             xp,
             xp_to_next,
             wins: wins,
-            losses: Number(stats.losses ?? 0),
-            draws: Number(stats.draws ?? 0),
+            losses: losses,
+            draws: draws,
             matches_played,
             ships_destroyed: Number(stats.ships_destroyed ?? 0),
             win_rate: matches_played > 0 ? (wins / matches_played) * 100 : 0,
