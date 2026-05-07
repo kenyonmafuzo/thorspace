@@ -24,7 +24,7 @@ import { getAvatarSrc } from "@/app/lib/avatarOptions";
 import { createInboxMessage } from "@/lib/inbox";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useGuest } from "@/src/hooks/useGuest";
-import GuestWall from "@/app/components/GuestWall";
+import GuestModal from "@/app/components/GuestModal";
 
 const galaxyBg = (
   <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
@@ -900,7 +900,14 @@ if (typeof window !== "undefined") {
   }
 
   if (isGuest) {
-    return <GuestWall title="Crie sua conta para adicionar amigos" message="Conecte-se com outros jogadores, envie convites e jogue multiplayer com amigos." fullPage />;
+    return (
+      <>
+        <div style={{ minHeight: "100dvh", background: "#000010" }}>
+          {galaxyBg}
+        </div>
+        <GuestModal open={true} onClose={() => {}} />
+      </>
+    );
   }
 
   return (

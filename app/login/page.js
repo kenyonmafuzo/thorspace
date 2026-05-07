@@ -657,7 +657,7 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4, marginTop: 2 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16, marginTop: 2 }}>
               <button
                 type="button"
                 onClick={() => { setShowForgotPassword(true); setError(""); }}

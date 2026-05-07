@@ -28,6 +28,14 @@ function parseBrowser(ua) {
   return "Outro";
 }
 
+function parseDeviceType(ua) {
+  if (!ua) return "Desktop";
+  if (/iPad/i.test(ua)) return "Tablet";
+  if (/Android/i.test(ua) && !/Mobile/i.test(ua)) return "Tablet";
+  if (/Mobi|Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Windows Phone/i.test(ua)) return "Mobile";
+  return "Desktop";
+}
+
 function formatDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -96,6 +104,46 @@ function LineChart({ data }) {
   );
 }
 
+// ── Device split ──────────────────────────────────────────────────────────────
+function DeviceSplit({ mobile, desktop, tablet }) {
+  const total = mobile + desktop + tablet;
+  if (total === 0) return <div className={styles.empty}>Sem dados ainda.</div>;
+  const mPct = Math.round((mobile / total) * 100);
+  const tPct = Math.round((tablet / total) * 100);
+  const dPct = 100 - mPct - tPct;
+  return (
+    <div className={styles.deviceSplit}>
+      <div className={styles.deviceBar}>
+        <div className={styles.deviceBarMobile}  style={{ width: `${mPct}%` }} />
+        <div className={styles.deviceBarTablet}  style={{ width: `${tPct}%` }} />
+        <div className={styles.deviceBarDesktop} style={{ width: `${dPct}%` }} />
+      </div>
+      <div className={styles.deviceLegend}>
+        <div className={styles.deviceLegendItem}>
+          <span className={styles.dotMobile} />
+          <span className={styles.deviceLegendLabel}>Mobile</span>
+          <span className={styles.deviceLegendValue}>{mobile.toLocaleString("pt-BR")}</span>
+          <span className={styles.deviceLegendPct}>{mPct}%</span>
+        </div>
+        {tablet > 0 && (
+          <div className={styles.deviceLegendItem}>
+            <span className={styles.dotTablet} />
+            <span className={styles.deviceLegendLabel}>Tablet</span>
+            <span className={styles.deviceLegendValue}>{tablet.toLocaleString("pt-BR")}</span>
+            <span className={styles.deviceLegendPct}>{tPct}%</span>
+          </div>
+        )}
+        <div className={styles.deviceLegendItem}>
+          <span className={styles.dotDesktop} />
+          <span className={styles.deviceLegendLabel}>Computador</span>
+          <span className={styles.deviceLegendValue}>{desktop.toLocaleString("pt-BR")}</span>
+          <span className={styles.deviceLegendPct}>{dPct}%</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Stat card ─────────────────────────────────────────────────────────────────
 function StatCard({ label, value, change, sub }) {
   return (
@@ -115,7 +163,8 @@ function StatCard({ label, value, change, sub }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function AnalyticsClient({ data, period }) {
   const router = useRouter();
-  const { overview, byDay, topPages, topCountries, browsers, referrers, recent } = data;
+  const { overview, byDay, topPages, topCountries, browsers, referrers, recent, deviceStats } = data;
+  const ds = deviceStats ?? { mobile: 0, desktop: 0, tablet: 0, topMobileModels: [] };
 
   function setPeriod(p) {
     router.push(`/admin/analytics?period=${p}`);
@@ -183,6 +232,23 @@ export default function AnalyticsClient({ data, period }) {
         </div>
       </div>
 
+      {/* Device analytics */}
+      <div className={styles.twoCol}>
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Dispositivos</h2>
+          <DeviceSplit mobile={ds.mobile} desktop={ds.desktop} tablet={ds.tablet} />
+        </div>
+        <div className={styles.card}>
+          <h2 className={styles.cardTitle}>Modelos Mobile / Tablet</h2>
+          <BarChart
+            rows={ds.topMobileModels}
+            labelKey="model"
+            valueKey="views"
+            color="#f472b6"
+          />
+        </div>
+      </div>
+
       {/* Recent visits table */}
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Últimas visitas</h2>
@@ -194,26 +260,35 @@ export default function AnalyticsClient({ data, period }) {
                 <th>Página</th>
                 <th>Localização</th>
                 <th>Navegador</th>
+                <th>Dispositivo</th>
                 <th>Origem</th>
               </tr>
             </thead>
             <tbody>
               {recent.length === 0 && (
-                <tr><td colSpan={5} className={styles.empty}>Nenhuma visita registrada ainda.</td></tr>
+                <tr><td colSpan={6} className={styles.empty}>Nenhuma visita registrada ainda.</td></tr>
               )}
-              {recent.map(v => (
-                <tr key={v.id}>
-                  <td className={styles.mono}>{formatDate(v.created_at)}</td>
-                  <td className={styles.path}>{v.path}</td>
-                  <td>{v.city ? `${v.city}, ${countryName(v.country)}` : countryName(v.country)}</td>
-                  <td>{parseBrowser(v.user_agent)}</td>
-                  <td className={styles.ref}>
-                    {v.referrer ? (
-                      (() => { try { return new URL(v.referrer).hostname.replace(/^www\./, ""); } catch { return v.referrer.slice(0, 40); } })()
-                    ) : <span className={styles.dim}>(direto)</span>}
-                  </td>
-                </tr>
-              ))}
+              {recent.map(v => {
+                const deviceType = parseDeviceType(v.user_agent);
+                const badgeClass =
+                  deviceType === "Mobile"  ? styles.deviceBadgeMobile  :
+                  deviceType === "Tablet"  ? styles.deviceBadgeTablet  :
+                                             styles.deviceBadgeDesktop;
+                return (
+                  <tr key={v.id}>
+                    <td className={styles.mono}>{formatDate(v.created_at)}</td>
+                    <td className={styles.path}>{v.path}</td>
+                    <td>{v.city ? `${v.city}, ${countryName(v.country)}` : countryName(v.country)}</td>
+                    <td>{parseBrowser(v.user_agent)}</td>
+                    <td><span className={`${styles.deviceBadge} ${badgeClass}`}>{deviceType}</span></td>
+                    <td className={styles.ref}>
+                      {v.referrer ? (
+                        (() => { try { return new URL(v.referrer).hostname.replace(/^www\./, ""); } catch { return v.referrer.slice(0, 40); } })()
+                      ) : <span className={styles.dim}>(direto)</span>}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

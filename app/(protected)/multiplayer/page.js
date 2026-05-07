@@ -13,6 +13,7 @@ import SocialLinksMini from "@/app/components/SocialLinksMini";
 import PlayerProfileModal from "@/app/components/PlayerProfileModal";
 import { checkBadgesAfterMultiplayerWin, checkAllBadgesForUser } from "@/lib/badgesIntegration";
 import { useGuest } from "@/src/hooks/useGuest";
+import GuestModal from "@/app/components/GuestModal";
 
 // Bot player UUIDs — must match what's in the profiles table (is_bot = true)
 const BOT_IDS = new Set([
@@ -37,11 +38,12 @@ export default function MultiplayerPage() {
     const { userStats, isLoading: statsLoading, userId: contextUserId } = useUserStats();
   const { isGuest } = useGuest();
   const router = useRouter();
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
 
-  // Guests cannot access multiplayer — redirect immediately
+  // Guests cannot access multiplayer — show modal instead of redirecting
   useEffect(() => {
-    if (isGuest) router.replace("/mode");
-  }, [isGuest, router]);
+    if (isGuest) setGuestModalOpen(true);
+  }, [isGuest]);
   const { t } = useI18n();
   const [currentUser, setCurrentUser] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -228,7 +230,10 @@ export default function MultiplayerPage() {
         if (!sessionUser) {
           console.warn("[Multiplayer] Sem usuário autenticado");
           if (mounted) { setLoading(false); clearTimeout(safetyTimeout); }
-          router.replace("/login");
+          // Guests are handled by the modal — don't redirect
+          if (!localStorage.getItem("thor_guest")) {
+            router.replace("/login");
+          }
           return;
         }
         user = sessionUser;
@@ -686,6 +691,15 @@ export default function MultiplayerPage() {
       }
     }
   };
+
+  if (guestModalOpen || isGuest) {
+    return (
+      <>
+        <div style={{ minHeight: "100dvh", background: "#000010" }} />
+        <GuestModal open={true} onClose={() => { setGuestModalOpen(false); router.back(); }} />
+      </>
+    );
+  }
 
   if (loading) {
     return (

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { useGuest } from "@/src/hooks/useGuest";
-import GuestWall from "@/app/components/GuestWall";
+import GuestModal from "@/app/components/GuestModal";
 
 const DEFAULT_SETTINGS = {
   audio: { master: true, music: true, sfx: true },
@@ -137,7 +137,12 @@ export default function SettingsPage() {
   };
 
   if (isGuest) {
-    return <GuestWall title="Crie sua conta para acessar as configurações" message="Salve preferências de idioma, áudio e mais com uma conta gratuita." fullPage />;
+    return (
+      <>
+        <div style={{ minHeight: "100dvh", background: "#000010" }} />
+        <GuestModal open={true} onClose={() => {}} />
+      </>
+    );
   }
 
   if (loading) {

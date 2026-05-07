@@ -70,3 +70,30 @@
 .ref  { color: #64748b; font-size: 0.8rem; }
 .dim  { color: #334155; }
 .empty { text-align: center; color: #475569; padding: 2rem; font-size: 0.88rem; }
+
+/* ── Device split ── */
+.deviceSplit { display: flex; flex-direction: column; gap: 0.9rem; }
+.deviceBar {
+  display: flex; height: 14px; border-radius: 7px; overflow: hidden;
+  background: #0f1117;
+}
+.deviceBarMobile  { background: #6366f1; transition: width 0.4s ease; }
+.deviceBarTablet  { background: #a78bfa; transition: width 0.4s ease; }
+.deviceBarDesktop { background: #22d3ee; flex: 1; transition: width 0.4s ease; }
+.deviceLegend { display: flex; flex-direction: column; gap: 0.5rem; }
+.deviceLegendItem {
+  display: flex; align-items: center; gap: 0.55rem; font-size: 0.83rem;
+}
+.dotMobile  { width: 10px; height: 10px; border-radius: 50%; background: #6366f1; flex-shrink: 0; }
+.dotTablet  { width: 10px; height: 10px; border-radius: 50%; background: #a78bfa; flex-shrink: 0; }
+.dotDesktop { width: 10px; height: 10px; border-radius: 50%; background: #22d3ee; flex-shrink: 0; }
+.deviceLegendLabel { flex: 1; color: #94a3b8; }
+.deviceLegendValue { color: #e2e8f0; font-weight: 700; min-width: 50px; text-align: right; }
+.deviceLegendPct   { color: #475569; font-size: 0.75rem; min-width: 38px; text-align: right; }
+.deviceBadge {
+  display: inline-block; font-size: 0.7rem; font-weight: 600; padding: 0.1rem 0.5rem;
+  border-radius: 99px; white-space: nowrap;
+}
+.deviceBadgeMobile  { background: #1e1b4b; color: #a5b4fc; }
+.deviceBadgeTablet  { background: #2e1065; color: #c4b5fd; }
+.deviceBadgeDesktop { background: #0c2a3a; color: #67e8f9; }

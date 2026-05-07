@@ -214,11 +214,24 @@ export default function SignupPage() {
     justifyContent: 'center',
     padding: '36px',
     boxSizing: 'border-box',
-    backgroundImage: `url('/game/images/galaxiaintro.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`,
-    backgroundSize: 'cover, auto',
+    backgroundColor: '#000016',
+    backgroundImage: `radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)`,
+    backgroundSize: 'cover',
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center center',
+    position: 'relative',
     fontFamily: "Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+  };
+
+  const overlayStyle = {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 0,
+    backgroundImage: "url('/game/images/galaxiaintro.png')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    opacity: 0.18,
+    pointerEvents: 'none',
   };
 
   const wrapper = {
@@ -226,6 +239,8 @@ export default function SignupPage() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    position: 'relative',
+    zIndex: 1,
   };
 
   const cardStyles = {
@@ -308,6 +323,7 @@ export default function SignupPage() {
 
   return (
     <div style={pageStyles}>
+      <div style={overlayStyle} aria-hidden />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet" />
 
@@ -316,7 +332,7 @@ export default function SignupPage() {
           <img
             src="/game/images/logo/logo_thorspace.png"
             alt="Thorspace"
-            style={{ width: '100%', maxWidth: 480, height: 329, objectFit: 'contain', margin: '-130px auto -92px auto' }}
+            style={{ width: '70%', maxWidth: 480, height: 329, objectFit: 'contain', margin: '-130px auto -92px auto' }}
             onError={() => setLogoImageWorks(false)}
           />
         ) : (

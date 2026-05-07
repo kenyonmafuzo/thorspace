@@ -6,6 +6,7 @@ import { useI18n } from "@/src/hooks/useI18n";
 import { useUserStats } from "@/app/components/stats/UserStatsProvider";
 import { supabase } from "@/lib/supabase";
 import { useGuest } from "@/src/hooks/useGuest";
+import GuestModal from "@/app/components/GuestModal";
 
 
 export default function ModePage() {
@@ -16,6 +17,7 @@ export default function ModePage() {
     const { isGuest } = useGuest();
     const router = useRouter();
     const { t, lang } = useI18n();
+    const [guestModalOpen, setGuestModalOpen] = useState(false);
     
     // Reload automático após signup, só na primeira visita
     useEffect(() => {
@@ -146,6 +148,7 @@ export default function ModePage() {
 
   return (
     <>
+      <GuestModal open={guestModalOpen} onClose={() => setGuestModalOpen(false)} />
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet" />
 
       {/* Mobile-only: desktop required message */}
@@ -565,10 +568,10 @@ Boas batalhas!`}
               role="button"
               tabIndex={0}
               onClick={() => {
-                if (isGuest) { router.push("/login"); return; }
+                if (isGuest) { setGuestModalOpen(true); return; }
                 router.push("/multiplayer");
               }}
-              onKeyDown={e => e.key === "Enter" && (() => { if (isGuest) { router.push("/login"); return; } router.push("/multiplayer"); })()}
+              onKeyDown={e => e.key === "Enter" && (() => { if (isGuest) { setGuestModalOpen(true); return; } router.push("/multiplayer"); })()}
             >
               <img className="home-card-bg" src="/game/images/menu/menu_multiplayer_card.png" alt="" draggable={false} />
               <img className="home-card-img" src="/game/images/menu/menu_multiplayer_img.png" alt="Multiplayer" draggable={false} style={{ top: '-3%', width: '100%', height: '100%' }} />

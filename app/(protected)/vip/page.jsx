@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useI18n } from "@/src/hooks/useI18n";
 import { AVATAR_OPTIONS } from "@/app/lib/avatarOptions";
 import { useGuest } from "@/src/hooks/useGuest";
+import GuestModal from "@/app/components/GuestModal";
 
 const PLAN_ACCENTS = {
   "1day":   "#00E5FF",
@@ -32,6 +33,7 @@ export default function VIPPage() {
   const [profileUserId, setProfileUserId] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
 
   // VIP customization
   const [vipNameColor, setVipNameColor] = useState("#FFD700");
@@ -167,7 +169,7 @@ export default function VIPPage() {
                                  (vip.debitLabel  || "Debit");
 
   const handlePay = async () => {
-    if (isGuest) { router.push("/login"); return; }
+    if (isGuest) { setGuestModalOpen(true); return; }
     if (paymentLoading) return;
     setPaymentLoading(true);
     setPaymentError("");
@@ -246,6 +248,7 @@ export default function VIPPage() {
 
   return (
     <div style={pageStyle} className="vip-page-wrap">
+      <GuestModal open={guestModalOpen} onClose={() => setGuestModalOpen(false)} />
       <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "url('/game/images/bg_vip.png'), radial-gradient(ellipse at bottom, #01030a 0%, #000016 40%, #000000 100%)", backgroundSize: "cover, cover", backgroundRepeat: "no-repeat, no-repeat", backgroundPosition: "center center, center center", opacity: 0.35, pointerEvents: "none" }} />
       <div style={{ position: "relative", zIndex: 1 }}>
       {/* VIP Activation Modal */}
@@ -680,23 +683,23 @@ export default function VIPPage() {
           <button
             className="pay-btn"
             onClick={handlePay}
-            disabled={isGuest || paymentLoading}
+            disabled={paymentLoading}
             style={{
               width: "100%", padding: "16px 24px",
-              backgroundImage: (isGuest || paymentLoading)
+              backgroundImage: paymentLoading
                 ? "none"
                 : "linear-gradient(90deg, #FFD700 0%, #f59e0b 50%, #FFD700 100%)",
-              backgroundColor: (isGuest || paymentLoading) ? "rgba(255,215,0,0.15)" : "transparent",
+              backgroundColor: paymentLoading ? "rgba(255,215,0,0.15)" : "transparent",
               backgroundSize: "200% auto",
-              animation: (isGuest || paymentLoading) ? "none" : "shimmer 3s linear infinite",
-              border: (isGuest || paymentLoading) ? "1px solid rgba(255,215,0,0.3)" : "none",
+              animation: paymentLoading ? "none" : "shimmer 3s linear infinite",
+              border: paymentLoading ? "1px solid rgba(255,215,0,0.3)" : "none",
               borderRadius: 12,
               fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900,
-              color: (isGuest || paymentLoading) ? "#FFD70088" : "#000",
-              cursor: (isGuest || paymentLoading) ? "not-allowed" : "pointer",
+              color: paymentLoading ? "#FFD70088" : "#000",
+              cursor: paymentLoading ? "not-allowed" : "pointer",
               letterSpacing: 1,
-              opacity: isGuest ? 0.5 : 1,
-              boxShadow: (isGuest || paymentLoading) ? "none" : "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
+              opacity: 1,
+              boxShadow: paymentLoading ? "none" : "0 0 30px rgba(255,215,0,0.4), 0 4px 20px rgba(0,0,0,0.3)",
               transition: "all 0.2s",
             }}
           >
