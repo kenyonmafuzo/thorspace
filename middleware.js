@@ -1,11 +1,50 @@
-// middleware.js — Page view tracking
+// middleware.js — Page view tracking + security bot blocking
 // Runs at the Edge for every matching request.
 // Uses Vercel geo headers (no external API needed) and fires a non-blocking
 // insert to Supabase REST API to record the page view.
 
 import { NextResponse } from "next/server";
 
-// Paths to ignore: admin, api, static files, Next.js internals
+// ---------------------------------------------------------------------------
+// SECURITY: Block automated scanners probing for sensitive files/endpoints.
+// These paths have no legitimate use in this Next.js app and are exclusively
+// accessed by vulnerability scanners and recon bots.
+// ---------------------------------------------------------------------------
+const SCANNER_PATTERNS = [
+  // Environment / secrets files
+  /\/\.env(\b|$|\/)/i,
+  /\/(server|deploy|web|dist|core|build|services|src|app|config|public|backend|frontend|api|root|prod|stage|dev)\/\.env/i,
+  /\/config\.env$/i,
+  /\/\.env\.(local|production|staging|development|test)/i,
+  // Deployment / infra files
+  /\/(Procfile|Dockerfile|docker-compose\.ya?ml|\.dockerignore)$/i,
+  /\/Makefile$/i,
+  // Backup / leaked config files
+  /\.(bak|backup|old|orig|save|swp|swo|~)$/i,
+  /\/(wp-config|configuration|settings|database|db|credentials)\.(php|php\.bak|xml|yml|yaml|json\.bak)/i,
+  // PHP / legacy CMS scanners
+  /\/(info\.php|phpinfo\.php|php\.php|shell\.php|b374k|c99|r57|webshell)/i,
+  /\/(wp-admin|wp-login|wp-includes|xmlrpc\.php)/i,
+  // Debug / diagnostics endpoints
+  /\/debug\//i,
+  /\/(trace\.axd|elmah\.axd|webresource\.axd)/i,
+  // Spring Boot / Java actuator
+  /\/actuator(\/|$)/i,
+  // Vite / bundler dev-server leaks
+  /\/@vite\/env/i,
+  /\/\.git(\/|$)/i,
+  // API / swagger recon
+  /\/(swagger|api-docs|openapi)(\/|$)/i,
+  /\/v[0-9]+\/(api-docs|_catalog)(\/|$)/i,
+  // Server status / metrics
+  /\/(server-status|server-info|nginx_status|health)(\/|$)/i,
+  // Other common probe paths
+  /\/(exec|eval|cmd|shell|console|terminal)(\/|$)/i,
+];
+
+// ---------------------------------------------------------------------------
+// Paths to ignore for page-view tracking (admin, api, static files, etc.)
+// ---------------------------------------------------------------------------
 const IGNORE = /^\/(admin|api|_next|favicon|icon|robots|sitemap|\.)/;
 
 // Simple non-cryptographic fingerprint — just for same-session grouping.
@@ -18,10 +57,21 @@ function makeVisitorId(ip, ua, date) {
 }
 
 export async function middleware(request) {
-  const { pathname } = request.nextUrl;
+  const { pathname, hostname } = request.nextUrl;
 
-  // Skip non-page requests
+  // Block scanner / recon bot requests — return 404 (not 403, to avoid
+  // confirming the endpoint exists to the scanner).
+  if (SCANNER_PATTERNS.some((re) => re.test(pathname))) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // Skip non-page requests (tracking only)
   if (IGNORE.test(pathname)) return NextResponse.next();
+
+  // Skip localhost — never count developer visits
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+    return NextResponse.next();
+  }
 
   // Extract tracking data from headers
   const h          = request.headers;
@@ -64,12 +114,6 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths EXCEPT:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, public files with extensions
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|mp3|mp4|woff2?|ttf|css|js)$).*)",
   ],
 };
